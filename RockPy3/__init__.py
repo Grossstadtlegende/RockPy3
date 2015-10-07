@@ -1,16 +1,15 @@
-# __author__ = 'volk'
+import os
+import logging
 import matplotlib
 # # matplotlib.use('QT4Agg') #not working on OSX!
-# # import RockPy3.utils.general
-import logging
+
 import RockPy3.core.utils
 RockPy3.core.utils.create_logger('RockPy3')
 logger = logging.getLogger('RockPy3')
 
-import os
 import RockPy3.core
-# # from RockPy3.core.sample import Sample, MeanSample
-# # from RockPy3.core.samplegroup import SampleGroup
+from RockPy3.core.sample import Sample#, MeanSample
+from RockPy3.core.samplegroup import SampleGroup
 from RockPy3.core.study import Study
 # # from RockPy3.core.data import RockPy3Data, condense
 # # from RockPy3.core.measurement import Measurement
