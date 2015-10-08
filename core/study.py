@@ -100,15 +100,15 @@ class Study(object):
         self._samples.setdefault(sobj.name, sobj)
         return sobj
 
-    def samplegroup_from(self,
-                         gname=None,
-                         snames=None,
-                         mtypes=None,
-                         series=None,
-                         stypes=None, svals=None, sval_range=None,
-                         mean=False,
-                         invert=False,
-                         ):
+    def add_samplegroup(self,
+                        gname=None,
+                        sname=None,
+                        mtype=None,
+                        series=None,
+                        stype=None, sval=None, sval_range=None,
+                        mean=False,
+                        invert=False,
+                        ):
         """
         creates a samplegroups and adds it to the samplegroup dictionary
 
@@ -124,10 +124,10 @@ class Study(object):
 
         """
         samples = self.get_sample(
-            snames=snames,
-            mtypes=mtypes,
+            sname=sname,
+            mtype=mtype,
             series=series,
-            stypes=stypes, svals=svals, sval_range=sval_range,
+            stype=stype, sval=sval, sval_range=sval_range,
             mean=mean,
             invert=invert,
         )
@@ -135,7 +135,7 @@ class Study(object):
             gname = 'SG%02i' % self.ngroups
 
         for s in samples:
-            s.add_to_samplegroup(gname = gname)
+            s.add_to_samplegroup(gname=gname)
 
     def add_mean_samplegroup(self):
         pass
@@ -190,32 +190,31 @@ class Study(object):
                    'latex_booktabs']
 
         if not tablefmt in formats:
-            RockPy.logger.info('NO SUCH FORMAT')
+            RockPy3.logger.info('NO SUCH FORMAT')
             tablefmt = 'simple'
 
-        header = ['Sample Group', 'Sample Name', 'Measurements', 'series', 'Initial State']
+        header = ['Sample Name', 'Sample Group', 'Measurements', 'series', 'Initial State']
         table = []
 
-        for sg in sorted(self._samplegroups):
-            for sname, s in sorted(sg.sdict.iteritems()):
-                mtypes = [m.mtype for m in s.measurements]
-                stypes = sorted(list(set([stype for m in s.measurements for stype in m.stypes])))
-                measurements = ', '.join(['%ix %s' % (mtypes.count(i), i) for i in sorted(set(mtypes))])
-                stypes = ', '.join(stypes)
-                i_state = [True if any(m.has_initial_state for m in s.measurements) else False][0]
-                line0 = [sg.name, s.name, measurements, stypes, i_state]
-                table.append(line0)
-                table.append([''.join(['--' for i in str(j)]) for j in line0])
-                for m in s.measurements:
-                    if not isinstance(m, RockPy.Packages.Generic.Measurements.parameters.Parameter):
-                        if m.has_initial_state:
-                            initial = m.initial_state.mtype
-                        else:
-                            initial = ''
-                        line = ['', s.name, m.mtype,
-                                ', '.join(['{} [{}]'.format(series[0], series[1]) for series in m.stype_sval_tuples]),
-                                initial]
-                        table.append(line)
-                table.append([''.join(['--' for i in str(j)]) for j in line0])
+        for s in sorted(self.samplelist):
+            mtypes = [m.mtype for m in s.measurements]
+            stypes = sorted(list(set([stype for m in s.measurements for stype in m.stypes])))
+            measurements = ', '.join(['%ix %s' % (mtypes.count(i), i) for i in sorted(set(mtypes))])
+            stypes = ', '.join(stypes)
+            i_state = [True if any(m.has_initial_state for m in s.measurements) else False][0]
+            line0 = [sg.name, s.name, measurements, stypes, i_state]
+            table.append(line0)
+            table.append([''.join(['--' for i in str(j)]) for j in line0])
+            for m in s.measurements:
+                if not isinstance(m, RockPy.Packages.Generic.Measurements.parameters.Parameter):
+                    if m.has_initial_state:
+                        initial = m.initial_state.mtype
+                    else:
+                        initial = ''
+                    line = ['', s.name, m.mtype,
+                            ', '.join(['{} [{}]'.format(series[0], series[1]) for series in m.stype_sval_tuples]),
+                            initial]
+                    table.append(line)
+            table.append([''.join(['--' for i in str(j)]) for j in line0])
 
         print(tabulate(table, headers=header, tablefmt=tablefmt))

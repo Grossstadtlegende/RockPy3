@@ -40,13 +40,11 @@ class TestStudy(TestCase):
         s3 = self.s.add_sample(name='s3', samplegroup='B')
         self.assertEqual(sorted([s1, s2]), sorted(self.s.get_samplegroup(gname='A')))
 
-
     def test_get_sample(self):
         gtest = ['A', 'B']
         s1 = self.s.add_sample(name='s1', samplegroup=gtest)
         s2 = self.s.add_sample(name='s2', samplegroup='A')
         s3 = self.s.add_sample(name='s3', samplegroup='B')
-
         self.assertEqual(sorted([s1, s2]), sorted(self.s.get_sample(gname='A')))
 
     def test_get_measurement(self):
@@ -54,3 +52,10 @@ class TestStudy(TestCase):
 
     def test_info(self):
         self.fail()
+
+    def test_add_samplegroup(self):
+        s1 = self.s.add_sample(name='s1')
+        s2 = self.s.add_sample(name='s2')
+        s3 = self.s.add_sample(name='s3')
+
+        self.s.add_samplegroup(gname='A', snames=['s1', 's2'])
