@@ -1,7 +1,7 @@
 import logging
 
 import RockPy3
-import RockPy3.core
+import core
 
 
 class Sample(object):

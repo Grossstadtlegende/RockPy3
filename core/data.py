@@ -14,15 +14,9 @@ import itertools
 import re  # regular expressions
 from numbers import Number
 
-try:
-    from tabulate import tabulate
-    #log.info('using tabulate version {}'.format(tabulate.__version__))
-    tabulate_available = True
-except ImportError:
-    tabulate_available = False
-    log.warning('Please install module tabulate for nicer output formatting.')
 
-from RockPy3.core import ureg
+
+from core import ureg
 
 from scipy import stats
 

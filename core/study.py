@@ -3,7 +3,7 @@ import time
 import tabulate
 
 import RockPy3
-from RockPy3.core import utils
+from core import utils
 
 
 class Study(object):
