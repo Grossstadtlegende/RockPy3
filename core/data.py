@@ -1,4 +1,5 @@
-__author__ = 'wack'
+__author__ =\
+    'wack'
 
 import logging
 
@@ -22,7 +23,7 @@ except ImportError:
     tabulate_available = False
     log.warning('Please install module tabulate for nicer output formatting.')
 
-from RockPy3.core import ureg
+from core import ureg
 
 from scipy import stats
 
@@ -36,7 +37,7 @@ def _to_tuple(oneormoreitems):
        oneormoreitems: single number or string or list of numbers or strings
     :return: tuple of elements
     """
-    return tuple(oneormoreitems) if hasattr(oneormoreitems, '__iter__') else (oneormoreitems, )
+    return tuple(oneormoreitems) if hasattr(oneormoreitems, '__iter__') and type(oneormoreitems) is not str else (oneormoreitems, )
 
 
 def condense(listofRPD, substfunc='mean'):
@@ -171,13 +172,13 @@ class RockPyData(object):
 
         # initialize member variables
         self._column_names = list(column_names)
-        self._column_names = map(str, self.column_names)
+        self._column_names = list(map(str, self.column_names))
         # todo: check for right dimension of units
         if units is None:
             self._units = None
-        elif isinstance(units, basestring):  # single string
+        elif isinstance(units, str):  # single string
             self._units = [ureg(units), ]
-        elif all(isinstance(u, basestring) for u in units):  # list of strings
+        elif all(isinstance(u, str) for u in units):  # list of strings
             self._units = [ureg(u) for u in units]
         else:
             raise RuntimeError('unknown values type for units: %s' % units.__class__)
@@ -806,14 +807,14 @@ class RockPyData(object):
         colidxs = []
         # check type of key and convert to tuple of column indices
         try:
-            if isinstance(key, basestring):  # single string
+            if isinstance(key, str):  # single string
                 colidxs.extend(self.column_dict[key])
             elif isinstance(key, int):  # single int
                 if key < self.column_count and key >= 0:
                     colidxs.append(key)
                 else:
                     raise KeyError('key is out of range')
-            elif all(isinstance(k, basestring) for k in key):  # list of strings
+            elif all(isinstance(k, str) for k in key):  # list of strings
                 for k in key:
                     colidxs.extend(self.column_dict[k])
             elif all(isinstance(k, int) for k in key):  # list of ints
