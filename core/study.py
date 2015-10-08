@@ -1,4 +1,7 @@
 import time
+
+import tabulate
+
 import RockPy3
 from RockPy3.core import utils
 
@@ -22,6 +25,7 @@ class Study(object):
         if not name:
             name = time.strftime("%Y%m%d:%H%M")
         # self.log = log  # logging.getLogger('RockPy.' + type(self).__name__)
+        RockPy3.logger.info('CREATING study << {} >>'.format(name))
         self.name = name
         self._samples = dict()  # {'sname':'sobj'}
         self._all_samplegroup = None
@@ -42,7 +46,7 @@ class Study(object):
     ''' add functions '''
 
     def _add_sample(self, sobj):
-        sobj=utils.to_list(sobj)
+        sobj= utils.to_list(sobj)
         for s in sobj:
             self._samples.setdefault(s.name, s)
 

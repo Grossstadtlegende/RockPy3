@@ -1,14 +1,15 @@
 import logging
+
 import RockPy3
 import RockPy3.core
-from RockPy3.core import utils
+
 
 class Sample(object):
     snum = 0
 
     @property
     def logger(self):
-        return RockPy3.core.set_get_attr(self, '_logger', value=logging.getLogger('RockPy3.Sample(#%03i)[%s]' % (Sample.snum, self.name)))
+        return core.set_get_attr(self, '_logger', value=logging.getLogger('RockPy3.Sample(#%03i)[%s]' % (Sample.snum, self.name)))
 
     def __init__(self, name,
                  comment='',

@@ -1,4 +1,5 @@
 from unittest import TestCase
+
 import RockPy3
 
 __author__ = 'mike'
