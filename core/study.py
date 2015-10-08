@@ -4,6 +4,7 @@ import tabulate
 
 import RockPy3
 from core import utils
+import RockPy3.core.sample
 
 
 class Study(object):
@@ -31,26 +32,83 @@ class Study(object):
         self._all_samplegroup = None
 
     def __repr__(self):
-        return self.name
+        if self == RockPy3.Study:
+            return '<< RockPy.MasterStudy >>'.format(self.name)
+        else:
+            return '<< RockPy.Study.{} >>'.format(self.name)
 
     @property
     def samplelist(self):
+        """
+        Returns a list of all samples
+
+        Returns
+        -------
+            list of all samples
+        """
+
         return [v for k, v in self._samples.items()]
 
     @property
     def samplenames(self):
+        """
+        Returns a list of all samplenames
+
+        Returns
+        -------
+            list of all samplenames
+        """
         return [k for k, v in self._samples.items()]
 
+    @property
+    def ngroups(self):
+        return len(self.groupnames)
+
+    @property
+    def groupnames(self):
+        return sorted(list(set(i for j in self.samplelist for i in j._samplegroups)))
 
     ####################################################################################################################
     ''' add functions '''
 
-    def _add_sample(self, sobj):
-        sobj= utils.to_list(sobj)
-        for s in sobj:
-            self._samples.setdefault(s.name, s)
+    def add_sample(self,
+                   name=None,
+                   comment='',
+                   mass=None, mass_unit='kg',
+                   height=None, diameter=None,
+                   x_len=None, y_len=None, z_len=None,  # for cubic samples
+                   length_unit='mm',
+                   sample_shape='cylinder',
+                   coord=None,
+                   samplegroup=None,
+                   sobj=None,
+                   ):
 
-    def add_samplegroup(self, name=None):
+        if not sobj:
+            sobj = RockPy3.core.sample.Sample(
+                name=name,
+                comment=comment,
+                mass=mass, mass_unit=mass_unit,
+                height=height, diameter=diameter,
+                x_len=x_len, y_len=y_len, z_len=z_len,  # for cubic samples
+                length_unit=length_unit,
+                sample_shape=sample_shape,
+                samplegroup=samplegroup,
+                coord=None,
+            )
+
+        self._samples.setdefault(sobj.name, sobj)
+        return sobj
+
+    def samplegroup_from(self,
+                         gname=None,
+                         snames=None,
+                         mtypes=None,
+                         series=None,
+                         stypes=None, svals=None, sval_range=None,
+                         mean=False,
+                         invert=False,
+                         ):
         """
         creates a samplegroups and adds it to the samplegroup dictionary
 
@@ -65,9 +123,19 @@ class Study(object):
             RockPy3.SampleGroup
 
         """
-        sg = RockPy3.SampleGroup(name=name)
-        self._samplegroups.setdefault(sg.name, sg)
-        return sg
+        samples = self.get_sample(
+            snames=snames,
+            mtypes=mtypes,
+            series=series,
+            stypes=stypes, svals=svals, sval_range=sval_range,
+            mean=mean,
+            invert=invert,
+        )
+        if not gname:
+            gname = 'SG%02i' % self.ngroups
+
+        for s in samples:
+            s.add_to_samplegroup(gname = gname)
 
     def add_mean_samplegroup(self):
         pass
@@ -75,14 +143,43 @@ class Study(object):
     ####################################################################################################################
     ''' remove functions '''
 
-    def remove_samplegroup(self, name=None):
-        pass
+    def remove_samplegroup(self, gname=None):
+        samples = self.get_sample(gname=gname)
+        for s in samples:
+            s.remove_from_samplegroup(gname=gname)
 
     ####################################################################################################################
     ''' get functions '''
 
-    def get_sample(self):
-        pass
+    def get_sample(self,
+                   gname=None,
+                   sname=None,
+                   mtype=None,
+                   series=None,
+                   stype=None, sval=None, sval_range=None,
+                   mean=False,
+                   invert=False,
+                   ):
+
+        slist = self.samplelist
+
+        if not any(i for i in locals() if i != 'self'):
+            return slist
+
+        gname = utils.to_list(gname)
+        slist = [s for s in slist if any(sg in gname for sg in s._samplegroups)]
+
+        return slist
+
+    def get_samplegroup(self, gname):
+        """
+        wrapper for simply getting all samples of one samplegroup
+        :param gname: str
+            name of the samplegroup
+        :return: list
+            list of samples in that group
+        """
+        return self.get_sample(gname=gname)
 
     def get_measurement(self):
         pass
