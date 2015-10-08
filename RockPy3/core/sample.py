@@ -8,7 +8,7 @@ class Sample(object):
 
     @property
     def logger(self):
-        return RockPy3.core.set_get_attr(self, '_logger', value=logging.getLogger('RockPy.Sample(#%03i)[%s]' % (Sample.snum, self.name)))
+        return RockPy3.core.set_get_attr(self, '_logger', value=logging.getLogger('RockPy3.Sample(#%03i)[%s]' % (Sample.snum, self.name)))
 
     def __init__(self, name,
                  comment='',
@@ -49,10 +49,15 @@ class Sample(object):
            color: color
               used in plots if specified
         """
+        self.name = name #unique name, only one per study
+        self.comment = comment
+        self.idx = Sample.snum
+
+        Sample.snum += 1
         # create a study if none provided
         if not study or not isinstance(study, RockPy3.Study):
             name = None #initialize
-            self.logger.waring('A Sample needs a Study to be contained in. RockPy now creates a study and adds the sample')
+            self.logger.warning('A Sample needs a Study to be contained in. RockPy now creates a study and adds the sample')
 
             if isinstance(study, str):
                 name = study
@@ -60,11 +65,7 @@ class Sample(object):
             study = RockPy3.Study(name=name)
             study._add_sample(sobj=self)
 
-        self.name = name #unique name, only one per study
-        self.comment = comment
-        self.idx = Sample.snum
 
-        Sample.snum += 1
 
         self._study = study
         self._sample_groups = samplegroup

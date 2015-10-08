@@ -24,29 +24,27 @@ class Study(object):
         # self.log = log  # logging.getLogger('RockPy.' + type(self).__name__)
         self.name = name
         self._samples = dict()  # {'sname':'sobj'}
-        self._samplegroups = dict()  # {'sgname':'sgobj'}
         self._all_samplegroup = None
 
     def __repr__(self):
         return self.name
 
     @property
-    def samplegroups(self):
-        return self._samplegroups
+    def samplelist(self):
+        return [v for k, v in self._samples.items()]
 
     @property
-    def grouplist(self):
-        return [v for k, v in self._samplegroups.items()]
+    def samplenames(self):
+        return [k for k, v in self._samples.items()]
 
-    @property
-    def groupnames(self):
-        return [k for k, v in self._samplegroups.items()]
 
     ####################################################################################################################
     ''' add functions '''
 
     def _add_sample(self, sobj):
-        self._samples.setdefault()
+        sobj=utils.to_list(sobj)
+        for s in sobj:
+            self._samples.setdefault(s.name, s)
 
     def add_samplegroup(self, name=None):
         """
@@ -78,18 +76,6 @@ class Study(object):
 
     ####################################################################################################################
     ''' get functions '''
-
-    def get_samplegroup(self, sgname=None):
-        """
-        getter function to get a specific SampleGroup
-
-        """
-        glist = self.grouplist
-
-        if sgname:
-            sgname
-
-        return glist
 
     def get_sample(self):
         pass

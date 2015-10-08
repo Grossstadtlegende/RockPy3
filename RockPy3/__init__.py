@@ -8,9 +8,8 @@ RockPy3.core.utils.create_logger('RockPy3')
 logger = logging.getLogger('RockPy3')
 
 import RockPy3.core
-from RockPy3.core.sample import Sample#, MeanSample
-from RockPy3.core.samplegroup import SampleGroup
 from RockPy3.core.study import Study
+from RockPy3.core.sample import Sample#, MeanSample
 # # from RockPy3.core.data import RockPy3Data, condense
 # # from RockPy3.core.measurement import Measurement
 # # from RockPy3.core.series import Generic as Series
@@ -90,4 +89,3 @@ import numpy
 logger.info('using numpy version %s' % numpy.__version__)
 
 # mtype_ftype_abbreviations_inversed, mtype_ftype_abbreviations = RockPy3.core.file_operations.mtype_ftype_abbreviations()
-#
