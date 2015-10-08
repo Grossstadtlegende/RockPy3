@@ -135,10 +135,10 @@ class TestRockPyData(TestCase):
         self.assertEqual(5., d['B'].e)
 
     def test_data_assignment(self):
-        print self.RPD
+        print(self.RPD)
         # set only values
         self.RPD['Mx'] = [1.1, 1.2, 1.3, 1.4]
-        print self.RPD
+        print(self.RPD)
         # set values and errors
         self.RPD['Mx'] = [[[1.1, 0.11]], [[1.2, 0.12]], [[1.3, 0.13]], [[1.4, 0.14]]]
-        print self.RPD
+        print(self.RPD)
