@@ -9,7 +9,7 @@ logger = logging.getLogger('RockPy3')
 
 import RockPy3.core
 import RockPy3.core.study
-# from RockPy3.core.sample import Sample#, MeanSample
+from RockPy3.core.sample import Sample#, MeanSample
 # # from RockPy3.core.data import RockPy3Data, condense
 # # from RockPy3.core.measurement import Measurement
 # # from RockPy3.core.series import Generic as Series

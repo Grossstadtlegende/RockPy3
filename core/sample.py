@@ -1,17 +1,22 @@
 import logging
 
 import RockPy3
-import core
-
+import RockPy3.core.study
+import core.utils
 
 class Sample(object):
     snum = 0
 
     @property
     def logger(self):
-        return core.set_get_attr(self, '_logger', value=logging.getLogger('RockPy3.Sample(#%03i)[%s]' % (Sample.snum, self.name)))
+        return core.utils.set_get_attr(self, '_logger',
+                                 value=logging.getLogger('RockPy3.Sample(#%03i)[%s]' % (Sample.snum, self.name)))
 
-    def __init__(self, name,
+    def __lt__(self, other):
+        return self.name < other.name
+
+    def __init__(self,
+                 name=None,
                  comment='',
                  mass=None, mass_unit='kg', mass_ftype='generic',
                  height=None, diameter=None,
@@ -19,7 +24,7 @@ class Sample(object):
                  length_unit='mm', length_ftype='generic',
                  sample_shape='cylinder',
                  coord=None,
-                 samplegroup=None, study=None,
+                 samplegroup=None
                  ):
 
         """
@@ -50,27 +55,15 @@ class Sample(object):
            color: color
               used in plots if specified
         """
-        self.name = name #unique name, only one per study
+        if not name:
+            name = 'S%02i' %Sample.snum
+        self.name = name  # unique name, only one per study
         self.comment = comment
         self.idx = Sample.snum
 
         Sample.snum += 1
-        # create a study if none provided
-        if not study or not isinstance(study, RockPy3.Study):
-            name = None #initialize
-            self.logger.warning('A Sample needs a Study to be contained in. RockPy now creates a study and adds the sample')
 
-            if isinstance(study, str):
-                name = study
-
-            study = RockPy3.Study(name=name)
-            study._add_sample(sobj=self)
-
-
-
-        self._study = study
-        self._sample_groups = samplegroup
-
+        self._samplegroups = core.utils.to_list(samplegroup)
 
         # coordinate system
         self._coord = coord
@@ -115,3 +108,12 @@ class Sample(object):
         #     self.add_measurement(mtype='volume', sample_shape=sample_shape, height=height, diameter=diameter)
         # if x_len and y_len and z_len:
         #     self.add_measurement(mtype='volume', sample_shape=sample_shape, x_len=x_len, y_len=y_len, z_len=z_len)
+
+    def __repr__(self):
+        return '<< RockPy.Sample.{} >>'.format(self.name)
+
+    def add_to_samplegroup(self, gname):
+        self._samplegroups.append(gname)
+
+    def remove_from_samplegroup(self, gname):
+        self._samplegroups.remove(gname)
