@@ -8,7 +8,7 @@ class TestMeasurement(TestCase):
     # def setUp(self):
     #     self.study = RockPy3.core.study.Study()
     #     self.s = self.study.add_sample(name='s1')
-    #     self.m = RockPy3.core.measurement.Measurement(sample_obj=self.s)
+    #     self.m = RockPy3.core.measurement.Measurement(sobj=self.s)
 
     def test_mtype_calculation_parameter_list(self):
         self.fail()

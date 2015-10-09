@@ -68,7 +68,7 @@ def MlistToTupleList(mlist, mtypes):
         aux = [m_mtype1]
         for mtype in mtypes[1:]:
             for m_mtype_n in mdict[mtype]:
-                if not m_mtype1.sample_obj == m_mtype_n.sample_obj:
+                if not m_mtype1.sobj == m_mtype_n.sobj:
                     break
                 if RockPy3.utils.general.compare_measurement_series(m_mtype1, m_mtype_n):
                     aux.append(m_mtype_n)
@@ -343,7 +343,7 @@ def create_dummy_measurement(mtype, fpath=None, ftype=None, idx=0, mdata=None, s
                           idx=idx, mdata=mdata,
                           )
     if sample:
-        m.sample_obj = sample
+        m.sobj = sample
     return m
 
 

@@ -59,7 +59,7 @@ class Hysteresis(measurement.Measurement):
     """
 
     @classmethod
-    def simulate(cls, sample_obj, m_idx=0, color=None,
+    def simulate(cls, sobj, m_idx=0, color=None,
                  ms=250., mrs_ms=0.5, bc=0.2, hf_sus=1., bmax=1.8, b_sat=1, steps=100,
                  noise=None):
         """
@@ -116,7 +116,7 @@ class Hysteresis(measurement.Measurement):
         # plt.plot(fields, rev_mag + irrev_mag)
         # plt.plot(fields, rev_mag - irrev_mag)
         # plt.show()
-        return cls(sample_obj, 'hysteresis', fpath=None, mdata=data, ftype='simulation', color=color)
+        return cls(sobj, 'hysteresis', fpath=None, mdata=data, ftype='simulation', color=color)
 
     @classmethod
     def get_grid(cls, bmax=1, grid_points=30, tuning=10):
@@ -647,7 +647,7 @@ class Hysteresis(measurement.Measurement):
         """
         # if not self.msi_exists:
         #     self.logger.error(
-        #         '%s\tMsi branch does not exist or not properly saturated. Please check datafile' % self.sample_obj.name)
+        #         '%s\tMsi branch does not exist or not properly saturated. Please check datafile' % self.sobj.name)
         #     self.results['e_delta_t'] = np.nan
         #     return np.nan
         #
@@ -775,7 +775,7 @@ class Hysteresis(measurement.Measurement):
 
         if not coe_obj:
             self.logger.info('NO backfield/coe measurement specified: searching through sample')
-            coe_objs = [m for m in self.sample_obj.get_measurements(mtypes='backfield') if m.series == self.series]
+            coe_objs = [m for m in self.sobj.get_measurement(mtype='backfield') if m.series == self.series]
             if len(coe_objs) == 0:
                 self.logger.info('CANT find measurement with << backfield, %s >>' %self.stype_sval_tuples)
                 return
@@ -1357,12 +1357,12 @@ class Hysteresis(measurement.Measurement):
             mass = self.get_mtype_prior_to(mtype='mass').data['data']['mass'].v[0] * 1e5  # mass converted from kg to mg
 
         if not filename:
-            filename = RockPy3.get_fname_from_info(samplegroup='RockPy', sample_name=self.sample_obj.name,
+            filename = RockPy3.get_fname_from_info(samplegroup='RockPy', sample_name=self.sobj.name,
                                                   mtype='HYS', ftype=self.ftype, mass=mass, mass_unit='mg')[
                        :-4].replace('.', ',') \
                        + '.' + abbrev[self.mtype]
 
-        line_one = 'name: ' + self.sample_obj.name + '\t' + 'weight: ' + '%.0f mg' % mass
+        line_one = 'name: ' + self.sobj.name + '\t' + 'weight: ' + '%.0f mg' % mass
         line_two = ''
         line_three = 'Set 1:'
         line_four = ' field / Oe	mag / emu / g	temp / centigrade	time / s	std dev / %	suscep / emu / g / Oe'

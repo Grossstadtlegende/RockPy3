@@ -299,7 +299,6 @@ class Measurement(object):
         # the following machine formatters:
         # 1. looks through all implemented measurements
         # 2. for each measurement stores the machine and the applicable readin class in a dictionary
-
         measurement_formatters = \
             {cl.__name__.lower(): {
                 '_'.join(i.split('_')[1:]).lower():
@@ -359,7 +358,7 @@ class Measurement(object):
 
         :return:
         """
-        return self.sample_obj.study
+        return self.sobj.study
 
     ####################################################################################################################
     # plotting / legend properties
@@ -390,10 +389,10 @@ class Measurement(object):
         """
         find coordinate system of sample
         """
-        print("returning" + str(self.sample_obj.coord))
-        return self.sample_obj.coord
+        print("returning" + str(self.sobj.coord))
+        return self.sobj.coord
 
-    def __init__(self, sample_obj,
+    def __init__(self, sobj,
                  mtype=None, fpath=None, ftype=None, mdata=None,
                  # color=None, linestyle=None, marker=None, label='',  # todo change to default None
                  series=None,
@@ -412,7 +411,7 @@ class Measurement(object):
 
         Parameters
         ----------
-            @type sample_obj: RockPy3.Sample
+            @type sobj: RockPy3.Sample
                 the sample object the measurement belongs to. The constructor is usually called from the
                 Sample.add_measurement method
             @type mtype: str
@@ -475,13 +474,13 @@ class Measurement(object):
 
             if mdata is not None:  # we have mdata -> ignore fpath and just use that data directly
                 self.logger.debug('mdata passed -> using as measurement data without formatting')
-                self.sample_obj = sample_obj
+                self.sobj = sobj
                 self._data = mdata
             # ftype == combined for special measurements that need two measurements e.g. REM'
             elif ftype in Measurement.measurement_formatters()[mtype] or ftype in ['combined', 'result']:
                 self.logger.debug('ftype << %s >> implemented' % ftype)
                 self.ftype = ftype  # set machine
-                self.sample_obj = sample_obj  # set sample_obj
+                self.sobj = sobj  # set sobj
                 if not fpath:
                     if mtype in RockPy3.Packages.Generic.Measurements.parameters.Parameter.subclasses():
                         self.logger.info(
@@ -530,7 +529,7 @@ class Measurement(object):
             add = 'mean_'
         else:
             add = ''
-        return '<<RockPy3.{}.{}{}{} at {}>>'.format(self.sample_obj.name, add, self.mtype,
+        return '<<RockPy3.{}.{}{}{} at {}>>'.format(self.sobj.name, add, self.mtype,
                                                     self.stype_sval_tuples,
                                                     hex(id(self)))
 
@@ -550,7 +549,7 @@ class Measurement(object):
                          '_raw_data', '_data', 'temperature',
                          'initial_state', 'is_initial_state', 'is_mean',
                          # sample related
-                         'sample_obj',
+                         'sobj',
                          '_series_opt', '_series',
                          'suffix',
                          'calibration', 'holder', 'correction',
@@ -609,7 +608,7 @@ class Measurement(object):
 
     @property
     def m_idx(self):
-        return self.sample_obj.measurements.index(self)  # todo change could be problematic if changing the sample_obj
+        return self.sobj.measurements.index(self)  # todo change could be problematic if changing the sobj
 
     @property
     def fname(self):
@@ -635,7 +634,7 @@ class Measurement(object):
         ftype = options.get('ftype', self.ftype)
         mtype = options.get('mtype', self.mtype)
         fpath = options.get('fpath', self.fpath)
-        raw_data = self.measurement_formatters()[mtype][ftype](fpath, self.sample_obj.name)
+        raw_data = self.measurement_formatters()[mtype][ftype](fpath, self.sobj.name)
         if raw_data is None:
             self.logger.error('IMPORTING\t did not transfer data - CHECK sample name and data file')
             return
@@ -672,9 +671,9 @@ class Measurement(object):
 
         # can only be created if the measurement is actually implemented
         if mtype in RockPy3.implemented_measurements():
-            self.initial_state = RockPy3.implemented_measurements()[mtype](self.sample_obj, mtype, fpath, ftype)
-            # self.initial_state.sample_obj = self.sample_obj
-            # print self.initial_state.sample_obj
+            self.initial_state = RockPy3.implemented_measurements()[mtype](self.sobj, mtype, fpath, ftype)
+            # self.initial_state.sobj = self.sobj
+            # print self.initial_state.sobj
             self.initial_state.is_initial_state = True
             return self.initial_state
         else:
@@ -876,7 +875,7 @@ class Measurement(object):
             return
         else:
             # todo figure out why logger wrong when called from Visualize
-            self.logger = logging.getLogger('RockPy3.MEASURMENT.' + self.mtype + '[%s]' % self.sample_obj.name)
+            self.logger = logging.getLogger('RockPy3.MEASURMENT.' + self.mtype + '[%s]' % self.sobj.name)
             self.logger.info('CALCULATING << %s >>' % result)
             out = getattr(self, 'result_' + result)(**parameter)
         return out
@@ -1186,15 +1185,15 @@ class Measurement(object):
             series = RockPy3.Series(stype=stype, value=sval, unit=unit, comment=comment)
         # remove default series from sobj.mdict if non series exists previously
         if not self._series:
-            self.sample_obj._remove_series_from_mdict(mobj=self, series=self.series[0],
+            self.sobj._remove_series_from_mdict(mobj=self, series=self.series[0],
                                                       mdict_type='mdict')  # remove default series
         if not any(series == s for s in self._series):
             self._series.append(series)
         self._add_sval_to_data(series)
         self._add_sval_to_results(series)
 
-        # add the measurement to the mdict of the sample_obj
-        self.sample_obj._add_series2_mdict(series=series, mobj=self)
+        # add the measurement to the mdict of the sobj
+        self.sobj._add_series2_mdict(series=series, mobj=self)
         return series
 
     def add_series(self, stype=None, sval=None, unit=None, series_obj=None, comment=''):
@@ -1331,7 +1330,7 @@ class Measurement(object):
                         dtype_data[ntype] = dtype_data[ntype].v / norm_factor
                     except KeyError:
                         self.logger.warning(
-                            'CAN\'T normalize << %s, %s >> to %s' % (self.sample_obj.name, self.mtype, ntype))
+                            'CAN\'T normalize << %s, %s >> to %s' % (self.sobj.name, self.mtype, ntype))
 
                 if 'mag' in dtype_data.column_names:
                     try:
@@ -1423,7 +1422,7 @@ class Measurement(object):
            RockPy3.Measurement
         """
 
-        measurements = self.sample_obj.get_measurements(mtypes=mtype)
+        measurements = self.sobj.get_measurements(mtypes=mtype)
 
         if measurements:
             out = [i for i in measurements if i.m_idx <= self.m_idx]
@@ -1570,7 +1569,7 @@ class Measurement(object):
         mobj: RockPy3.Measurement
         """
 
-        cal = self.sample_obj.add_measurement(mtype=self.mtype, ftype=self.ftype, fpath=fpath,
+        cal = self.sobj.add_measurement(mtype=self.mtype, ftype=self.ftype, fpath=fpath,
                                               mobj=mobj, mdata=mdata,
                                               create_only=True)
         self.calibration = cal
@@ -1581,11 +1580,11 @@ class Measurement(object):
         """
         adds the corresponding sample_name to the measurement label
         """
-        if isinstance(self.sample_obj, RockPy3.MeanSample):
+        if isinstance(self.sobj, RockPy3.MeanSample):
             mean = 'mean '
         else:
             mean = ''
-        self.plt_props['label'] = ' '.join([self.plt_props['label'], mean, self.sample_obj.name])
+        self.plt_props['label'] = ' '.join([self.plt_props['label'], mean, self.sobj.name])
 
     def label_add_sample_group_name(self):
         """
@@ -1634,7 +1633,7 @@ class Measurement(object):
 
     def series_to_color(self, stype):
         # get all possible svals in the hierarchy #todo implement sg and study
-        svals = sorted(self.sample_obj.mdict['stype_sval'][stype].keys())
+        svals = sorted(self.sobj.mdict['stype_sval'][stype].keys())
 
         # create colormap from svals
         color_map = RockPy3.Visualize.core.create_heat_color_map(svals)
@@ -1703,7 +1702,7 @@ class Measurement(object):
             for pckg in RockPy3.utils.latex.std_packages:
                 doc.packages.append(pckg)
 
-        subsection_name = '{} - {} {}'.format(self.sample_obj.name, self.mtype,
+        subsection_name = '{} - {} {}'.format(self.sobj.name, self.mtype,
                                               ','.join(['{} [{}]'.format(i.value, i.unit) for i in self.series]))
 
         with doc.create(Subsection(subsection_name)):
@@ -1750,9 +1749,9 @@ class Measurement(object):
             if add_plots:
                 fig = RockPy3.Figure()
                 for name, visual in self.plottable.items():
-                    figname = os.path.join(filepath, '{}_{}.pdf'.format(self.sample_obj.name, name))
+                    figname = os.path.join(filepath, '{}_{}.pdf'.format(self.sobj.name, name))
                     visual = fig.add_visual(name, plt_input=self)
-                    visual.title += ' ' + self.sample_obj.name
+                    visual.title += ' ' + self.sobj.name
                 fig.show()
 
         if generate_pdf:
@@ -1808,11 +1807,11 @@ def result(func, *args, **kwargs):
     # get a list of all possible calculation methods
     recipes = [i.split('_')[-1] for i in self.calculation_methods.keys()
                if len(i.split('_')) >= 3
-               if calculation_method in i.split('_') or result_name in i.split('_')
+               if calculation_method in i.split('_') or result_name in '_'.join(i.split('_')[1:-1])
                if i.split('_')[-1].isupper()]
-    # print result_name, self, recipes
+    print(result_name, self, recipes, recipe)
     if recipe and recipe not in recipes:
-        raise NotImplementedError('RECIPE << {} >> not implemented chose from {}'.format(recipe, recipes))
+        raise NotImplementedError('RECIPE << {} >> not implemented for {} chose from {}'.format(recipe, result_name, recipes))
 
     # building the name of the calculation method to be called
     # if a calculation method is given, a different method has to be called.

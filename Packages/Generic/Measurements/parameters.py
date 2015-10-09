@@ -13,14 +13,14 @@ class OrientationGeo(Parameter):
     """
     orientation of specimen in respect to geographic coordinate system
     """
-    def __init__(self, sample_obj,
+    def __init__(self, sobj,
                  mtype='orientationgeo', fpath=None, ftype='generic',
                  dec=None, inc=None, sun=None,
                  time=None,
                  series=None,
                  **options):
 
-        super(OrientationGeo, self).__init__(sample_obj=sample_obj,
+        super(OrientationGeo, self).__init__(sobj=sobj,
                                    mtype=mtype, fpath=fpath, ftype=ftype,
                                    series=series,
                                    **options)
@@ -40,14 +40,14 @@ class Bedding(Parameter):
     """
     orientation of bedding plane
     """
-    def __init__(self, sample_obj,
+    def __init__(self, sobj,
                  mtype='bedding', fpath=None, ftype='generic',
                  dip_dir=None, dip=None,
                  time=None,
                  series=None,
                  **options):
 
-        super(Bedding, self).__init__(sample_obj=sample_obj,
+        super(Bedding, self).__init__(sobj=sobj,
                                    mtype=mtype, fpath=fpath, ftype=ftype,
                                    series=series,
                                    **options)
@@ -67,14 +67,14 @@ class LocationGeo(Parameter):
     lat, lon are in degrees
     altitude defaults to meter
     """
-    def __init__(self, sample_obj,
+    def __init__(self, sobj,
                  mtype='location', fpath=None, ftype='generic',
                  lat=None, lon=None, alt=None, coordinate_system = 'wgs84',
                  time=None,
                  series=None,
                  **options):
 
-        super(LocationGeo, self).__init__(sample_obj=sample_obj,
+        super(LocationGeo, self).__init__(sobj=sobj,
                                    mtype=mtype, fpath=fpath, ftype=ftype,
                                    series=series,
                                    **options)
@@ -102,13 +102,13 @@ class Mass(Parameter):
     simple 1d measurement for mass
     """
 
-    def __init__(self, sample_obj,
+    def __init__(self, sobj,
                  mtype='mass', fpath=None, ftype='generic',
                  value=1.0, unit='kg',
                  std=None, time=None,
                  series=None,
                  **options):
-        super(Mass, self).__init__(sample_obj=sample_obj,
+        super(Mass, self).__init__(sobj=sobj,
                                    mtype=mtype, fpath=fpath, ftype=ftype,
                                    series=series,
                                    **options)
@@ -135,14 +135,14 @@ class Length(Parameter):
     simple 1d measurement for Length
     """
 
-    def __init__(self, sample_obj,
+    def __init__(self, sobj,
                  mtype, fpath=None, ftype='generic',
                  value=1.0, unit='m',
                  direction=None,
                  std=None, time=None,
                  series=None,
                  **options):
-        super(Length, self).__init__(sample_obj=sample_obj,
+        super(Length, self).__init__(sobj=sobj,
                                      mtype=mtype, fpath=fpath, ftype=ftype,
                                      series=series,
                                      **options)
@@ -198,7 +198,7 @@ class Volume(Parameter):
     def sphere(diameter):
         return (4 / 3) * np.pi * (diameter / 2) ** 3
 
-    def __init__(self, sample_obj,
+    def __init__(self, sobj,
                  mtype, fpath=None, ftype='combined',
                  height=None, diameter=None, sample_shape='cylinder',
                  x_len=None, y_len=None, z_len=None,
@@ -206,7 +206,7 @@ class Volume(Parameter):
                  series=None,
                  **options):
 
-        super(Volume, self).__init__(sample_obj=sample_obj,
+        super(Volume, self).__init__(sobj=sobj,
                                      mtype=mtype, fpath=fpath, ftype='combined',
                                      **options)
         self.sample_shape = sample_shape

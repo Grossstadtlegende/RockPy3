@@ -97,7 +97,7 @@ Study = RockPy3.core.study.Study(name='MasterStudy')
 ########################################################################################################################
 implemented_measurements = {m.__name__.lower(): m for m in Measurement.inheritors()}
 logger.debug('IMPLEMENTED MEASUREMENT TYPES: FTYPES')
-for m in sorted(RockPy3.implemented_measurements):
-    logger.debug('\t{:<15}: \t{}'.format(m, ', '.join(RockPy3.implemented_measurements[m].implemented_ftypes().keys())))
+for m, obj in sorted(RockPy3.implemented_measurements.items()):
+    logger.debug('\t{:<15}: \t{}'.format(m, ', '.join(obj.measurement_formatters()[m].keys())))
 
 mtype_ftype_abbreviations_inversed, mtype_ftype_abbreviations = RockPy3.core.file_operations.mtype_ftype_abbreviations()

@@ -194,7 +194,7 @@ class Sample(object):
         if fpath:
             try:
                 file_info = RockPy3.core.file_operations.get_info_from_fname(path=fpath)
-                file_info.update(dict(sample_obj=self))
+                file_info.update(dict(sobj=self))
                 auto_import = True
             except (KeyError, IndexError, ValueError):
                 # if file_info can not be generated from the pathname
@@ -224,7 +224,7 @@ class Sample(object):
             if ftype in i_abbrev:
                 ftype = i_abbrev[ftype]
 
-            file_info = dict(sample_obj=self,
+            file_info = dict(sobj=self,
                              mtype=mtype, fpath=fpath, ftype=ftype,
                              m_idx=idx, mdata=mdata)
 
@@ -254,7 +254,7 @@ class Sample(object):
                     self.logger.info(
                         '\t\t WITH series << %s >>' % ('; '.join(', '.join(str(j) for j in i) for i in series)))
                 if mobj:
-                    measurement = mobj  # todo mobj.sample_obj = self?
+                    measurement = mobj  # todo mobj.sobj = self?
                 else:
                     # create instance from implemented_measurements dictionary
                     # call constructor of a subclassed measurement
@@ -286,6 +286,138 @@ class Sample(object):
     def remove_from_samplegroup(self, gname):
         self.logger.debug('REMOVING {} from samplegroup {}'.format(self.name, gname))
         self._samplegroups.remove(gname)
+
+
+    ####################################################################################################################
+    ''' GET FUNCTIONS '''
+    def _convert_sval_range(self, sval_range, mean):
+        """
+        converts a string of svals into a list
+
+        Parameters
+        ----------
+            sval_range: list, str
+                series range e.g. sval_range = [0,2] will give all from 0 to 2 including 0,2
+                also '<2', '<=2', '>2', and '>=2' are allowed.
+
+        """
+
+        if mean:
+            mdict = self.mean_mdict
+        else:
+            mdict = self.mdict
+
+        if isinstance(sval_range, list):
+            svals = [i for i in mdict['sval'] if sval_range[0] <= i <= sval_range[1]]
+        if isinstance(sval_range, str):
+            sval_range = sval_range.strip()  # remove whitespaces in case '> 4' is provided
+            if '<' in sval_range:
+                if '=' in sval_range:
+                    svals = [i for i in mdict['sval'] if i <= float(sval_range.replace('<=', ''))]
+                else:
+                    svals = [i for i in mdict['sval'] if i < float(sval_range.replace('<', ''))]
+            if '>' in sval_range:
+                if '=' in sval_range:
+                    svals = [i for i in mdict['sval'] if i >= float(sval_range.replace('>=', ''))]
+                else:
+                    svals = [i for i in mdict['sval'] if i > float(sval_range.replace('>', ''))]
+        return sorted(svals)
+
+    def get_measurement(self,
+                         mtype=None,
+                         serie=None,
+                         stype=None, sval=None, sval_range=None,
+                         mean=False,
+                         invert=False,
+                         ):
+        """
+        Returns a list of measurements of type = mtypes
+
+        Parameters
+        ----------
+           mtypes: list, str
+              mtypes to be returned
+           series: list(tuple)
+              list of tuples, to search for several sepcific series. e.g. [('mtime',4),('gc',2)] will only return
+              mesurements that fulfill both criteria.
+              Supercedes stype, sval and sval_range. Returnes only measurements that meet series exactly!
+           stypes: list, str
+              series type
+           sval_range: list, str
+              series range e.g. sval_range = [0,2] will give all from 0 to 2 including 0,2
+              also '<2', '<=2', '>2', and '>=2' are allowed.
+           svals: float
+              series value to be searched for.
+              caution:
+                 will be overwritten when sval_range is given
+           invert:
+              if invert true it returns only measurements that do not meet criteria
+           sval_range:
+              can be used to look up measurements within a certain range. if only one value is given,
+                     it is assumed to be an upper limit and the range is set to [0, sval_range]
+           mean: bool
+
+        Returns
+        -------
+            if no arguments are passed all sample.measurements
+            list of RockPy.Measurements that meet search criteria or if invert is True, do not meet criteria.
+            [] if none are found
+
+        Note
+        ----
+            there is no connection between stype and sval. This may cause problems. I you have measurements with
+               M1: [pressure, 0.0, GPa], [temperature, 100.0, C]
+               M2: [pressure, 1.0, GPa], [temperature, 100.0, C]
+            and you search for stypes=['pressure','temperature'], svals=[0,100]. It will return both M1 and M2 because
+            both M1 and M2 have [temperature, 100.0, C].
+
+        """
+        # if no parameters are given, return all measurments/none (invert=True)
+        if not any(i for i in [mtype, serie, stype, sval, sval_range, mean]):
+            if not invert:
+                return self.measurements
+            else:
+                return []
+
+        mtype = RockPy3.utils.to_list(mtype)
+        mtype = [RockPy3.abbrev_to_name(mtype) for mtype in mtypes]
+
+        stype = to_list(stype)
+        sval = to_list(sval)
+
+        if mean:
+            mdict = self.mean_mdict
+            mdict_type = 'mean_mdict'
+        else:
+            mdict = self.mdict
+            mdict_type = 'mdict'
+
+        if sval_range:
+            sval = self._convert_sval_range(sval_range=sval_range, mean=mean)
+            self.logger.info('SEARCHING %s for sval_range << %s >>' % (mdict_type, ', '.join(map(str, sval))))
+
+        out = []
+
+        if not serie:
+            for mtype in mtype:
+                for stype in stype:
+                    for sval in sval:
+                        measurements = [m for m in mdict['measurements'] if
+                                        m.has_mtype_stype_sval(mtype=mtype, stype=stype, sval=sval) if m not in out]
+                        out.extend(measurements)
+        else:
+            # searching for specific series, all mtypes specified that fit the series description will be returned
+            serie = RockPy.utils.general.tuple2list_of_tuples(serie)
+            for mtype in mtype:  # cycle through mtypes
+                aux = []
+                for s in serie:
+                    aux.extend(self.get_mtype_stype_sval(mtype=mtype, stype=s[0], sval=float(s[1])))
+                out.extend(list(set([i for i in aux if aux.count(i) == len(series)])))
+
+        # invert list to contain only measurements that do not meet criteria
+        if invert:
+            out = [i for i in mdict['measurements'] if not i in out]
+        return out
 
     ####################################################################################################################
     ''' MEASUREMENT / RESULT DICTIONARY PART'''

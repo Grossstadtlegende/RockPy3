@@ -37,6 +37,17 @@ class Study(object):
         else:
             return '<< RockPy3.Study.{} >>'.format(self.name)
 
+    def __getitem__(self, item):
+        if item in self._samples:
+            return self._samples[item]
+        elif item in self.groupnames:
+            return self.get_sample(gname=item)
+        else:
+            try:
+                return sorted(self.samplelist)[item]
+            except IndexError:
+                raise IndexError('index too high {}>{}'.format(item, len(self._samples)))
+
     @property
     def samplelist(self):
         """
