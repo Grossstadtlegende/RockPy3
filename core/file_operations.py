@@ -1,4 +1,4 @@
-from RockPy.utils.general import add_unit
+from RockPy3.utils.general import add_unit
 
 __author__ = 'mike'
 import os
@@ -7,17 +7,17 @@ from os.path import expanduser, join
 from collections import defaultdict
 import numpy as np
 from pint import UnitRegistry
-import RockPy
-import cPickle
-import RockPy.core
+import RockPy3
+import pickle
+import RockPy3.core
 
 ureg = UnitRegistry()
 default_folder = join(expanduser("~"), 'Desktop', 'RockPy')
 
 
 def mtype_ftype_abbreviations():
-    RockPy.logger.debug('READING FTYPE/MTYPE abbreviations')
-    with open(join(RockPy.installation_directory, 'abbreviations')) as f:
+    RockPy3.logger.debug('READING FTYPE/MTYPE abbreviations')
+    with open(join(RockPy3.installation_directory, 'abbreviations')) as f:
         abbrev = f.readlines()
     abbrev = [tuple(i.rstrip().split(':')) for i in abbrev if i.rstrip() if not i.startswith('#')]
     abbrev = dict((i[0], [j.lstrip() for j in i[1].split(',')]) for i in abbrev)
@@ -27,7 +27,7 @@ def mtype_ftype_abbreviations():
 
 
 def fname_abbrevs():
-    abbrev = RockPy.mtype_ftype_abbreviations
+    abbrev = RockPy3.mtype_ftype_abbreviations
     out = {}
     for k, v in abbrev.iteritems():
         out.setdefault(k, v[0].upper())
@@ -49,12 +49,12 @@ def save(smthg, file_name, folder=None):
 def abbrev_to_name(abbrev):
     if not abbrev:
         return ''
-    return RockPy.mtype_ftype_abbreviations_inversed[abbrev.lower()]
+    return RockPy3.mtype_ftype_abbreviations_inversed[abbrev.lower()]
 
 def name_to_abbrev(name):
     if not name:
         return ''
-    return RockPy.mtype_ftype_abbreviations[name.lower()][0]
+    return RockPy3.mtype_ftype_abbreviations[name.lower()][0]
 
 def convert_to_fname_abbrev(name_or_abbrev):
     if name_or_abbrev:
@@ -106,11 +106,11 @@ def get_fname_from_info(sample_group='', sample_name='',
     mtype = abbrev_to_name(mtype)
     ftype = abbrev_to_name(ftype)
 
-    if not mtype.lower() in RockPy.Measurement.implemented_measurements():
-        RockPy.logger.warning('MEASUREMENT mtype << %s >> may be wrong or measurement not implemented, yet.' % mtype)
+    if not mtype.lower() in RockPy3.Measurement.implemented_measurements():
+        RockPy3.logger.warning('MEASUREMENT mtype << %s >> may be wrong or measurement not implemented, yet.' % mtype)
 
-    if not ftype.lower() in RockPy.Measurement.implemented_ftypes():
-        RockPy.logger.warning('MEASUREMENT ftype << %s >> may be wrong or ftype not implemented, yet.' % ftype)
+    if not ftype.lower() in RockPy3.Measurement.implemented_ftypes():
+        RockPy3.logger.warning('MEASUREMENT ftype << %s >> may be wrong or ftype not implemented, yet.' % ftype)
 
     mtype = convert_to_fname_abbrev(mtype)
     ftype = convert_to_fname_abbrev(ftype)
@@ -177,7 +177,7 @@ def get_info_from_fname(path=None):
 
     Raises
     ------
-        KeyError if ftype or mtype not in RockPy.mtype_ftype_abbreviations_inversed
+        KeyError if ftype or mtype not in RockPy3.mtype_ftype_abbreviations_inversed
 
     """
 
@@ -219,17 +219,17 @@ def get_info_from_fname(path=None):
         options = None
 
     # convert mass to float
-    with RockPy.ignored(ValueError):
+    with RockPy3.ignored(ValueError):
         mass[0] = mass[0].replace(',', '.')
         mass[0] = float(mass[0])
 
     # convert height to float
-    with RockPy.ignored(ValueError):
+    with RockPy3.ignored(ValueError):
         diameter[0] = diameter[0].replace(',', '.')
         diameter[0] = float(diameter[0])
 
     # convert diameter to float
-    with RockPy.ignored(ValueError):
+    with RockPy3.ignored(ValueError):
         height[0] = height[0].replace(',', '.')
         height[0] = float(height[0])
 
@@ -242,13 +242,13 @@ def get_info_from_fname(path=None):
     ftype = ftype.lower()  # convert to upper for ease of checking
 
     try:
-        mtype = RockPy.mtype_ftype_abbreviations_inversed[mtype]
+        mtype = RockPy3.mtype_ftype_abbreviations_inversed[mtype]
     except KeyError:
         raise KeyError('%s not implemented yet' % mtype)
         return
 
     try:
-        ftype = RockPy.mtype_ftype_abbreviations_inversed[ftype]
+        ftype = RockPy3.mtype_ftype_abbreviations_inversed[ftype]
     except KeyError:
         raise KeyError('%s not implemented yet' % mtype)
         return
@@ -281,23 +281,23 @@ def get_info_from_fname(path=None):
 
 def import_folder(folder, name='study', study=None):
     if not study:
-        study = RockPy.Study(name=name)
+        study = RockPy3.Study(name=name)
 
     files = [i for i in os.listdir(folder) if not i == '.DS_Store' if not i.startswith('#')]
     samples = defaultdict(list)
 
     for i in files:
-        d = RockPy.get_info_from_fname(join(folder, i))
+        d = RockPy3.get_info_from_fname(join(folder, i))
         samples[d['name']].append(d)
 
     for s in samples:
         sgroup_name = samples[s][0]['sample_group']
         if not sgroup_name in study.samplegroup_names:
-            sg = RockPy.SampleGroup(name=samples[s][0]['sample_group'])
+            sg = RockPy3.SampleGroup(name=samples[s][0]['sample_group'])
             study.add_samplegroup(sg)
         sg = study[sgroup_name]
         if not s in study.sdict:
-            smpl = RockPy.Sample(**samples[s][0])
+            smpl = RockPy3.Sample(**samples[s][0])
             sg.add_samples(smpl)
         for m in samples[s]:
             measurement = smpl.add_measurement(**m)
@@ -340,14 +340,14 @@ def rename_file(old_file='',
         new_path = path
         n = 1
         while os.path.exists(new_path):
-            RockPy.logger.warning('FILE {} already exists adding suffix'.format(path))
+            RockPy3.logger.warning('FILE {} already exists adding suffix'.format(path))
             new_path= '_'.join([path, str(n)])
             n += 1
         return new_path
 
-    RockPy.logger.info('RENAMING:')
-    RockPy.logger.info('{}'.format(old_file))
-    RockPy.logger.info('---->')
-    RockPy.logger.info('{}'.format(new_file))
+    RockPy3.logger.info('RENAMING:')
+    RockPy3.logger.info('{}'.format(old_file))
+    RockPy3.logger.info('---->')
+    RockPy3.logger.info('{}'.format(new_file))
     new_file = check_if_file_exists(new_file)
     os.rename(old_file, new_file)
