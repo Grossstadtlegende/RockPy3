@@ -94,7 +94,7 @@ class Study(object):
                 length_unit=length_unit,
                 sample_shape=sample_shape,
                 samplegroup=samplegroup,
-                coord=None,
+                coord=coord,
             )
 
         self._samples.setdefault(sobj.name, sobj)
@@ -120,8 +120,8 @@ class Study(object):
 
         Returns
         -------
-            RockPy3.SampleGroup
-
+            list
+                list of samples in samplegroup
         """
         samples = self.get_sample(
             sname=sname,
@@ -136,6 +136,8 @@ class Study(object):
 
         for s in samples:
             s.add_to_samplegroup(gname=gname)
+
+        return samples
 
     def add_mean_samplegroup(self):
         pass
@@ -166,8 +168,15 @@ class Study(object):
         if not any(i for i in locals() if i != 'self'):
             return slist
 
-        gname = utils.to_list(gname)
-        slist = [s for s in slist if any(sg in gname for sg in s._samplegroups)]
+        # samplegroup filtering
+        if gname:
+            gname = utils.to_list(gname)
+            slist = [s for s in slist if any(sg in gname for sg in s._samplegroups)]
+
+        # sample filtering
+        if sname:
+            sname = utils.to_list(sname)
+            slist = [s for s in slist if s.name in sname]
 
         return slist
 
@@ -202,11 +211,11 @@ class Study(object):
             measurements = ', '.join(['%ix %s' % (mtypes.count(i), i) for i in sorted(set(mtypes))])
             stypes = ', '.join(stypes)
             i_state = [True if any(m.has_initial_state for m in s.measurements) else False][0]
-            line0 = [sg.name, s.name, measurements, stypes, i_state]
+            line0 = [s.name, s._samplegroups, measurements, stypes, i_state]
             table.append(line0)
             table.append([''.join(['--' for i in str(j)]) for j in line0])
             for m in s.measurements:
-                if not isinstance(m, RockPy.Packages.Generic.Measurements.parameters.Parameter):
+                if not isinstance(m, RockPy3.Packages.Generic.Measurements.parameters.Parameter):
                     if m.has_initial_state:
                         initial = m.initial_state.mtype
                     else:

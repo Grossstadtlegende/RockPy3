@@ -113,7 +113,9 @@ class Sample(object):
         return '<< RockPy.Sample.{} >>'.format(self.name)
 
     def add_to_samplegroup(self, gname):
+        self.logger.debug('ADDING {} to samplegroup {}'.format(self.name, gname))
         self._samplegroups.append(gname)
 
     def remove_from_samplegroup(self, gname):
+        self.logger.debug('REMOVING {} from samplegroup {}'.format(self.name, gname))
         self._samplegroups.remove(gname)

@@ -58,4 +58,4 @@ class TestStudy(TestCase):
         s2 = self.s.add_sample(name='s2')
         s3 = self.s.add_sample(name='s3')
 
-        self.s.add_samplegroup(gname='A', snames=['s1', 's2'])
+        self.assertEqual([s1,s2], sorted(self.s.add_samplegroup(gname='A', sname=['s1', 's2'])))

@@ -27,7 +27,7 @@ import subprocess
 test_data_path = os.path.join(os.getcwd().split('RockPy3')[0], 'RockPy3', 'Tutorials', 'test_data')
 installation_directory = os.path.dirname(RockPy3.__file__)
 
-dependencies = ['matplotlib', 'numpy', 'scipy', 'lmfit', 'pint', 'decorator', 'tabulate']
+dependencies = ['matplotlib', 'numpy', 'scipy', 'lmfit', 'pint', 'decorator', 'tabulate', 'basemap']
 
 
 def getgitrevision():
