@@ -428,8 +428,6 @@ class Measurement(object):
 
         self.logger = logging.getLogger('RockPy3.MEASURMENT.' + self.get_subclass_name())
 
-        self.has_data = True  # todo needed?
-
         # the data that is used for calculations and corrections
         self._data = {}
 
@@ -493,11 +491,6 @@ class Measurement(object):
                 else:
                     self.fpath = fpath
                     self.import_data()
-
-                    self.has_data = self.ftype_data.has_data  # todo check if this is still in use
-                    if not self.ftype_data.has_data:  # todo check if this is still in use
-                        self.logger.error(
-                            'NO DATA passed: check sample name << %s >>' % sample_obj.name)  # todo check if this is still in use
             else:
                 self.logger.error('UNKNOWN ftype: << %s >>' % ftype)
                 self.logger.error(
@@ -525,11 +518,8 @@ class Measurement(object):
         elif ftype == 'result':
             pass
         elif callable(getattr(self, 'format_' + ftype)):
-            if self.has_data:
-                self.logger.debug('FORMATTING raw data from << %s >>' % ftype)
-                getattr(self, 'format_' + ftype)()
-            else:
-                self.logger.debug('NO raw data transfered << %s >>' % ftype)
+            self.logger.debug('FORMATTING raw data from << %s >>' % ftype)
+            getattr(self, 'format_' + ftype)()
         else:
             self.logger.error(
                 'FORMATTING raw data from << %s >> not possible, probably not implemented, yet.' % ftype)

@@ -11,10 +11,10 @@ from scipy.optimize import curve_fit
 from scipy.interpolate import UnivariateSpline
 from lmfit import minimize, Parameters, report_fit
 
-import RockPy
-from RockPy.core import measurement
-from RockPy.core.measurement import calculate, result, correction
-from RockPy.core.data import RockPyData
+import RockPy3
+from RockPy3.core import measurement
+from RockPy3.core.measurement import calculate, result, correction
+from RockPy3.core.data import RockPyData
 
 
 class Hysteresis(measurement.Measurement):
@@ -242,9 +242,9 @@ class Hysteresis(measurement.Measurement):
     # ## formatting functions
     def format_vsm(self):
         header = self.ftype_data.header
-        segments = self.ftype_data.segment_info
-        data = self.ftype_data.out_hysteresis()
-        # print header
+        segments = self.ftype_data.get_segments_from_data()
+        data = self.ftype_data.get_data()
+
         if 'adjusted field' in header:
             header[header.index('adjusted field')] = 'field'
             header[header.index('field')] = 'uncorrected field'
@@ -254,7 +254,7 @@ class Hysteresis(measurement.Measurement):
             header[header.index('adjusted moment')] = 'moment'
 
 
-        if len(segments['segment number'].v) == 3:
+        if len(segments['segment number']) == 3:
             self._raw_data['virgin'] = RockPyData(column_names=header, data=data[0],
                                                   units=self.ftype_data.units).sort('field')
             self._raw_data['down_field'] = RockPyData(column_names=header, data=data[1],
@@ -262,27 +262,27 @@ class Hysteresis(measurement.Measurement):
             self._raw_data['up_field'] = RockPyData(column_names=header, data=data[2],
                                                     units=self.ftype_data.units).sort('field')
 
-        if len(segments['segment number'].v) == 2:
+        if len(segments['segment number']) == 2:
             self._raw_data['virgin'] = None
             self._raw_data['down_field'] = RockPyData(column_names=header, data=data[0],
                                                       units=self.ftype_data.units).sort('field')
             self._raw_data['up_field'] = RockPyData(column_names=header, data=data[1],
                                                     units=self.ftype_data.units).sort('field')
 
-        if len(segments['segment number'].v) == 1:
+        if len(segments['segment number']) == 1:
             self._raw_data['virgin'] = RockPyData(column_names=header, data=data[0],
                                                   # units=self.machine_data.units
                                                   ).sort('field')
             self._raw_data['down_field'] = None
             self._raw_data['up_field'] = None
 
-        with RockPy.ignored(AttributeError):
+        with RockPy3.ignored(AttributeError):
             self._raw_data['virgin'].rename_column('moment', 'mag')
 
-        with RockPy.ignored(AttributeError):
+        with RockPy3.ignored(AttributeError):
             self._raw_data['up_field'].rename_column('moment', 'mag')
 
-        with RockPy.ignored(AttributeError):
+        with RockPy3.ignored(AttributeError):
             self._raw_data['down_field'].rename_column('moment', 'mag')
 
         if self.ftype_data.temperature:
@@ -741,7 +741,7 @@ class Hysteresis(measurement.Measurement):
         if branches == 'all':
             branches = possible
         else:
-            branches = RockPy.utils.general.to_list(branches)
+            branches = RockPy3.utils.general.to_list(branches)
 
         if any(branch not in possible for branch in branches):
             self.logger.error('ONE or MORE branches not possible << %s >>' %branches)
@@ -1126,7 +1126,7 @@ class Hysteresis(measurement.Measurement):
             plt.plot(data['field'].v, result.residual / max(result.residual))
             plt.show()
 
-            print 'FITTING RESULTS FOR IRREVERSIBLE (TANH) %i COMPONENTS' % nfunc
+            print('FITTING RESULTS FOR IRREVERSIBLE (TANH) %i COMPONENTS' % nfunc)
             report_fit(params)
 
         return result
@@ -1167,7 +1167,7 @@ class Hysteresis(measurement.Measurement):
             plt.plot(data['field'].v, result.residual / max(result.residual))
             plt.show()
 
-            print 'FITTING RESULTS FOR REVERSIBLE (SECH) %i COMPONENTS' % nfunc
+            print('FITTING RESULTS FOR REVERSIBLE (SECH) %i COMPONENTS' % nfunc)
             report_fit(rev_params)
         return result
 
@@ -1351,13 +1351,13 @@ class Hysteresis(measurement.Measurement):
         abbrev = {'hys': 'hys', 'backfield': 'coe', 'irm_acquisition': 'irm', 'temp_ramp': 'rmp'}
 
         if not folder:
-            folder = RockPy.join(path.expanduser('~'), 'Desktop')
+            folder = RockPy3.join(path.expanduser('~'), 'Desktop')
 
         if self.get_mtype_prior_to(mtype='mass'):
             mass = self.get_mtype_prior_to(mtype='mass').data['data']['mass'].v[0] * 1e5  # mass converted from kg to mg
 
         if not filename:
-            filename = RockPy.get_fname_from_info(sample_group='RockPy', sample_name=self.sample_obj.name,
+            filename = RockPy3.get_fname_from_info(samplegroup='RockPy', sample_name=self.sample_obj.name,
                                                   mtype='HYS', ftype=self.ftype, mass=mass, mass_unit='mg')[
                        :-4].replace('.', ',') \
                        + '.' + abbrev[self.mtype]
@@ -1393,7 +1393,7 @@ class Hysteresis(measurement.Measurement):
         data = np.c_[field, mag, temp, time, std, sus]
         data = ['\t'.join(map(str, i)) for i in data]
         data = '\n'.join(data)
-        with open(RockPy.join(folder, filename), 'w+') as f:
+        with open(RockPy3.join(folder, filename), 'w+') as f:
             f.writelines(line_one + '\n')
             f.writelines(line_two + '\n')
             f.writelines(line_three + '\n')

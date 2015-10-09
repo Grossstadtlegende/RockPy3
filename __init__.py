@@ -16,7 +16,7 @@ from RockPy3.core.series import Series
 from RockPy3.core.data import RockPyData as Data
 from RockPy3.core.file_operations import save, load, abbrev_to_name
 from RockPy3.core.file_operations import get_fname_from_info, get_info_from_fname, import_folder
-
+from RockPy3.core.utils import ignored
 # # from RockPy3.utils.general import ignored, check_coordinate_system
 
 # from RockPy3.Visualize import Figure
@@ -89,13 +89,15 @@ coord = 'geo'
 # check_coordinate_system(coord)
 
 import import_check
-
 import_check.check_imports()
 
+''' add master study '''
 Study = RockPy3.core.study.Study(name='MasterStudy')
-mtype_ftype_abbreviations_inversed, mtype_ftype_abbreviations = RockPy3.core.file_operations.mtype_ftype_abbreviations()
 
+########################################################################################################################
 implemented_measurements = {m.__name__.lower(): m for m in Measurement.inheritors()}
 logger.debug('IMPLEMENTED MEASUREMENT TYPES: FTYPES')
 for m in sorted(RockPy3.implemented_measurements):
     logger.debug('\t{:<15}: \t{}'.format(m, ', '.join(RockPy3.implemented_measurements[m].implemented_ftypes().keys())))
+
+mtype_ftype_abbreviations_inversed, mtype_ftype_abbreviations = RockPy3.core.file_operations.mtype_ftype_abbreviations()

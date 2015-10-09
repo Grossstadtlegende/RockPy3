@@ -1,6 +1,6 @@
 __author__ = 'mike'
-from RockPy3.Packages.Generic.Measurements import *
-from RockPy3.Packages.Generic.io import *
+from RockPy3.Packages.RockMag.Measurements import *
+from RockPy3.Packages.RockMag.io import *
 # from io import *
 
 import os

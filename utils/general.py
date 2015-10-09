@@ -1,17 +1,14 @@
-from matplotlib import pyplot as plt
-from contextlib import contextmanager
-
 __author__ = 'mike'
 import logging
 import inspect
-from math import degrees, radians
-from math import sin, cos, tan, asin, atan2
+import time
 
 import numpy as np
 import matplotlib.pyplot as plt
 
+from math import degrees, radians
+from math import sin, cos, tan, asin, atan2
 import RockPy3
-import time
 
 
 def get_date_str():
@@ -264,7 +261,7 @@ def kwargs_to_calculation_parameter(rpobj=None, mtype_list=None, **kwargs):
         if isinstance(rpobj, RockPy3.Sample):
             mtypes = [mtype for mtype in mtypes if mtype == rpobj.mtypes]
 
-        # 3. a sample_group object
+        # 3. a samplegroup object
         # 4. a study object
         # 5. a visual object
 
@@ -782,13 +779,5 @@ def check_coordinate_system(coord):
         logger.error('invalid coordinate system << %s >> specified.' % str(coord))
         return None
     return coord
-
-
-@contextmanager
-def ignored(*exceptions):
-    try:
-        yield
-    except exceptions:
-        pass
 
 

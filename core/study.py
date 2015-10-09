@@ -5,7 +5,7 @@ import tabulate
 import RockPy3
 from core import utils
 import RockPy3.core.sample
-
+import os
 
 class Study(object):
     """
@@ -198,6 +198,28 @@ class Study(object):
     def get_measurement(self):
         pass
 
+    def import_folder(self, folder):
+        files = [os.path.join(folder, i) for i in os.listdir(folder)
+                 if not i.startswith('#')
+                 if not i.startswith(".")
+                 if not os.path.isdir(os.path.join(folder, i))
+                 ]
+
+        sample_groups = set(os.path.basename(f).split('_')[0] for f in files)
+        RockPy3.logger.debug('TRYING to import {} files for these samplegroups {}'.format(len(files), sorted(list(sample_groups))))
+
+        start = time.clock()
+        for file in files:
+            info = RockPy3.get_info_from_fname(file)
+            if not info['name'] in self.samplenames:
+                s = self.add_sample(name=info['name'], samplegroup=info['samplegroup'])
+            else:
+                s = self.get_sample(sname=info['name'])[0]
+            s.add_measurement(**info)
+        end = time.clock()
+
+        RockPy3.logger.debug('IMPORT finished in {}s'.format(end-start))
+
     # todo Python3
     def info(self, tablefmt='simple'):
         formats = ['plain', 'simple', 'grid', 'fancy_grid', 'pipe', 'orgtbl', 'rst', 'mediawiki', 'html', 'latex',
@@ -231,4 +253,4 @@ class Study(object):
                     table.append(line)
             table.append([''.join(['--' for i in str(j)]) for j in line0])
 
-        print(tabulate(table, headers=header, tablefmt=tablefmt))
+        print(tabulate.tabulate(table, headers=header, tablefmt=tablefmt))

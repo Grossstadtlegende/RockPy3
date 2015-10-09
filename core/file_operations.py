@@ -74,7 +74,7 @@ def load(file_name, folder=None):
     return out
 
 
-def get_fname_from_info(sample_group='', sample_name='',
+def get_fname_from_info(samplegroup='', sample_name='',
                         mtype='', ftype='',
                         mass='', mass_unit='',
                         height='', length_unit='',
@@ -86,7 +86,7 @@ def get_fname_from_info(sample_group='', sample_name='',
     """
     generates a name according to the RockPy specific naming scheme.
 
-    :param sample_group: str
+    :param samplegroup: str
     :param sample_name: str
     :param mtype: str
     :param ftype: str
@@ -137,7 +137,7 @@ def get_fname_from_info(sample_group='', sample_name='',
     else:
         stypes, svals, sunits = [], [], []
 
-    sample = '_'.join([sample_group, sample_name, mtype.upper(), ftype.upper()])
+    sample = '_'.join([samplegroup, sample_name, mtype.upper(), ftype.upper()])
 
     if not any(i for i in [height, diameter]):
         length_unit = ''
@@ -192,7 +192,7 @@ def get_info_from_fname(path=None):
 
     rest = fname.split('#')
 
-    sample_group, sample_name, mtype, ftype = rest[0].split('_')
+    samplegroup, sample_name, mtype, ftype = rest[0].split('_')
 
     sample_info = [i.strip(']').split('[') for i in rest[1].split('_')]
     mass, diameter, height = sample_info
@@ -254,7 +254,7 @@ def get_info_from_fname(path=None):
         return
 
     out = {
-        'sample_group': sample_group,
+        'samplegroup': samplegroup,
         'name': sample_name,
         'mtype': mtype,
         'ftype': ftype,
@@ -291,9 +291,9 @@ def import_folder(folder, name='study', study=None):
         samples[d['name']].append(d)
 
     for s in samples:
-        sgroup_name = samples[s][0]['sample_group']
+        sgroup_name = samples[s][0]['samplegroup']
         if not sgroup_name in study.samplegroup_names:
-            sg = RockPy3.SampleGroup(name=samples[s][0]['sample_group'])
+            sg = RockPy3.SampleGroup(name=samples[s][0]['samplegroup'])
             study.add_samplegroup(sg)
         sg = study[sgroup_name]
         if not s in study.sdict:
@@ -311,7 +311,7 @@ def import_folder(folder, name='study', study=None):
 
 
 def rename_file(old_file='',
-                sample_group='', sample_name='',
+                samplegroup='', sample_name='',
                 mtype='', ftype='',
                 mass='', mass_unit='kg',
                 height='', length_unit='m',
@@ -323,7 +323,7 @@ def rename_file(old_file='',
     """
     renames a file using RockPy naming convention
     """
-    fname = get_fname_from_info(sample_group=sample_group, sample_name=sample_name,
+    fname = get_fname_from_info(samplegroup=samplegroup, sample_name=sample_name,
                                 mtype=mtype, ftype=ftype,
                                 mass=mass, mass_unit=mass_unit,
                                 height=height, length_unit=length_unit,

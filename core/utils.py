@@ -1,3 +1,5 @@
+from contextlib import contextmanager
+
 __author__ = 'mike'
 import logging
 
@@ -57,3 +59,11 @@ def append_if_not_exists(elist, element, operation):
         if element in elist:
             elist.remove(element)
     return elist
+
+
+@contextmanager
+def ignored(*exceptions):
+    try:
+        yield
+    except exceptions:
+        pass

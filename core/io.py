@@ -1,7 +1,7 @@
 __author__ = 'volk'
 import logging
 import gc
-
+import RockPy3
 class ftype(object):
 
     log = logging.getLogger('RockPy.io.')
@@ -32,11 +32,10 @@ class ftype(object):
         simple wrapper that opens file and uses file.readlines to import and removes newline marks
         :return:
         """
-        with open(self.file_name) as f:
+        with open(self.file_name, 'r', encoding="ascii", errors="surrogateescape") as f:
             out = f.readlines()
-
         out = map(str.rstrip, out)
-        return out
+        return list(out)
 
     @property
     def file_header(self):
@@ -47,23 +46,6 @@ class ftype(object):
     def float_list(self):
         list = ['x', 'y', 'z', 'm']
         return float
-
-    @property
-    def has_data(self):
-        if self._check_data_exists():
-            return True
-        else:
-            return False
-
-    def _check_data_exists(self):
-        """
-        Needed as a check for data import in Sample.add_measurement. if it returns False, the measurement will not be created.
-        :return: bool
-        """
-        if self.data is not None:
-            return True
-        else:
-            return False
 
     @staticmethod
     def convert2float_or_str(item):
@@ -78,7 +60,7 @@ class ftype(object):
         -------
             str, float
         """
-        with ignored(ValueError):
+        with RockPy3.ignored(ValueError):
             item = float(item)
         return item
 

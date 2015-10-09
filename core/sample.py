@@ -65,7 +65,9 @@ class Sample(object):
 
         Sample.snum += 1
 
-        self._samplegroups = core.utils.to_list(samplegroup)
+        self._samplegroups = []
+        if samplegroup:
+            self.add_to_samplegroup(gname=samplegroup)
 
         # coordinate system
         self._coord = coord
@@ -203,13 +205,13 @@ class Sample(object):
                 else:
                     self.logger.warning(
                         'CANNOT readin fpath automatically. See RockPy naming conventions for proper naming scheme.')
-                    fname = RockPy3.get_fname_from_info(sample_group='SG', sample_name=self.name, mtype=mtype,
+                    fname = RockPy3.get_fname_from_info(samplegroup='SG', sample_name=self.name, mtype=mtype,
                                                         ftype=ftype)
                     self.logger.info('FILE NAME proposition:')
                     self.logger.info('')
                     self.logger.info('                   %s' % fname)
                     self.logger.info('')
-                    self.logger.info('Please check for consistency and add sample_group and mass, height, diameter')
+                    self.logger.info('Please check for consistency and add samplegroup and mass, height, diameter')
         # create the file_info dictionary for classic import
         # fpath not necessarily needed here, some measurements (e.g. Parameter.daughters)
         # dont need a file because the data is directly added
@@ -275,7 +277,7 @@ class Sample(object):
                     return None
             else:
                 self.logger.error(' << %s >> not implemented, yet' % mtype)
-                self.logger.error('\tIMPLEMENTED: %s' % Sample.implemented_measurements().keys())
+                self.logger.error('\tIMPLEMENTED: %s' % RockPy3.implemented_measurements.keys())
 
     def add_to_samplegroup(self, gname):
         self.logger.debug('ADDING {} to samplegroup {}'.format(self.name, gname))
