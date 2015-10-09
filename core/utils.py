@@ -41,3 +41,19 @@ def set_get_attr(obj, attr, value=None):
     if not hasattr(obj, attr):
         setattr(obj, attr, value)
     return getattr(obj, attr)
+
+def append_if_not_exists(elist, element, operation):
+    """
+    appends an element to a list if it does not exist in list
+    :param elist:
+    :param element:
+    :param operation:
+    :return:
+    """
+    if operation == 'append':
+        if not element in elist:
+            elist.append(element)
+    if operation == 'remove':
+        if element in elist:
+            elist.remove(element)
+    return elist

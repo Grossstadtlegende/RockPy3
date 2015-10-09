@@ -1,6 +1,6 @@
 __author__ = 'mike'
 import logging
-log = logging.getLogger('RockPy.utils.convert')
+log = logging.getLogger('RockPy3.utils.convert')
 
 def convert2(in_unit, out_unit, unit_type):
     """
@@ -181,7 +181,7 @@ def get_conversion_table(unit=None):
         return conversion_table
     else:
         if unit not in conversion_table:
-            RockPy.logger.error('unit not recognized')
+            RockPy3.logger.error('unit not recognized')
             return
         else:
             return conversion_table[unit]

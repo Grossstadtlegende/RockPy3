@@ -3,7 +3,7 @@ __author__ =\
 
 import logging
 
-# from RockPy.utils import general
+# from RockPy3.utils import general
 
 log = logging.getLogger(__name__)
 

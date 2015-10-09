@@ -106,7 +106,7 @@ def get_fname_from_info(sample_group='', sample_name='',
     mtype = abbrev_to_name(mtype)
     ftype = abbrev_to_name(ftype)
 
-    if not mtype.lower() in RockPy3.Measurement.implemented_measurements():
+    if not mtype.lower() in RockPy3.implemented_measurements():
         RockPy3.logger.warning('MEASUREMENT mtype << %s >> may be wrong or measurement not implemented, yet.' % mtype)
 
     if not ftype.lower() in RockPy3.Measurement.implemented_ftypes():

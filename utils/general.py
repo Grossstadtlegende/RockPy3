@@ -24,8 +24,8 @@ def compare_measurement_series(m1, m2):
 
     Parameter
     ---------
-        m1: RockPy.Measeurement
-        m2: RockPy.Measeurement
+        m1: RockPy3.Measeurement
+        m2: RockPy3.Measeurement
 
     Note
     ----
@@ -73,7 +73,7 @@ def MlistToTupleList(mlist, mtypes):
             for m_mtype_n in mdict[mtype]:
                 if not m_mtype1.sample_obj == m_mtype_n.sample_obj:
                     break
-                if RockPy.utils.general.compare_measurement_series(m_mtype1, m_mtype_n):
+                if RockPy3.utils.general.compare_measurement_series(m_mtype1, m_mtype_n):
                     aux.append(m_mtype_n)
                     break
         out.append(tuple(aux))
@@ -220,12 +220,12 @@ def kwargs_to_calculation_parameter(rpobj=None, mtype_list=None, **kwargs):
     calc_params = {}
     for kwarg in kwarg_list:
         remove = False
-        mtypes, methods, parameter = RockPy.utils.general.separate_mtype_method_parameter(kwarg=kwarg)
+        mtypes, methods, parameter = RockPy3.utils.general.separate_mtype_method_parameter(kwarg=kwarg)
         # print(mtypes, methods, parameter)
         # get all mtypes, methods if not specified in kwarg
         # nothing specified
         if not mtypes and not methods:
-            mtypes = [mtype for mtype, params in RockPy.Measurement.mtype_calculation_parameter_list().iteritems() if
+            mtypes = [mtype for mtype, params in RockPy3.Measurement.mtype_calculation_parameter_list().iteritems() if
                       parameter in params]
 
             # filter only given in mtype_list
@@ -237,62 +237,62 @@ def kwargs_to_calculation_parameter(rpobj=None, mtype_list=None, **kwargs):
             # we need to add methods with recipes:
             # bc___recipe = 'simple' would otherwise not be added because there is no method calculate_bc
             for method in methods:
-                for calc_method, method_params in RockPy.Measurement.method_calculation_parameter_list().iteritems():
+                for calc_method, method_params in RockPy3.Measurement.method_calculation_parameter_list().iteritems():
                     if calc_method.split('_')[-1].isupper() and ''.join(calc_method.split('_')[:-1]) == method:
                         methods.append(calc_method)
 
-            mtypes = [mtype for mtype, mtype_methods in RockPy.Measurement.mtype_calculation_parameter().iteritems()
+            mtypes = [mtype for mtype, mtype_methods in RockPy3.Measurement.mtype_calculation_parameter().iteritems()
                       if any(method in mtype_methods.keys() for method in methods)]
             # filter only given in mtype_list
             if mtype_list:
                 mtypes = [mtype for mtype in mtypes if mtype in mtype_list]
 
         if not methods:
-            methods = [method for method, params in RockPy.Measurement.method_calculation_parameter_list().iteritems()
+            methods = [method for method, params in RockPy3.Measurement.method_calculation_parameter_list().iteritems()
                        if
                        parameter in params]
         # print(mtypes, methods, parameter)
 
         # i an object is given, we can filter the possible mtypes, and methods further
         # 1. a measurement object
-        if isinstance(rpobj, RockPy.Measurement):
+        if isinstance(rpobj, RockPy3.Measurement):
             mtypes = [mtype for mtype in mtypes if mtype == rpobj.mtype]
             methods = [method for method in methods if method in rpobj.possible_calculation_parameter()]
             # print(mtypes, methods, parameter)
 
         # 2. a sample object
-        if isinstance(rpobj, RockPy.Sample):
+        if isinstance(rpobj, RockPy3.Sample):
             mtypes = [mtype for mtype in mtypes if mtype == rpobj.mtypes]
 
         # 3. a sample_group object
         # 4. a study object
         # 5. a visual object
 
-        if isinstance(rpobj, RockPy.Visualize.base.Visual):
+        if isinstance(rpobj, RockPy3.Visualize.base.Visual):
             mtypes = [mtype for mtype in mtypes if mtype in rpobj.__class__._required]
 
-        # todo RockPy.study, RockPy.samplegroup
+        # todo RockPy3.study, RockPy3.samplegroup
 
         ############################################################################################################
         # actual calculation
         for mtype in mtypes:
             # get the only  methods that are implemented in the mtype to be checked
-            check_methods = set(RockPy.Measurement.mtype_calculation_parameter()[mtype]) & set(methods)
+            check_methods = set(RockPy3.Measurement.mtype_calculation_parameter()[mtype]) & set(methods)
 
             for method in check_methods:
                 # with ignored(KeyError): # ignore keyerrors if mtype / method couple does not match
                 try:
-                    if parameter in RockPy.Measurement.mtype_calculation_parameter()[mtype][method]:
-                        RockPy.logger.debug('PARAMETER found in << %s, %s >>' % (mtype, method))
+                    if parameter in RockPy3.Measurement.mtype_calculation_parameter()[mtype][method]:
+                        RockPy3.logger.debug('PARAMETER found in << %s, %s >>' % (mtype, method))
                         remove = True
                         calc_params.setdefault(mtype, dict())
                         calc_params[mtype].setdefault(method, dict())
                         calc_params[mtype][method].update({parameter: kwargs[kwarg]})
                     else:
-                        RockPy.logger.error(
+                        RockPy3.logger.error(
                             'PARAMETER << %s >> NOT found in << %s, %s >>' % (parameter, mtype, method))
                 except KeyError:
-                    RockPy.logger.debug(
+                    RockPy3.logger.debug(
                         'PARAMETER << %s >> not found mtype, method pair probably wrong << %s, %s >>' % (
                             parameter, mtype, method))
         if remove:
@@ -341,7 +341,7 @@ def create_logger(name):
 
 
 def create_dummy_measurement(mtype, fpath=None, ftype=None, idx=0, mdata=None, sample=None):
-    s = RockPy.Sample(name='dummy_sample')
+    s = RockPy3.Sample(name='dummy_sample')
     m = s.add_measurement(mtype=mtype, fpath=fpath, ftype=ftype,  # general
                           idx=idx, mdata=mdata,
                           )
@@ -362,7 +362,7 @@ def differentiate(data_list, diff=1, smoothing=1, norm=False, check=False):
     :param check:
     :return:
     """
-    log = logging.getLogger('RockPy.FUNCTIONS.general.diff')
+    log = logging.getLogger('RockPy3.FUNCTIONS.general.diff')
     log.info('DIFFERENTIATING\t data << %i derivative - smoothing: %i >>' % (diff, smoothing))
     data_list = np.array(data_list)
     # getting X, Y data
@@ -778,7 +778,7 @@ def check_coordinate_system(coord):
     checks if coord has a valid value
     """
     logger = logging.getLogger(__name__)
-    if not coord in RockPy.coordinate_systems:
+    if not coord in RockPy3.coordinate_systems:
         logger.error('invalid coordinate system << %s >> specified.' % str(coord))
         return None
     return coord

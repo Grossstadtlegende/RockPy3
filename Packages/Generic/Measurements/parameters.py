@@ -1,9 +1,9 @@
 __author__ = 'volk'
 import numpy as np
 
-from RockPy.core.measurement import Measurement
-from RockPy.utils.convert import convert2
-import RockPy
+import RockPy3
+from RockPy3.core.measurement import Measurement
+from RockPy3.utils.convert import convert2
 
 
 class Parameter(Measurement):
@@ -25,7 +25,7 @@ class OrientationGeo(Parameter):
                                    series=series,
                                    **options)
 
-        self._raw_data = {'data': RockPy.RockPyData(column_names=['variable', 'dec', 'inc', 'sun', 'time'])}
+        self._raw_data = {'data': RockPy3.RockPyData(column_names=['variable', 'dec', 'inc', 'sun', 'time'])}
         self._raw_data['data']['dec'] = dec
         self._raw_data['data']['inc'] = inc
         self._raw_data['data']['sun'] = sun
@@ -52,7 +52,7 @@ class Bedding(Parameter):
                                    series=series,
                                    **options)
 
-        self._raw_data = {'data': RockPy.RockPyData(column_names=['variable', 'dip_dir', 'dip', 'time'])}
+        self._raw_data = {'data': RockPy3.RockPyData(column_names=['variable', 'dip_dir', 'dip', 'time'])}
         self._raw_data['data']['dip_dir'] = dip_dir
         self._raw_data['data']['dip'] = dip
         self._raw_data['data']['time'] = time
@@ -85,7 +85,7 @@ class LocationGeo(Parameter):
             self.logger.warning('support for geographic coordinate systems is not implemented yet.')
 
 
-        self._raw_data = {'data': RockPy.RockPyData(column_names=['variable', 'lat', 'lon', 'alt', 'time'])}
+        self._raw_data = {'data': RockPy3.RockPyData(column_names=['variable', 'lat', 'lon', 'alt', 'time'])}
         self._raw_data['data']['lat'] = lat
         self._raw_data['data']['lon'] = lon
         self._raw_data['data']['alt'] = alt
@@ -121,7 +121,7 @@ class Mass(Parameter):
             self.has_data = False
             return
 
-        self._raw_data = {'data': RockPy.RockPyData(column_names=['variable', 'mass', 'time', 'std_dev'])}
+        self._raw_data = {'data': RockPy3.Data(column_names=['variable', 'mass', 'time', 'std_dev'])}
         self._raw_data['data'][mtype] = value * mass_conversion
         self._raw_data['data']['time'] = time
         self._raw_data['data']['std_dev'] = std
@@ -158,7 +158,7 @@ class Length(Parameter):
             self.has_data = False
             return
 
-        self._raw_data = {'data': RockPy.RockPyData(column_names=[mtype, 'time', 'std_dev'])}
+        self._raw_data = {'data': RockPy3.RockPyData(column_names=[mtype, 'time', 'std_dev'])}
         self._raw_data['data'][mtype] = value * length_conversion
         self._raw_data['data']['time'] = time
         self._raw_data['data']['std_dev'] = std
@@ -232,17 +232,17 @@ class Volume(Parameter):
                 volume = self.sphere(diameter_data)
 
         # store in RockPy Data object
-        self._raw_data = {'data': RockPy.RockPyData(column_names=['volume', 'time', 'std_dev'])}
+        self._raw_data = {'data': RockPy3.RockPyData(column_names=['volume', 'time', 'std_dev'])}
         self._raw_data['data'][mtype] = volume
         self._raw_data['data']['time'] = time
         self._raw_data['data']['std_dev'] = std
 
 
 def test():
-    Sample = RockPy.Sample(name='parameter_test',
+    Sample = RockPy3.Sample(name='parameter_test',
                            mass=10., mass_unit='kg',
                            height=4.5, diameter=6., length_unit='mm')
-    Sample = RockPy.Sample(name='parameter_test',
+    Sample = RockPy3.Sample(name='parameter_test',
                            mass=10., mass_unit='kg', sample_shape='sphere',
                            x_len=4.5, y_len=6., z_len=6., length_unit='mm')
 

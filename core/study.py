@@ -25,7 +25,7 @@ class Study(object):
         """
         if not name:
             name = time.strftime("%Y%m%d:%H%M")
-        # self.log = log  # logging.getLogger('RockPy.' + type(self).__name__)
+        # self.log = log  # logging.getLogger('RockPy3.' + type(self).__name__)
         RockPy3.logger.info('CREATING study << {} >>'.format(name))
         self.name = name
         self._samples = dict()  # {'sname':'sobj'}
@@ -33,9 +33,9 @@ class Study(object):
 
     def __repr__(self):
         if self == RockPy3.Study:
-            return '<< RockPy.MasterStudy >>'.format(self.name)
+            return '<< RockPy3.MasterStudy >>'.format(self.name)
         else:
-            return '<< RockPy.Study.{} >>'.format(self.name)
+            return '<< RockPy3.Study.{} >>'.format(self.name)
 
     @property
     def samplelist(self):

@@ -1,6 +1,6 @@
 ######
 # file containing all abbreviations for mtypes and ftypes
-# The dictionary is created by calling RockPy.core.file_operations.mtype_ftype_abbreviations()
+# The dictionary is created by calling RockPy3.core.file_operations.mtype_ftype_abbreviations()
 # and returns two dictionaries
 #
 #       1. name:abbreviation

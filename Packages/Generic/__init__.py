@@ -1,6 +1,7 @@
 __author__ = 'mike'
-from Measurements import *
-from io import *
+from RockPy3.Packages.Generic.Measurements import *
+from RockPy3.Packages.Generic.io import *
+# from io import *
 
 import os
 from os.path import join
