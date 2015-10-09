@@ -110,7 +110,7 @@ class Study(object):
                         invert=False,
                         ):
         """
-        creates a samplegroups and adds it to the samplegroup dictionary
+        adds selected samples to a samplegroup
 
         Parameter
         ---------
@@ -144,6 +144,11 @@ class Study(object):
     ''' remove functions '''
 
     def remove_samplegroup(self, gname=None):
+        """
+        removes all samples from a samplegroup and therefore the samplegroup itself
+        :param gname: samplegroup name
+        :return:
+        """
         samples = self.get_sample(gname=gname)
         for s in samples:
             s.remove_from_samplegroup(gname=gname)
