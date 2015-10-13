@@ -152,14 +152,14 @@ def separate_calculation_parameter_from_kwargs(rpobj=None, mtype_list=None, **kw
 
     out = {}
 
-    for key, value in kwargs.iteritems():
+    for key, value in kwargs.items():
         if not key in non_calculation_parameter:
             out.setdefault(key, value)
 
     return out, non_calculation_parameter
 
 
-def kwargs_to_calculation_parameter(rpobj=None, mtype_list=None, **kwargs):
+def kwargs_to_calculation_parameter(rpobj=None, mtype_list=None, result=None, **kwargs):
     """
     looks though all provided kwargs and searches for possible calculation parameters. kwarg key naming see:
     separate_mtype_method_parameter
@@ -170,6 +170,8 @@ def kwargs_to_calculation_parameter(rpobj=None, mtype_list=None, **kwargs):
             default: None
         mtypes: list
             list of possible mtypes, parameters are filtered for these
+        result: str
+            parameters are filtered
     Hierarchy
     ---------
         4. passing a pure parameter causes all methods in all mtypes to be set to that value
@@ -178,7 +180,7 @@ def kwargs_to_calculation_parameter(rpobj=None, mtype_list=None, **kwargs):
            !!! this will be overwritten by !!!
         2. passing a method
            !!! this will be overwritten by !!!
-        1. apssing a method and mtype
+        1. passing a method and mtype
            !!! this will be overwritten by !!!
 
     Note
@@ -215,6 +217,7 @@ def kwargs_to_calculation_parameter(rpobj=None, mtype_list=None, **kwargs):
     kwarg_list = param_only + mtype_only + method_only + mixed
 
     calc_params = {}
+
     for kwarg in kwarg_list:
         remove = False
         mtypes, methods, parameter = RockPy3.utils.general.separate_mtype_method_parameter(kwarg=kwarg)
@@ -222,7 +225,7 @@ def kwargs_to_calculation_parameter(rpobj=None, mtype_list=None, **kwargs):
         # get all mtypes, methods if not specified in kwarg
         # nothing specified
         if not mtypes and not methods:
-            mtypes = [mtype for mtype, params in RockPy3.Measurement.mtype_calculation_parameter_list().iteritems() if
+            mtypes = [mtype for mtype, params in RockPy3.Measurement.mtype_calculation_parameter_list().items() if
                       parameter in params]
 
             # filter only given in mtype_list
@@ -234,21 +237,21 @@ def kwargs_to_calculation_parameter(rpobj=None, mtype_list=None, **kwargs):
             # we need to add methods with recipes:
             # bc___recipe = 'simple' would otherwise not be added because there is no method calculate_bc
             for method in methods:
-                for calc_method, method_params in RockPy3.Measurement.method_calculation_parameter_list().iteritems():
+                for calc_method, method_params in RockPy3.Measurement.method_calculation_parameter_list().items():
                     if calc_method.split('_')[-1].isupper() and ''.join(calc_method.split('_')[:-1]) == method:
                         methods.append(calc_method)
 
-            mtypes = [mtype for mtype, mtype_methods in RockPy3.Measurement.mtype_calculation_parameter().iteritems()
+            mtypes = [mtype for mtype, mtype_methods in RockPy3.Measurement.mtype_calculation_parameter().items()
                       if any(method in mtype_methods.keys() for method in methods)]
             # filter only given in mtype_list
             if mtype_list:
                 mtypes = [mtype for mtype in mtypes if mtype in mtype_list]
 
         if not methods:
-            methods = [method for method, params in RockPy3.Measurement.method_calculation_parameter_list().iteritems()
+            methods = [method for method, params in RockPy3.Measurement.method_calculation_parameter_list().items()
                        if
                        parameter in params]
-        # print(mtypes, methods, parameter)
+        print(mtypes, methods, parameter, rpobj)
 
         # i an object is given, we can filter the possible mtypes, and methods further
         # 1. a measurement object
@@ -264,9 +267,14 @@ def kwargs_to_calculation_parameter(rpobj=None, mtype_list=None, **kwargs):
         # 3. a samplegroup object
         # 4. a study object
         # 5. a visual object
+        # 6. a result
+        if result:
 
-        if isinstance(rpobj, RockPy3.Visualize.base.Visual):
-            mtypes = [mtype for mtype in mtypes if mtype in rpobj.__class__._required]
+            methods = [method for method in methods if method in rpobj.possible_calculation_parameter()[result]]
+
+
+        # if isinstance(rpobj, RockPy3.Visualize.base.Visual):
+        #     mtypes = [mtype for mtype in mtypes if mtype in rpobj.__class__._required]
 
         # todo RockPy3.study, RockPy3.samplegroup
 

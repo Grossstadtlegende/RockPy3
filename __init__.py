@@ -10,16 +10,19 @@ logger = logging.getLogger('RockPy3')
 import RockPy3.core
 import RockPy3.core.study
 from RockPy3.core.sample import Sample#, MeanSample
-# from RockPy3.core.data import RockPy3Data, condense
 from RockPy3.core.measurement import Measurement
 from RockPy3.core.series import Series
+
 from RockPy3.core.data import RockPyData as Data
+from RockPy3.core.data import condense
+
 from RockPy3.core.file_operations import save, load, abbrev_to_name
 from RockPy3.core.file_operations import get_fname_from_info, get_info_from_fname, import_folder
-from RockPy3.core.utils import ignored
-# # from RockPy3.utils.general import ignored, check_coordinate_system
 
-# from RockPy3.Visualize import Figure
+from RockPy3.core.utils import ignored
+# from RockPy3.utils.general import ignored, check_coordinate_system
+
+from RockPy3.core.figure import Figure
 from RockPy3.Packages import *
 import RockPy3.Packages
 import pkgutil

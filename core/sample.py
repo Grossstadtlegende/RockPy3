@@ -379,11 +379,11 @@ class Sample(object):
             else:
                 return []
 
-        mtype = RockPy3.utils.to_list(mtype)
-        mtype = [RockPy3.abbrev_to_name(mtype) for mtype in mtypes]
+        mtype = RockPy3.core.utils.to_list(mtype)
+        mtype = [RockPy3.abbrev_to_name(mtype) for mt in mtype]
 
-        stype = to_list(stype)
-        sval = to_list(sval)
+        stype = RockPy3.core.utils.to_list(stype)
+        sval = RockPy3.core.utils.to_list(sval)
 
         if mean:
             mdict = self.mean_mdict
@@ -399,11 +399,11 @@ class Sample(object):
         out = []
 
         if not serie:
-            for mtype in mtype:
-                for stype in stype:
-                    for sval in sval:
+            for mt in mtype:
+                for st in stype:
+                    for sv in sval:
                         measurements = [m for m in mdict['measurements'] if
-                                        m.has_mtype_stype_sval(mtype=mtype, stype=stype, sval=sval) if m not in out]
+                                        m.has_mtype_stype_sval(mtype=mt, stype=st, sval=sv) if m not in out]
                         out.extend(measurements)
         else:
             # searching for specific series, all mtypes specified that fit the series description will be returned
@@ -411,7 +411,7 @@ class Sample(object):
             for mtype in mtype:  # cycle through mtypes
                 aux = []
                 for s in serie:
-                    aux.extend(self.get_mtype_stype_sval(mtype=mtype, stype=s[0], sval=float(s[1])))
+                    aux.extend(self.get_mtype_stype_sval(mtype=mt, stype=s[0], sval=float(s[1])))
                 out.extend(list(set([i for i in aux if aux.count(i) == len(series)])))
 
         # invert list to contain only measurements that do not meet criteria

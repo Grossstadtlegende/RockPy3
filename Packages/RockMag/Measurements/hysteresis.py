@@ -555,6 +555,29 @@ class Hysteresis(measurement.Measurement):
         self.results['hf_sus'] = [[(np.nanmean(hf_sus_result), np.nanstd(hf_sus_result))]]
         self.results['ms'] = [[(np.nanmean(ms_result), np.nanstd(ms_result))]]
 
+    def calculate_hf_sus_APP2SAT(self, **parameter):
+        """
+        Calculates the high field susceptibility using approach to saturation
+        :return:
+        """
+        saturation_percent = parameter.get('saturation_percent', 75.)
+        remove_last = parameter.get('remove_last', 0)
+
+        res_uf1, res_uf2 = self.calc_approach2sat(saturation_percent=saturation_percent, branch='up_field',
+                                                  remove_last=remove_last)
+        res_df1, res_df2 = self.calc_approach2sat(saturation_percent=saturation_percent, branch='down_field',
+                                                  remove_last=remove_last)
+        res = np.c_[res_uf1, res_uf2, res_df1, res_df2]
+
+        self.results['ms'] = [[[np.mean(res, axis=1)[0], np.std(res, axis=1)[0]]]]
+        self.results['hf_sus'] = [[[np.mean(res, axis=1)[1], np.std(res, axis=1)[1]]]]
+        self.results = self.results.append_columns(column_names=['alpha'],
+                                                   data=[[[np.mean(res, axis=1)[2], np.std(res, axis=1)[2]]]])
+
+        parameter.update(dict(method='app2sat'))
+        self.calculation_parameter['hf_sus'].update(parameter)
+        return self.results['hf_sus'].v[0]
+
     @result
     def result_ms(self, recipe='SIMPLE', saturation_percent=75., ommit_last_n=0, recalc=False, **non_method_parameters):
         """
@@ -609,6 +632,7 @@ class Hysteresis(measurement.Measurement):
            RockPyData
         """
         pass
+
 
     ####################################################################################################################
     ''' Brh'''
@@ -797,28 +821,6 @@ class Hysteresis(measurement.Measurement):
 
     """ CALCULATIONS """
 
-    def calculate_hf_sus_app2sat(self, **parameter):
-        """
-        Calculates the high field susceptibility using approach to saturation
-        :return:
-        """
-        saturation_percent = parameter.get('saturation_percent', 75.)
-        remove_last = parameter.get('remove_last', 0)
-
-        res_uf1, res_uf2 = self.calc_approach2sat(saturation_percent=saturation_percent, branch='up_field',
-                                                  remove_last=remove_last)
-        res_df1, res_df2 = self.calc_approach2sat(saturation_percent=saturation_percent, branch='down_field',
-                                                  remove_last=remove_last)
-        res = np.c_[res_uf1, res_uf2, res_df1, res_df2]
-
-        self.results['ms'] = [[[np.mean(res, axis=1)[0], np.std(res, axis=1)[0]]]]
-        self.results['hf_sus'] = [[[np.mean(res, axis=1)[1], np.std(res, axis=1)[1]]]]
-        self.results = self.results.append_columns(column_names=['alpha'],
-                                                   data=[[[np.mean(res, axis=1)[2], np.std(res, axis=1)[2]]]])
-
-        parameter.update(dict(method='app2sat'))
-        self.calculation_parameter['hf_sus'].update(parameter)
-        return self.results['hf_sus'].v[0]
 
     def get_irreversible(self, correct_symmetry=True):
         """

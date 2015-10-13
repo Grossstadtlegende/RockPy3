@@ -57,7 +57,7 @@ class Measurement(object):
              value == a sorted list of unique parameters
         """
         gpcp = {}
-        for mname, measurement in RockPy3.implemented_measurements().items():
+        for mname, measurement in RockPy3.implemented_measurements.items():
             gpcp.setdefault(mname, sorted(
                 list(set([i for j in measurement.possible_calculation_parameter().values() for i in j]))))
         return gpcp
@@ -72,7 +72,7 @@ class Measurement(object):
             a sorted list of unique parameters
         """
         gpcp = {}
-        for mname, measurement in RockPy3.implemented_measurements().items():
+        for mname, measurement in RockPy3.implemented_measurements.items():
             gpcp.setdefault(mname, measurement.possible_calculation_parameter())
         return gpcp
 
@@ -88,7 +88,7 @@ class Measurement(object):
             value: list of unique parameters
         """
         gpcp = {}
-        for mname, measurement in RockPy3.implemented_measurements().items():
+        for mname, measurement in RockPy3.implemented_measurements.items():
             for method, parameters in measurement.possible_calculation_parameter().items():
                 # method_name = ''.join(method.split('_')[1:])  # only method without the _calculate
                 gpcp.setdefault(method, parameters)
@@ -104,7 +104,7 @@ class Measurement(object):
             a sorted list of unique parameters
         """
         gpcp = []
-        for mname, measurement in RockPy3.implemented_measurements().items():
+        for mname, measurement in RockPy3.implemented_measurements.items():
             for method, parameters in measurement.possible_calculation_parameter().items():
                 gpcp.extend(parameters)
         return sorted(list(set(gpcp)))
@@ -112,29 +112,32 @@ class Measurement(object):
     @classmethod
     def possible_calculation_parameter(cls):
         """
-
+        All possible calculation methods of a measurement. It first creates a dictionary of all calculate_methods and
+        their signature.
+        Then it looks through all result_ methods and checks if any is not added yet and needs a recipe
         Note
         ----
             This adds a pseudo_method to the dictionary for each result_method with a recipe.
             Therefor this dict can not be used to check for methods!
         """
-        p_params = {i: set(arg for arg in inspect.getargspec(getattr(cls, 'calculate_' + i))[0]
-                           if arg not in ['self'])
+
+        cparams = {i: set(arg for arg, value in inspect.signature(getattr(cls, 'calculate_' + i)).parameters.items()
+                          if not arg in ['self', 'non_method_parameters'])
                     for i in cls.calculate_methods()}
 
         # methods with recipe need 'recipe' to be added to the calculation_parameters
         for res in cls.result_methods():
-            if res not in p_params:
+            if res not in cparams:
                 methods = cls.get_calculate_methods(res)
                 if cls.result_category(res) == 'indirect':
-                    p_params.setdefault(res, set())
-                    p_params[res].update(set(param for recipe in methods for param in p_params[recipe]))
+                    cparams.setdefault(res, set())
+                    cparams[res].update(set(param for recipe in methods for param in cparams[recipe]))
                 if 'recipe' in cls.result_category(res):
-                    p_params.setdefault(res, set())
-                    p_params[res].update(set(param for recipe in methods for param in p_params[recipe]))
-                    p_params[res].update(['recipe'])
+                    cparams.setdefault(res, set())
+                    cparams[res].update(set(param for recipe in methods for param in cparams[recipe]))
+                    cparams[res].update(['recipe'])
 
-        return p_params
+        return cparams
 
     ####################################################################################################################
     '''RESULT/CALCULATE METHOD RELATED'''
@@ -258,7 +261,7 @@ class Measurement(object):
     @classmethod
     def subclasses(cls):
         """
-        Returns a list of the inheritors names
+        Returns a list of the implemented_visuals names
         """
         return [i.__name__.lower() for i in cls.inheritors()]
 
@@ -566,6 +569,10 @@ class Measurement(object):
         self.__dict__.update(d)
         self.__initialize()
 
+    def get_calc_method(self, method):
+        result_name, recipe = get_result_recipe_name(method)
+        self.calculation_recipes.setdefault(result_name, dict()).setdefault(recipe, method)
+
     def __initialize(self):
         """
         Initialize function is called inside the __init__ function, it is also called when the object is reconstructed
@@ -667,7 +674,7 @@ class Measurement(object):
         ftype = ftype.lower()
 
         self.logger.info('CREATING << %s >> initial state measurement << %s >> data' % (mtype, self.mtype))
-        # implemented = {i.__name__.lower(): i for i in Measurement.inheritors()}
+        # implemented = {i.__name__.lower(): i for i in Measurement.implemented_visuals()}
 
         # can only be created if the measurement is actually implemented
         if mtype in RockPy3.implemented_measurements():
@@ -1186,7 +1193,7 @@ class Measurement(object):
         # remove default series from sobj.mdict if non series exists previously
         if not self._series:
             self.sobj._remove_series_from_mdict(mobj=self, series=self.series[0],
-                                                      mdict_type='mdict')  # remove default series
+                                                mdict_type='mdict')  # remove default series
         if not any(series == s for s in self._series):
             self._series.append(series)
         self._add_sval_to_data(series)
@@ -1570,8 +1577,8 @@ class Measurement(object):
         """
 
         cal = self.sobj.add_measurement(mtype=self.mtype, ftype=self.ftype, fpath=fpath,
-                                              mobj=mobj, mdata=mdata,
-                                              create_only=True)
+                                        mobj=mobj, mdata=mdata,
+                                        create_only=True)
         self.calibration = cal
 
     '''' PLOTTING '''''
@@ -1612,7 +1619,7 @@ class Measurement(object):
         :return:
         """
         out = {}
-        for name, visual in RockPy3.Visualize.base.Visual.inheritors().items():
+        for name, visual in RockPy3.Visualize.base.Visual.implemented_visuals().items():
             if visual._required == [self.mtype]:
                 out.update({visual.__name__.lower(): visual})
         return out
@@ -1758,6 +1765,16 @@ class Measurement(object):
             doc.generate_pdf(filepath=filepath, clean=clean)
 
 
+def separate_result_name(res):
+    """
+    separates the 'result_', 'result_method' and 'RECIPE'
+    :param
+        res: str
+    :return:
+    """
+    print(res.split('_'))
+
+
 @decorator.decorator
 def result(func, *args, **kwargs):
     """
@@ -1779,15 +1796,13 @@ def result(func, *args, **kwargs):
             Some Results (e.g. Thellier.result_sigma) is calculated in a different method (in this case it
             is calculated by Thellier.result_slope) and therefore 'slope' has to be passed
     """
-    # print decorator.getfullargspec(func).__dict__
-    # print inspect.getargvalues(inspect.currentframe())
     # compute the parameter dictionary from the functions argspecs
-    # parameters = {arg: args[i] for i, arg in enumerate(decorator.getfullargspec(func).args)}
-    # parameters.update(kwargs)
     parameters = RockPy3.utils.general.get_full_argspec(func=func, args=args, kwargs=kwargs)
     # get the measurement object, equivalent to self in class = args[0]
     self = parameters.pop('self')
 
+    calculation_parameters, p = RockPy3.utils.general.separate_calculation_parameter_from_kwargs(self, **parameters)
+    print(calculation_parameters, p)
     # calculation method has to be popped from dictionary, otherwise it is stored in calculation parameters
     # when the calculation_method is called
     if 'calculation_method' in parameters:
@@ -1809,9 +1824,10 @@ def result(func, *args, **kwargs):
                if len(i.split('_')) >= 3
                if calculation_method in i.split('_') or result_name in '_'.join(i.split('_')[1:-1])
                if i.split('_')[-1].isupper()]
-    print(result_name, self, recipes, recipe)
+
     if recipe and recipe not in recipes:
-        raise NotImplementedError('RECIPE << {} >> not implemented for {} chose from {}'.format(recipe, result_name, recipes))
+        raise NotImplementedError(
+            'RECIPE << {} >> not implemented for {} chose from {}'.format(recipe, result_name, recipes))
 
     # building the name of the calculation method to be called
     # if a calculation method is given, a different method has to be called.
@@ -1947,11 +1963,15 @@ def get_result_recipe_name(func_name):
         result_name: str
         method_name: str
     """
-    result_name = '_'.join(func_name.split('_')[1:])  # may contain recipe name
-    # recipe names are always upper case -> if uppercase the recipe name has to be separated
-    if result_name.split('_')[-1].isupper():
-        result_name = '_'.join(result_name.split('_')[:-1])
-        method_name = func_name.split('_')[-1]
+
+    full_name = func_name.replace('calculate_', '').replace('result_', '')
+    split = full_name.split('_')
+
+    if split[-1].isupper():
+        recipe = split[-1].lower()
+        result_name = '_'.join(split[:-1])
     else:
-        method_name = ''
-    return result_name, method_name
+        recipe = 'none'
+        result_name = full_name
+
+    return result_name, recipe
