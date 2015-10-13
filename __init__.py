@@ -24,6 +24,7 @@ from RockPy3.core.utils import ignored
 
 from RockPy3.core.figure import Figure
 from RockPy3.core.visual import Visual
+from RockPy3.core.series import Series
 
 from RockPy3.Packages import *
 import RockPy3.Packages

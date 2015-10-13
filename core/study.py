@@ -191,7 +191,9 @@ class Study(object):
 
         # sample filtering
         if sname:
+            print(sname)
             sname = utils.to_list(sname)
+            print(sname)
             slist = [s for s in slist if s.name in sname]
 
         return slist

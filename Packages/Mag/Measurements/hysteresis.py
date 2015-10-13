@@ -59,11 +59,11 @@ class Hysteresis(measurement.Measurement):
     """
 
     @classmethod
-    def simulate(cls, sobj, m_idx=0, color=None,
+    def from_simulation(cls, sobj, m_idx=0, color=None,
                  ms=250., mrs_ms=0.5, bc=0.2, hf_sus=1., bmax=1.8, b_sat=1, steps=100,
                  noise=None):
         """
-        Simulation of hysteresis loop using sngle tanh and sech functions.
+        Simulation of hysteresis loop using single tanh and sech functions.
 
         Parameters:
            m_idx (int): index of measurement
@@ -96,11 +96,13 @@ class Hysteresis(measurement.Measurement):
            Not working properly, yet. Use with caution
         """
 
+        cls.logger.info('CREATING simulation measurement with {}'.format(locals()))
+
         data = {'up_field': None,
                 'down_field': None,
                 'virgin': None}
 
-        fields = cls.get_grid(bmax=bmax, n=steps)
+        fields = cls.get_grid(bmax=bmax, grid_points=steps)
 
         # uf = float(ms) * np.array([tanh(3*(i-bc)/b_sat) for i in fields]) + hf_sus * fields
         # df = float(ms) * np.array([tanh(3*(i+bc)/b_sat) for i in fields]) + hf_sus * fields
@@ -110,19 +112,14 @@ class Hysteresis(measurement.Measurement):
 
         data['down_field'] = RockPyData(column_names=['field', 'mag'], data=np.c_[fields, rev_mag + irrev_mag])
         data['up_field'] = RockPyData(column_names=['field', 'mag'], data=np.c_[fields, rev_mag - irrev_mag])
-        #
-        # plt.plot(fields, rev_mag)
-        # plt.plot(fields, irrev_mag)
-        # plt.plot(fields, rev_mag + irrev_mag)
-        # plt.plot(fields, rev_mag - irrev_mag)
-        # plt.show()
-        return cls(sobj, 'hysteresis', fpath=None, mdata=data, ftype='simulation', color=color)
+
+        return cls(sobj, mtype='hysteresis', fpath=None, mdata=data, ftype='simulation', color=color)
 
     @classmethod
     def get_grid(cls, bmax=1, grid_points=30, tuning=10):
         grid = []
         # calculating the grid
-        for i in xrange(-grid_points, grid_points + 1):
+        for i in range(-grid_points, grid_points + 1):
             if i != 0:
                 boi = (abs(i) / i) * (bmax / tuning) * ((tuning + 1) ** (abs(i) / float(grid_points)) - 1.)
             else:  # catch exception for i = 0

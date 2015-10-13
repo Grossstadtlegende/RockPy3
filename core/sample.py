@@ -183,7 +183,7 @@ class Sample(object):
 
         ### FILE IMPORT
         file_info = {}  # file_info includes all info needed for creation of measurement instance
-        auto_import = False  # flag for filename creation
+
         # create an index for the measurement if none is provided
         if idx is None:
             idx = len(self.measurements)
@@ -195,7 +195,7 @@ class Sample(object):
             try:
                 file_info = RockPy3.core.file_operations.get_info_from_fname(path=fpath)
                 file_info.update(dict(sobj=self))
-                auto_import = True
+
             except (KeyError, IndexError, ValueError):
                 # if file_info can not be generated from the pathname
                 # mtype AND ftype have to exist otherwise measurement can not be created
@@ -231,11 +231,7 @@ class Sample(object):
         # add the additional series information to the file_info dict
         if series:
             # check if single series
-            # workaround because list(tuple(A)) -> list(A) not list(tuple(A))???
-            if type(series) == tuple:
-                aux = list()
-                aux.append(series)
-                series = aux
+            series = RockPy3.core.utils.tuple2list_of_tuples(series)
             file_info.update(dict(series=series))
 
         if options:
@@ -463,13 +459,13 @@ class Sample(object):
 
         mdict = getattr(self, mdict_type)
 
-        for k0, v0 in sorted(mdict.iteritems()):
+        for k0, v0 in sorted(mdict.items()):
             if isinstance(v0, dict):
-                for k1, v1 in sorted(v0.iteritems()):
+                for k1, v1 in sorted(v0.items()):
                     if isinstance(v1, dict):
-                        for k2, v2 in sorted(v1.iteritems()):
+                        for k2, v2 in sorted(v1.items()):
                             if isinstance(v2, dict):
-                                for k3, v3 in sorted(v2.iteritems()):
+                                for k3, v3 in sorted(v2.items()):
                                     if not v3:
                                         v2.pop(k3)
                                     if not v2:

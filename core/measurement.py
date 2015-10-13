@@ -1,3 +1,5 @@
+import core.utils
+
 __author__ = 'volk'
 
 import logging
@@ -139,16 +141,18 @@ class Measurement(object):
 
         return cparams
 
+    """
     ####################################################################################################################
-    '''RESULT/CALCULATE METHOD RELATED'''
+    RESULT/CALCULATE METHOD RELATED
+    """
 
     @classmethod
     def has_recipe(cls, res):
         """
-        checks if result has parameter recipe in argspec. if it does this means that the result_method has
+        checks if result has parameter recipe in signature. if it does this means that the result_method has
         different
         """
-        if 'recipe' in inspect.getargspec(getattr(cls, 'result_' + res))[0]:
+        if 'recipe' in inspect.signature(getattr(cls, 'result_' + res)).parameters:
             return True
         else:
             return False
@@ -163,7 +167,7 @@ class Measurement(object):
         -------
             bool
         """
-        if 'calculation_method' in inspect.getargspec(getattr(cls, 'result_' + res))[0]:
+        if 'calculation_method' in inspect.signature(getattr(cls, 'result_' + res)).parameters:
             return True
         else:
             return False
@@ -236,7 +240,7 @@ class Measurement(object):
                     if ''.join(i.split('_')[:-1]) == calculation_method]
 
     @classmethod
-    def simulate(cls, **parameter):
+    def from_simulation(cls, **parameter):
         """
         pseudo abstract method that should be overridden in subclasses to return a simulated measurement
         based on given parameters
@@ -397,7 +401,6 @@ class Measurement(object):
 
     def __init__(self, sobj,
                  mtype=None, fpath=None, ftype=None, mdata=None,
-                 # color=None, linestyle=None, marker=None, label='',  # todo change to default None
                  series=None,
                  **options):
         """
@@ -439,10 +442,6 @@ class Measurement(object):
         # coordinate system that is currently used in data; _raw_data is always assumed to be in core coordiantes
         self._actual_data_coord = 'core'
 
-        self.temperature = None
-
-        self.is_initial_state = False
-
         self.is_mean = False  # flag for mean measurements
         self.base_measurements = []  # list with all measurements used to generate the mean
 
@@ -454,9 +453,9 @@ class Measurement(object):
 
         ''' initialize parameters '''
         self.ftype_data = None  # returned data from io.ftype()
-        self.suffix = options.get('suffix', '')
 
         ''' initial state '''
+        self.is_initial_state = False
         self.is_ftype_data = None  # returned data from io.ftype()
         self.initial_state = None
 
@@ -465,9 +464,6 @@ class Measurement(object):
         self.holder = None
         self._correction = []
 
-        ''' series '''
-        self._series = []
-        self._series_opt = series
 
         self.__initialize()
 
@@ -507,9 +503,9 @@ class Measurement(object):
         # now we can start the formatting
 
         # add series if provided
-        # has to come past __initialize()
-        if self._series_opt:
-            self._add_series_from_opt()
+        ''' series '''
+        self._series = []
+        self.add_series(series=series)
 
         # dynamic data formatting
         # checks if format_'ftype' exists. If exists it formats self.raw_data according to format_'ftype'
@@ -595,12 +591,6 @@ class Measurement(object):
 
         self.calculation_parameter = {}
 
-        # self.calculation_methods = {'calculate_' + i: v for i, v in self.__class__.calculate_methods().items()}
-
-        if self._series:
-            for t in self._series:
-                self._add_sval_to_results(t)
-
         self.is_normalized = False  # normalized flag for visuals, so its not normalized twice
         self.norm = None  # the actual parameters
 
@@ -608,7 +598,7 @@ class Measurement(object):
 
     @property
     def stype_sval_tuples(self):
-        if self.has_series():
+        if self.get_series():
             return [(s.stype, s.value) for s in self.series]
         else:
             return []
@@ -963,7 +953,7 @@ class Measurement(object):
 
     def calc_all(self, recalc=False, **parameter):
         # get possible calculation parameters and put them in a dictionary
-        calculation_parameter, kwargs = RockPy3.utils.general.kwargs_to_calculation_parameter(rpobj=self, **parameter)
+        calculation_parameter, kwargs = core.utils.kwargs_to_calculation_parameter(rpobj=self, **parameter)
         for result_method in self.result_methods():
             calc_param = calculation_parameter.get(self.mtype, {})
             calc_param = calc_param.get(result_method, {})
@@ -1080,7 +1070,11 @@ class Measurement(object):
         else:
             return False
 
-    ### series RELATED
+    """
+    ####################################################################################################################
+
+    SERIES related
+    """
 
     @property
     def series(self):
@@ -1090,32 +1084,7 @@ class Measurement(object):
             series = RockPy3.Series(stype='none', value=np.nan, unit='')
             return [series]
 
-    def _add_series_from_opt(self):
-        """
-        Takes series specified in options (if any) and adds them to self.series calling self.add_sval()
-        """
-        if self._series_opt:
-            for s in self._series_opt:
-                self.add_sval(stype=s[0], sval=s[1], unit=s[2])
-
-    def has_series(self, stype=None, sval=None):
-        """
-        checks if a measurement actually has a series
-
-        Parameter
-        ---------
-        :return:
-        """
-        # check if any series without specifying
-        if not self._series:
-            return False
-        else:
-            if self.get_series(stypes=stype, svals=sval):
-                return True
-            else:
-                return False
-
-    def get_series(self, stypes=None, svals=None, series=None):
+    def get_series(self, stype=None, sval=None, series=None):
         """
         searches for given stypes and svals in self.series and returns them
 
@@ -1142,27 +1111,28 @@ class Measurement(object):
             m.get_series(0) -> [<RockPy3.series> pressure, 0.00, [GPa], <RockPy3.series> temperature, 0.00, [C]]
         """
         out = self.series
-        if stypes is not None:
-            stypes = RockPy3.utils.general.to_list(stypes)
-            stypes = [stype.lower() for stype in stypes]
-            out = [i for i in out if i.stype in stypes]
-        if svals is not None:
-            svals = RockPy3.utils.general.to_list(svals)
-            out = [i for i in out if i.value in svals]
+        if stype is not None:
+            stype = RockPy3.core.utils.to_list(stype)
+            stype = [stype.lower() for stype in stype]
+            out = [i for i in out if i.stype in stype]
+        if sval is not None:
+            sval = RockPy3.core.utils.to_list(sval)
+            out = [i for i in out if i.value in sval]
 
         if series:  # todo series
-            pass
+
+            out = [i for i in out if i.data in sval]
+
         return out
 
     def get_sval(self, stype):
         """
         Searches for stype and returns sval
         """
-        if self.has_series(stype=stype):
-            s = self.get_series(stypes=stype)
-        return s[0].value
+        s = self.get_series(stype=stype)
+        return s[0].value if s else None
 
-    def add_sval(self, stype=None, sval=None, unit=None, series_obj=None, comment=''):
+    def add_series(self, stype=None, sval=None, unit=None, series_obj=None, series=None):
         """
         adds a series to measurement.series, then adds is to the data and results datastructure
 
@@ -1174,37 +1144,56 @@ class Measurement(object):
               series value to be added
            unit: str
               unit to be added. can be None #todo change so it uses Pint
-           comment: str
-              adds a comment to the series
+            series_obj: RockPy3.series
+                if a previously created object needs to be passed
+            series: list(tuples)
+                default: None
+                Series object gets created for a list of specified series
 
         Returns
         -------
-           RockPy3.Series instance
+           [RockPy3.Series] list of RockPy series objects
 
         Note
         ----
             If the measurement previously had no series, the (none, 0 , none) standard series will be removed first
         """
         # if a series object is provided other wise create series object
-        if series_obj:
+        if not any(i for i in [stype, sval, unit, series_obj, series]):
+            return
+        elif series_obj:
             series = series_obj
+
+        elif series:
+            if type(series) == tuple:
+                aux = []
+                aux.append(series)
+                slist = aux
+            else:
+                slist = series
+            series = []
+            for stup in slist:
+                series.append(RockPy3.Series.from_tuple(series=stup))
         else:
-            series = RockPy3.Series(stype=stype, value=sval, unit=unit, comment=comment)
+            series = RockPy3.Series(stype=stype, value=sval, unit=unit)
+
         # remove default series from sobj.mdict if non series exists previously
         if not self._series:
             self.sobj._remove_series_from_mdict(mobj=self, series=self.series[0],
                                                 mdict_type='mdict')  # remove default series
-        if not any(series == s for s in self._series):
-            self._series.append(series)
-        self._add_sval_to_data(series)
-        self._add_sval_to_results(series)
 
-        # add the measurement to the mdict of the sobj
-        self.sobj._add_series2_mdict(series=series, mobj=self)
+        # turn into list to add multiples
+        series = RockPy3.core.utils.to_list(series)
+        for sobj in series:
+            if not any(sobj == s for s in self._series):
+                print(sobj)
+                self._series.append(sobj)
+                self._add_sval_to_data(sobj)
+                self._add_sval_to_results(sobj)
+
+            # add the measurement to the mdict of the sobj
+            self.sobj._add_series2_mdict(series=sobj, mobj=self)
         return series
-
-    def add_series(self, stype=None, sval=None, unit=None, series_obj=None, comment=''):
-        self.add_sval(stype=stype, sval=sval, unit=unit, series_obj=series_obj, comment=comment)
 
     def _add_sval_to_data(self, sobj):
         """
@@ -1305,7 +1294,7 @@ class Measurement(object):
                 default: True
         """
         # separate the calc from non calc parameters
-        calculation_parameter, options = RockPy3.utils.general.separate_calculation_parameter_from_kwargs(rpobj=self,
+        calculation_parameter, options = core.utils.separate_calculation_parameter_from_kwargs(rpobj=self,
                                                                                                           **options)
 
         # getting normalization factor
@@ -1478,8 +1467,8 @@ class Measurement(object):
         stypes = _to_tuple(stypes)
 
         for stype in stypes:
-            if self.has_series(stype=stype):
-                stype = self.get_series(stypes=stype)[0]
+            if self.get_series(stype=stype):
+                stype = self.get_series(stype=stype)[0]
                 aux = []
                 if add_stype:
                     aux.append(stype.stype)
@@ -1514,12 +1503,13 @@ class Measurement(object):
         if mtype and self.mtype != mtype:
             return False
         if stype is not None or sval is not None:
-            if not self.has_series(stype=stype, sval=sval):
+            if not self.get_series(stype=stype, sval=sval):
                 return False
         return True
 
     """
     CORRECTIONS
+    +++++++++++
     """
 
     def correct_dtype(self, dtype='th', var='variable', val='last', initial_state=True):
@@ -1646,13 +1636,13 @@ class Measurement(object):
         color_map = RockPy3.Visualize.core.create_heat_color_map(svals)
 
         # get the index and set the color
-        sval = self.get_series(stypes=stype)[0].value
+        sval = self.get_series(stype=stype)[0].value
         sval_index = svals.index(sval)
         self.color = color_map[sval_index]
 
     def plt_all(self, **plt_opt):
         fig = RockPy3.Figure()
-        calculation_parameter, non_calculation_parameter = RockPy3.utils.general.separate_calculation_parameter_from_kwargs(
+        calculation_parameter, non_calculation_parameter = core.utils.separate_calculation_parameter_from_kwargs(
             self, **plt_opt)
         for visual in self.plottable:
             fig.add_visual(visual=visual, plt_input=self, **plt_opt)
@@ -1797,11 +1787,11 @@ def result(func, *args, **kwargs):
             is calculated by Thellier.result_slope) and therefore 'slope' has to be passed
     """
     # compute the parameter dictionary from the functions argspecs
-    parameters = RockPy3.utils.general.get_full_argspec(func=func, args=args, kwargs=kwargs)
+    parameters = core.utils.get_full_argspec(func=func, args=args, kwargs=kwargs)
     # get the measurement object, equivalent to self in class = args[0]
     self = parameters.pop('self')
 
-    calculation_parameters, p = RockPy3.utils.general.separate_calculation_parameter_from_kwargs(self, **parameters)
+    calculation_parameters, p = core.utils.separate_calculation_parameter_from_kwargs(self, **parameters)
     print(calculation_parameters, p)
     # calculation method has to be popped from dictionary, otherwise it is stored in calculation parameters
     # when the calculation_method is called

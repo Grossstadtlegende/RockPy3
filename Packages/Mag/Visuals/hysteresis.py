@@ -1,7 +1,7 @@
 __author__ = 'mike'
 import RockPy3
 # import Features.backfield
-# import Features.hysteresis
+import RockPy3.Packages.Mag
 from RockPy3.core.utils import feature
 
 
@@ -17,7 +17,7 @@ class Hysteresis(RockPy3.core.visual.Visual):
 
     @feature(mtypes='hysteresis')
     def feature_hysteresis_data(self, **plt_opt):
-        # Features.hysteresis.hysteresis(self.ax, plt_opt.pop('mobj'), **plt_opt)
+        RockPy3.Packages.Mag.Features.hysteresis.hysteresis(self.ax, plt_opt.pop('mobj'), **plt_opt)
         pass
 
     @feature(mtypes='hysteresis')

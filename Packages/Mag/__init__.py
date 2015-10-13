@@ -2,6 +2,7 @@ __author__ = 'mike'
 from RockPy3.Packages.Mag.Measurements import *
 from RockPy3.Packages.Mag.io import *
 from RockPy3.Packages.Mag.Visuals import *
+from RockPy3.Packages.Mag.Features import *
 # from io import *
 
 import os

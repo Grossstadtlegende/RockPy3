@@ -26,10 +26,18 @@ class TestMeasurement(TestCase):
         self.fail()
 
     def test_has_recipe(self):
-        self.fail()
+        import RockPy3.Packages.Mag.Measurements.hysteresis
+        s = RockPy3.Sample()
+        m = RockPy3.Packages.Mag.Measurements.hysteresis.Hysteresis.from_simulation(sobj=s)
+        self.assertTrue(m.has_recipe('ms'))
+        self.assertFalse(m.has_recipe('mrs'))
 
     def test_has_calculation_method(self):
-        self.fail()
+        import RockPy3.Packages.Mag.Measurements.hysteresis
+        s = RockPy3.Sample()
+        m = RockPy3.Packages.Mag.Measurements.hysteresis.Hysteresis.from_simulation(sobj=s)
+        self.assertTrue(m.has_calculation_method('hf_sus'))
+        self.assertFalse(m.has_calculation_method('ms'))
 
     def test_result_category(self):
         self.fail()

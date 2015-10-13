@@ -14,6 +14,10 @@ class Series(object):
         self.value = float(value)
         self.unit = unit
 
+    @classmethod
+    def from_tuple(cls, series):
+        return cls(stype=series[0], value=series[1], unit=series[2])
+
     @property
     def label(self):
         return '%.2f [%s]' % (self.value, self.unit)
