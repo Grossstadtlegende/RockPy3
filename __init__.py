@@ -23,9 +23,11 @@ from RockPy3.core.utils import ignored
 # from RockPy3.utils.general import ignored, check_coordinate_system
 
 from RockPy3.core.figure import Figure
+from RockPy3.core.visual import Visual
+
 from RockPy3.Packages import *
 import RockPy3.Packages
-import pkgutil
+
 import subprocess
 
 test_data_path = os.path.join(os.getcwd().split('RockPy3')[0], 'RockPy3', 'Tutorials', 'test_data')
@@ -99,6 +101,8 @@ Study = RockPy3.core.study.Study(name='MasterStudy')
 
 ########################################################################################################################
 implemented_measurements = {m.__name__.lower(): m for m in Measurement.inheritors()}
+implemented_visuals = RockPy3.core.visual.Visual.implemented_visuals()
+
 logger.debug('IMPLEMENTED MEASUREMENT TYPES: FTYPES')
 for m, obj in sorted(RockPy3.implemented_measurements.items()):
     logger.debug('\t{:<15}: \t{}'.format(m, ', '.join(obj.measurement_formatters()[m].keys())))
