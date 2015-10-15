@@ -6,7 +6,7 @@ import RockPy3
 from core import utils
 import RockPy3.core.sample
 import os
-
+from multiprocessing import Pool
 class Study(object):
     """
     comprises data of a whole study
@@ -94,6 +94,10 @@ class Study(object):
                    samplegroup=None,
                    sobj=None,
                    ):
+        if name in self.samplenames:
+            RockPy3.logger.warning('CANT create << %s >> already in Study. Please use unique sample names. '
+                                   'Returning sample' %name)
+            return self._samples[name]
 
         if not sobj:
             sobj = RockPy3.core.sample.Sample(
@@ -150,7 +154,7 @@ class Study(object):
 
         return samples
 
-    def add_mean_samplegroup(self):
+    def add_mean_sample(self):
         pass
 
     ####################################################################################################################
@@ -191,9 +195,7 @@ class Study(object):
 
         # sample filtering
         if sname:
-            print(sname)
             sname = utils.to_list(sname)
-            print(sname)
             slist = [s for s in slist if s.name in sname]
 
         return slist
@@ -222,19 +224,24 @@ class Study(object):
         RockPy3.logger.debug('TRYING to import {} files for these samplegroups {}'.format(len(files), sorted(list(sample_groups))))
 
         start = time.clock()
-        for file in files:
-            info = RockPy3.get_info_from_fname(file)
-            if not info['name'] in self.samplenames:
-                s = self.add_sample(name=info['name'], samplegroup=info['samplegroup'])
-            else:
-                s = self.get_sample(sname=info['name'])[0]
-            s.add_measurement(**info)
+
+        # with Pool(5) as p:
+        #     measurements = p.map(self.import_file, files)
+        # print(measurements)
+        # print(measurements[0].sobj)
+        #
+        measurements = [self.import_file(file) for file in files]
         end = time.clock()
+        RockPy3.logger.debug('IMPORT generated {} measurements: finished in {:<3}s'.format(len(measurements),end-start))
+        return measurements
 
-        RockPy3.logger.debug('IMPORT finished in {}s'.format(end-start))
+    def import_file(self, fpath):
+        info = RockPy3.get_info_from_fname(fpath)
+        s = self.add_sample(name=info['name'], samplegroup=info['samplegroup'])
+        m = s.add_measurement(**info)
+        return m
 
-    # todo Python3
-    def info(self, tablefmt='simple'):
+    def info(self, tablefmt='simple', parameters=True):
         formats = ['plain', 'simple', 'grid', 'fancy_grid', 'pipe', 'orgtbl', 'rst', 'mediawiki', 'html', 'latex',
                    'latex_booktabs']
 
@@ -246,24 +253,37 @@ class Study(object):
         table = []
 
         for s in sorted(self.samplelist):
-            mtypes = [m.mtype for m in s.measurements]
-            stypes = sorted(list(set([stype for m in s.measurements for stype in m.stypes])))
-            measurements = ', '.join(['%ix %s' % (mtypes.count(i), i) for i in sorted(set(mtypes))])
-            stypes = ', '.join(stypes)
+            # get all mtypes of the sample
+            mtypes = list(s.mdict['mtype'].keys())
+            # get all stypes of the sample
+            stypes = ', '.join(list(s.mdict['stype'].keys()))
+
+            # count how many measurements for each mtype
+            measurements = ', '.join(['%ix %s' %(len(s.mdict['mtype'][i]), i) for i in mtypes])
+
+            # does the measurement have an initial state
             i_state = [True if any(m.has_initial_state for m in s.measurements) else False][0]
-            line0 = [s.name, s._samplegroups, measurements, stypes, i_state]
+
+            samplegroups = s._samplegroups
+            if not samplegroups:
+                samplegroups = 'none'
+
+            # header line for the sample
+            line0 = [s.name, samplegroups, measurements, stypes, i_state]
             table.append(line0)
-            table.append([''.join(['--' for i in str(j)]) for j in line0])
+            table.append([''.join(['=' for i in range(15)]) for j in line0])
+
+            # add a line for each measurement
             for m in s.measurements:
-                if not isinstance(m, RockPy3.Packages.Generic.Measurements.parameters.Parameter):
+                if not isinstance(m, RockPy3.Packages.Generic.Measurements.parameters.Parameter) or parameters:
                     if m.has_initial_state:
-                        initial = m.initial_state.mtype
+                        initial = '{} [{}]'.format(m.initial_state.mtype, str(m.initial_state.idx))
                     else:
                         initial = ''
-                    line = ['', s.name, m.mtype,
+                    line = ['', s.name, '{} [{}]'.format(m.mtype, str(m.idx)),
                             ', '.join(['{} [{}]'.format(series[0], series[1]) for series in m.stype_sval_tuples]),
                             initial]
                     table.append(line)
-            table.append([''.join(['--' for i in str(j)]) for j in line0])
+            table.append([''.join(['-' for i in range(15)]) for j in line0])
 
-        print(tabulate.tabulate(table, headers=header, tablefmt=tablefmt))
+        return tabulate.tabulate(table, headers=header, tablefmt=tablefmt)

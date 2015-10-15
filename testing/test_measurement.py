@@ -1,6 +1,7 @@
 from unittest import TestCase
 import RockPy3.core.measurement
 import RockPy3.core.study
+
 __author__ = 'mike'
 
 
@@ -39,17 +40,30 @@ class TestMeasurement(TestCase):
         self.assertTrue(m.has_calculation_method('hf_sus'))
         self.assertFalse(m.has_calculation_method('ms'))
 
+    def test_has_secondary(self):
+        import RockPy3.Packages.Mag.Measurements.hysteresis
+        s = RockPy3.Sample()
+        m = RockPy3.Packages.Mag.Measurements.hysteresis.Hysteresis.from_simulation(sobj=s)
+        self.assertTrue(m.has_secondary('bcr_bc'))
+        self.assertFalse(m.has_secondary('ms'))
+
     def test_result_category(self):
-        self.fail()
+        import RockPy3.Packages.Mag.Measurements.hysteresis
+        s = RockPy3.Sample()
+        m = RockPy3.Packages.Mag.Measurements.hysteresis.Hysteresis.from_simulation(sobj=s)
+        self.assertEqual('direct', m.result_category('mrs'))
+        self.assertEqual('direct_dependent', m.result_category('bcr_bc'))
+        self.assertEqual('direct_recipe', m.result_category('ms'))
+        self.assertEqual('indirect_recipe', m.result_category('hf_sus'))
+        # self.assertEqual('indirect_recipe', m.result_category('hf_sus'))#todo add the direct_recipe
 
     def test_get_calculate_methods(self):
-        self.fail()
-
-    def test_simulate(self):
-        self.fail()
-
-    def test_measurement_result(self):
-        self.fail()
+        import RockPy3.Packages.Mag.Measurements.hysteresis
+        s = RockPy3.Sample()
+        m = RockPy3.Packages.Mag.Measurements.hysteresis.Hysteresis.from_simulation(sobj=s)
+        self.assertEqual(sorted(['ms_SIMPLE', 'ms_APP2SAT']), sorted(m.get_calculate_methods('hf_sus')))
+        self.assertEqual(sorted(['mrs']), sorted(m.get_calculate_methods('mrs')))
+        self.assertEqual(sorted(['bc_LINEAR', 'bc_NONLINEAR']), sorted(m.get_calculate_methods('bc')))
 
     def test_implemented_ftypes(self):
         self.fail()
@@ -61,14 +75,14 @@ class TestMeasurement(TestCase):
         self.fail()
 
     def test_implemented_measurements(self):
-        parameters = ['height', 'diameter', 'mass', 'volume', 'locationgeo']
-        self.assertTrue(all(i in RockPy3.core.measurement.Measurement.implemented_measurements() for i in parameters))
+        parameters = ['height', 'diameter', 'mass', 'volume', 'locationgeo', 'hysteresis']
+        self.assertTrue(all(i in RockPy3.implemented_measurements for i in parameters))
 
     def test_measurement_formatters(self):
         self.fail()
 
     def test_result_methods(self):
-        print( RockPy3.core.measurement.Measurement.result_methods())
+        print(RockPy3.core.measurement.Measurement.result_methods())
         self.fail()
 
     def test_calculate_methods(self):
@@ -99,16 +113,37 @@ class TestMeasurement(TestCase):
         self.fail()
 
     def test_fname(self):
-        self.fail()
+        s = RockPy3.Sample()
+        s.add_measurement(fpath='/Users/mike/Google Drive/RockPy3/testing/test_data/FeNi_FeNi20-Jz000\'-G03_HYS_VSM#50,3[mg]_[]_[]##STD020.003')
 
     def test_import_data(self):
         self.fail()
 
     def test_set_initial_state(self):
-        self.fail()
+        # only initial states
+        study = RockPy3.core.study.Study()
+        s = study.add_sample(name='test')
+        mean = RockPy3.Study.add_sample(name='mean')
+        m0 = s.add_simulation(mtype='hysteresis', noise=5)
+        m1 = s.add_simulation(mtype='hysteresis', noise=5)
+        mi = m1.set_initial_state(mobj=m0)
+        # no deepcopy -> m0 == mi
+        self.assertEqual(m0, mi)
+        self.assertEqual([m0, m1], s.get_measurement(mtype='hysteresis'))
+        self.assertEqual(2, len(s.measurements))
+        self.assertFalse(s.measurements[0].has_initial_state)
+        self.assertTrue(s.measurements[1].has_initial_state)
 
     def test_has_initial_state(self):
-        self.fail()
+        # only initial states
+        study = RockPy3.core.study.Study()
+        s = study.add_sample(name='test')
+        mean = RockPy3.Study.add_sample(name='mean')
+        m0 = s.add_simulation(mtype='hysteresis', noise=5)
+        m1 = s.add_simulation(mtype='hysteresis', noise=5)
+        mi = m1.set_initial_state(mobj=m0)
+        self.assertFalse(s.measurements[0].has_initial_state)
+        self.assertTrue(s.measurements[1].has_initial_state)
 
     def test_info_dict(self):
         self.fail()
@@ -262,3 +297,16 @@ class TestMeasurement(TestCase):
 
     def test_etree(self):
         self.fail()
+
+    def test_from_measurements(self):
+        # 1. check that if there is no noise the data is the same
+        study = RockPy3.core.study.Study()
+        s = study.add_sample(name='test')
+        m0 = s.add_simulation(mtype='hysteresis')  # simulation with no noise
+        m1 = s.add_simulation(mtype='hysteresis')  # simulation with no noise
+
+        mean = RockPy3.Study.add_sample(name='mean')
+        mm = RockPy3.Packages.Mag.Measurements.hysteresis.Hysteresis.from_measurements_create_mean(mean, s.measurements)
+        for other in s.measurements:
+                self.assertTrue(all(mm.data['down_field']['mag'].v == other.data['down_field']['mag'].v))
+                self.assertTrue(all(mm.data['up_field']['mag'].v == other.data['up_field']['mag'].v))

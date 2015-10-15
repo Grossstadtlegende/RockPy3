@@ -29,7 +29,7 @@ def mtype_ftype_abbreviations():
 def fname_abbrevs():
     abbrev = RockPy3.mtype_ftype_abbreviations
     out = {}
-    for k, v in abbrev.iteritems():
+    for k, v in abbrev.items():
         out.setdefault(k, v[0].upper())
         if len(v) > 1:
             for i in v[1:]:
@@ -42,7 +42,7 @@ def save(smthg, file_name, folder=None):
         folder = default_folder
     with open(join(folder, file_name), 'wb+') as f:
         # dump = numpyson.dumps(smthg)
-        dump = cPickle.dumps(smthg)
+        dump = pickle.dumps(smthg)
         f.write(dump)
         f.close()
 
@@ -102,11 +102,10 @@ def get_fname_from_info(samplegroup='', sample_name='',
     :return:
     """
     abbrev = fname_abbrevs()
-
     mtype = abbrev_to_name(mtype)
     ftype = abbrev_to_name(ftype)
 
-    if not mtype.lower() in RockPy3.implemented_measurements():
+    if not mtype.lower() in RockPy3.implemented_measurements:
         RockPy3.logger.warning('MEASUREMENT mtype << %s >> may be wrong or measurement not implemented, yet.' % mtype)
 
     if not ftype.lower() in RockPy3.Measurement.implemented_ftypes():
@@ -255,24 +254,27 @@ def get_info_from_fname(path=None):
 
     out = {
         'samplegroup': samplegroup,
-        'name': sample_name,
+        'name': sample_name, # not needed since 3.5 rewrite
         'mtype': mtype,
         'ftype': ftype,
         'fpath': join(folder, fpath),
         'series': series,
-        'std': STD,
+        # 'std': STD,
         'idx': int(index)
     }
 
-    if mass[0]:
-        out.update({'mass': mass[0],
-                    'mass_unit': mass[1]})
-    if diameter[0]:
-        out.update({'diameter': diameter[0],
-                    'length_unit': diameter[1]})
-    if height[0]:
-        out.update({'height': height[0],
-                    'length_unit': diameter[1]})
+    if mtype == 'mass':
+        if mass[0]:
+            out.update({'mass': mass[0],
+                        'mass_unit': mass[1]})
+    if mtype == 'diameter':
+        if diameter[0]:
+            out.update({'diameter': diameter[0],
+                        'length_unit': diameter[1]})
+    if mtype == 'height':
+        if height[0]:
+            out.update({'height': height[0],
+                        'length_unit': diameter[1]})
     if options:
         out.update(options)
 

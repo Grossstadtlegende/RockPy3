@@ -6,23 +6,20 @@ from RockPy3.core.utils import feature
 
 
 class Hysteresis(RockPy3.core.visual.Visual):
-    # _required for searching through samples for plotables
-    _required = [('hysteresis',), ]
-
     def init_visual(self):
-        self.features = [self.feature_zero_lines, self.feature_hysteresis_data]
+        self.features = [self.feature_zero_lines]#, self.feature_hysteresis_data]
 
         self.xlabel = 'Field'
         self.ylabel = 'Moment'
 
-    @feature(mtypes='hysteresis')
-    def feature_hysteresis_data(self, **plt_opt):
-        RockPy3.Packages.Mag.Features.hysteresis.hysteresis(self.ax, plt_opt.pop('mobj'), **plt_opt)
-        pass
-
-    @feature(mtypes='hysteresis')
-    def feature_virgin(self, mobj, **plt_opt):
-        pass
+    # @feature(mtypes='hysteresis')
+    # def feature_hysteresis_data(self, **plt_opt):
+    #     RockPy3.Packages.Mag.Features.hysteresis.hysteresis(self.ax, plt_opt.pop('mobj'), **plt_opt)
+    #     pass
+    #
+    # @feature(mtypes='hysteresis')
+    # def feature_virgin(self, mobj, **plt_opt):
+    #     pass
 
 # class Fabian2003(base.Visual):
 #     _required = [('hysteresis', 'backfield')]

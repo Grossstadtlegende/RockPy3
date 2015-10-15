@@ -13,14 +13,14 @@ class ftype(object):
     def get_subclass_name(cls):
         return cls.__name__
 
-    def __init__(self, dfile, sample_name=None, dialect=None):
+    def __init__(self, dfile, sname=None, dialect=None):
         """
         Constructor of the basic file type instance
         """
         # self.log = logging.getLogger('RockPy.io.'+self.get_subclass_name())
-        self.log.info('IMPORTING << %s , %s >> file: << %s >>' % (sample_name, type(self).__name__, dfile))
+        self.log.info('IMPORTING << %s , %s >> file: << %s >>' % (sname, type(self).__name__, dfile))
         # ftype.log.info('IMPORTING << %s , %s >> file: << %s >>' % (sample_name, type(self).__name__, dfile))
-        self.sample_name = sample_name
+        self.sample_name = sname
         self.file_name = dfile
 
         # initialize
@@ -66,3 +66,10 @@ class ftype(object):
 
 class generic(ftype):
     pass
+
+def mtype_from_fpath(fpath):
+    try:
+        mtype = fpath.split('-')[1].split('_')[1]
+        return RockPy3.mtype_ftype_abbreviations_inversed[mtype]
+    except:
+        return

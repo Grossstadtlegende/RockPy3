@@ -82,7 +82,7 @@ class LocationGeo(Parameter):
 
 
         if coordinate_system != 'wgs84':
-            self.logger.warning('support for geographic coordinate systems is not implemented yet.')
+            self.log.warning('support for geographic coordinate systems is not implemented yet.')
 
 
         self._raw_data = {'data': RockPy3.RockPyData(column_names=['variable', 'lat', 'lon', 'alt', 'time'])}
@@ -116,8 +116,8 @@ class Mass(Parameter):
         mass_conversion = convert2(unit, 'kg', 'mass')
 
         if not mass_conversion:
-            self.logger.warning('mass unit << %s >> most likely not mass-compatible' %unit)
-            self.logger.error('CAN NOT create Measurement')
+            self.log.warning('mass unit << %s >> most likely not mass-compatible' %unit)
+            self.log.error('CAN NOT create Measurement')
             self.has_data = False
             return
 
@@ -153,8 +153,8 @@ class Length(Parameter):
         length_conversion = convert2(unit, 'm', 'length')
 
         if not length_conversion:
-            self.logger.warning('unit << %s >> most likely not %s-compatible' % (unit, self.__class__.get_subclass_name()))
-            self.logger.error('CAN NOT create Measurement')
+            self.log.warning('unit << %s >> most likely not %s-compatible' % (unit, self.__class__.get_subclass_name()))
+            self.log.error('CAN NOT create Measurement')
             self.has_data = False
             return
 
@@ -218,7 +218,7 @@ class Volume(Parameter):
 
         if x_len and y_len and z_len:
             if sample_shape != 'cube':  # check if all three dimensions but wrong/unset sample_shape
-                self.logger.warning('sample_shape != cube \t but x_len, y_len, z_len provided -> assuming cube')
+                self.log.warning('sample_shape != cube \t but x_len, y_len, z_len provided -> assuming cube')
                 sample_shape = 'cube'
             if sample_shape == 'cube':
                 x = x_len.data['data']['length'].v[0]

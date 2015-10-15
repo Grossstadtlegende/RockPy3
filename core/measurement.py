@@ -33,8 +33,9 @@ except ImportError:
 class Measurement(object):
     """
     """
+    n_created = 0
+    log = logging.getLogger('RockPy3.MEASUREMENT')
 
-    logger = logging.getLogger('RockPy3.MEASUREMENT')
     colors = ['r', 'g', 'b', 'c', 'm', 'y', 'k'] * 100
     possible_plt_props = ['agg_filter', 'alpha', 'animated', 'antialiased', 'axes', 'clip_box', 'clip_on', 'clip_path',
                           'color', 'contains', 'dash_capstyle', 'dash_joinstyle', 'dashes', 'drawstyle', 'figure',
@@ -43,6 +44,10 @@ class Measurement(object):
                           'path_effects', 'picker', 'pickradius', 'rasterized', 'sketch_params', 'snap',
                           'solid_capstyle', 'solid_joinstyle', 'transform', 'url', 'visible', 'xdata', 'ydata',
                           'zorder']
+
+    @classmethod
+    def _mtype(cls):
+        return cls.__name__.lower()
 
     ####################################################################################################################
     ''' calculation parameter methods '''
@@ -125,7 +130,7 @@ class Measurement(object):
 
         cparams = {i: set(arg for arg, value in inspect.signature(getattr(cls, 'calculate_' + i)).parameters.items()
                           if not arg in ['self', 'non_method_parameters'])
-                    for i in cls.calculate_methods()}
+                   for i in cls.calculate_methods()}
 
         # methods with recipe need 'recipe' to be added to the calculation_parameters
         for res in cls.result_methods():
@@ -173,6 +178,21 @@ class Measurement(object):
             return False
 
     @classmethod
+    def has_secondary(cls, res):
+        """
+        checks if result has parameter calculation_method in argspec. if it does this means that the result_method has
+        different
+
+        Returns
+        -------
+            bool
+        """
+        if 'secondary' in inspect.signature(getattr(cls, 'result_' + res)).parameters:
+            return True
+        else:
+            return False
+
+    @classmethod
     def result_category(cls, res):
         """
         Takes a result_method name as argument and checks which category it belongs to.
@@ -190,6 +210,9 @@ class Measurement(object):
                 :code:`result_f` calls :code:`calculate_e_RECIPE1` or :code:`calculate_e_RECIPE2` via
                 calculation_method parameter
 
+            extra: dependent calculation_methods
+                :code:`result_g` need a secondary measurement to be called
+
         Parameter
         ---------
 
@@ -201,58 +224,47 @@ class Measurement(object):
 
             category: str
                 'direct' if case 1
-                'direct_recipe' if case 1
-                'indirect' if case 1
-                'indirect_resipe' if case 1
+                'direct_recipe' if case 2
+                'indirect' if case 3
+                'indirect_resipe' if case 4
+            if secondary neasurement is needed, '_dependent' will be added:
+                -> e.g. 'direct_dependent'
         """
         res = res.replace('result_', '')
-
+        out = None
         if cls.has_recipe(res) and cls.has_calculation_method(res):
-            return 'indirect_recipe'
+            out = 'indirect_recipe'
         elif cls.has_calculation_method(res) and not cls.has_recipe(res):
-            return 'indirect'
+            out = 'indirect'
         elif cls.has_recipe(res) and not cls.has_calculation_method(res):
-            return 'direct_recipe'
+            out = 'direct_recipe'
         elif res in cls.calculate_methods():
-            return 'direct'
+            out = 'direct'
+        if cls.has_secondary(res):
+            out += '_dependent'
+
+        return out
 
     @classmethod
     def get_calculate_methods(cls, res):
         """
         takes a result_method name as input and returns list of matching calculate_methods
         """
-        # print self
-        argspec = dict(zip(inspect.getargspec(getattr(cls, 'result_' + res))[0][1:],
-                           inspect.getargspec(getattr(cls, 'result_' + res))[3]))
-        # print result
-        calculation_method = argspec.get('calculation_method')
+
         if cls.result_category(res) == 'direct':
             return [res]
-        elif cls.result_category(res) == 'indirect':
-            return [calculation_method]
         elif cls.result_category(res) == 'direct_recipe':
             return [i for i in cls.calculate_methods()
                     if i.split('_')[-1].isupper
                     if ''.join(i.split('_')[:-1]) == res]
+
+        calculation_method = inspect.signature(getattr(cls, 'result_' + res)).parameters['calculation_method'].default
+        if cls.result_category(res) == 'indirect':
+            return [calculation_method]
         elif cls.result_category(res) == 'indirect_recipe':
             return [i for i in cls.calculate_methods()
                     if i.split('_')[-1].isupper
                     if ''.join(i.split('_')[:-1]) == calculation_method]
-
-    @classmethod
-    def from_simulation(cls, **parameter):
-        """
-        pseudo abstract method that should be overridden in subclasses to return a simulated measurement
-        based on given parameters
-        """
-        return None
-
-    @classmethod
-    def measurement_result(cls, **parameter):
-        """
-        pseudo abstract method that should be overridden in subclasses to return a measurement created from results
-        """
-        return None
 
     @classmethod
     def implemented_ftypes(cls):
@@ -289,28 +301,15 @@ class Measurement(object):
         return subclasses
 
     @classmethod
-    def implemented_measurements(cls):
-        """
-        method that dynamically creates a dictionary with "obj.name : obj" entries
-
-        Returns
-        -------
-           dict
-        """
-        return {i.__name__.lower(): i for i in Measurement.inheritors()}
-
-    @classmethod
     def measurement_formatters(cls):
         # measurement formatters are important!
         # if they are not inside the measurement class, the measurement has not been implemented for this machine.
         # the following machine formatters:
         # 1. looks through all implemented measurements
         # 2. for each measurement stores the machine and the applicable readin class in a dictionary
-        measurement_formatters = \
-            {cl.__name__.lower(): {
-                '_'.join(i.split('_')[1:]).lower():
-                    Measurement.implemented_ftypes()['_'.join(i.split('_')[1:]).lower()] for i
-                in dir(cl) if i.startswith('format_')} for cl in Measurement.inheritors()}
+        measurement_formatters = {
+            i.replace('format_', '').lower(): getattr(cls, i) for i in dir(cls) if i.startswith('format_')
+            }
         return measurement_formatters
 
     ####################################################################################################################
@@ -371,9 +370,6 @@ class Measurement(object):
     # plotting / legend properties
     @property
     def plt_props(self):
-        std = {'label': ''}
-        if '_plt_props' not in self.__dict__:
-            self._plt_props = std
         return self._plt_props
 
     def set_plt_prop(self, prop, value):
@@ -387,57 +383,230 @@ class Measurement(object):
         if prop not in Measurement.possible_plt_props:
             raise KeyError
         self._plt_props.setdefault(prop, value)
-        # self._plt_props[prop] = value
 
     ####################################################################################################################
 
     @property
-    def coord(self):
+    def coord(self):  # todo remove?
         """
         find coordinate system of sample
         """
         print("returning" + str(self.sobj.coord))
         return self.sobj.coord
 
-    def __init__(self, sobj,
-                 mtype=None, fpath=None, ftype=None, mdata=None,
+    @property
+    def mtype(self):
+        return self._mtype()
+
+    """
+    ####################################################################################################################
+    measurement creation through function
+    """
+
+    @classmethod
+    def from_mdata(cls):
+        pass
+
+    @classmethod
+    def from_file(cls, sobj,
+                  fpath=None, ftype='generic',  # file path and file type
+                  idx=None,
+                  # for special import of pure data (needs to be formatted as specified in data of measurement class)
+                  series=None,
+                  # **options
+                  ):
+
+        if ftype in cls.implemented_ftypes():
+            ftype_data = cls.implemented_ftypes()[ftype](fpath, sobj.name)
+        else:
+            cls.log.error('CANNOT IMPORT ')
+
+        if ftype in cls.measurement_formatters():
+            cls.log.debug('ftype_formatter << %s >> implemented' % ftype)
+            mdata = cls.measurement_formatters()[ftype](ftype_data)
+        else:
+            cls.log.error('UNKNOWN ftype: << %s >>' % ftype)
+            cls.log.error(
+                'most likely cause is the \"format_%s\" method is missing in the measurement << %s >>' % (
+                    ftype, cls.__name__))
+            return
+
+        return cls(sobj=sobj, fpath=fpath, ftype=ftype, mdata=mdata, series=series, idx=idx)
+
+    @classmethod
+    def from_simulation(cls, sobj=None, idx=None, **parameter):
+        """
+        pseudo abstract method that should be overridden in subclasses to return a simulated measurement
+        based on given parameters
+        """
+        return None
+
+    @classmethod
+    def from_measurements_create_mean(cls, sobj, mlist,
+                                      interpolate=False, recalc_mag=False,
+                                      substfunc='mean', ignore_series=False):
+        """
+        Creates a new measurement from a list of measurements
+        :param sobj:
+        :param mlist:
+        :param interpolate:
+        :param recalc_mag:
+        :param substfunc:
+        :param ignore_series:
+        :return:
+        """
+        # convert to single measurement
+        mlist = RockPy3.core.utils.to_list(mlist)
+        if any(m.mtype != cls.__name__.lower() for m in mlist):
+            cls.log.error('Some measurements have wrong mtype. They will be ignored')
+            mlist = [m for m in mlist if m.mtype == cls.__name__.lower()]
+
+        # use first measurement as base
+        dtypes = RockPy3.core.utils.get_common_dtypes_from_list(mlist=mlist)
+
+        mdata = {}
+
+        for dtype in dtypes:  # cycle through all dtypes e.g. 'down_field', 'up_field' for hysteresis
+            mdata.setdefault(dtype)
+            dtype_list = [m.data[dtype] for m in mlist if m.data[dtype]]  # get all data for dtype in one list
+            if dtype_list:
+                if interpolate:
+                    varlist = cls.__get_variable_list(dtype_list)
+                    if len(varlist) > 1:
+                        dtype_list = [m.interpolate(varlist) for m in dtype_list]
+
+            if len(dtype_list) > 1:  # for single measurements
+                mdata[dtype] = RockPy3.condense(dtype_list, substfunc=substfunc)
+                mdata[dtype] = mdata[dtype].sort('variable')
+
+            if recalc_mag:
+                mdata[dtype].define_alias('m', ('x', 'y', 'z'))
+                mdata[dtype]['mag'].v = mdata[dtype].magnitude('m')
+
+        ################################################################################################################
+        # initial state
+        initial = None
+        # print(list(m.has_initial_state for m in mlist))
+        # print(mlist)
+        if all(m.has_initial_state for m in mlist):
+            init_list = [m.initial_state for m in mlist if m.has_initial_state]
+            initial = cls.from_measurements_create_mean(sobj=sobj, mlist=init_list, interpolate=interpolate,
+                                                        recalc_mag=recalc_mag, substfunc=substfunc)
+
+        if not ignore_series:
+            slist = (set(s.data for s in m.series) for m in mlist)
+            series = set()
+            for s in slist:
+                if not series:
+                    series = s
+                else:
+                    series = series & s
+            if not series:
+                series = None
+            else:
+                series = list(series)
+
+        return cls(sobj=sobj, mtype=cls._mtype(), ftype='from_measurements_create_mean', mdata=mdata,
+                   initial_state=initial, series=series)
+
+    @classmethod
+    def from_measurement(cls):
+        """
+        creates a measurement from a different type
+
+        e.g. pARM spectra -> ARM acquisition
+        """
+        pass
+
+    @classmethod
+    def from_result(cls, **parameter):
+        """
+        pseudo abstract method that should be overridden in subclasses to return a measurement created from results
+        """
+        return None
+
+    def set_initial_state(self,
+                          mtype=None, fpath=None, ftype=None,  # standard
+                          mobj=None, series=None,
+                          ):
+        """
+        creates a new measurement (ISM) as initial state of base measurement (BSM).
+        It dynamically calls the measurement _init_ function and assigns the created measurement to the
+        self.initial_state value. It also sets a flag for the ISM to check if a measurement is a MIS.
+
+        if a measurement object is passed, the initial state will be created from _measurements.
+        Parameters
+        ----------
+           mtype: str
+              measurement type
+           mfile: str
+              measurement data file
+           machine: str
+              measurement machine
+            mobj: RockPy3.MEasurement object
+           options:
+        """
+
+        with RockPy3.ignored(AttributeError):
+            mtype = mtype.lower()
+            ftype = ftype.lower()
+
+        self.log.info('CREATING << %s >> initial state measurement << %s >> data' % (mtype, self.mtype))
+
+        # can only be created if the measurement is actually implemented
+        if all([mtype, ftype, fpath]) or fpath or mobj:
+            self.initial_state = self.sobj.add_measurement(
+                mtype=mtype, ftype=ftype, fpath=fpath, series=series, mobj=mobj)
+            self.initial_state.is_initial_state = True
+            return self.initial_state
+        else:
+            self.log.error('UNABLE to find measurement << %s >>' % mtype)
+
+    def __init__(self,
+                 sobj,
+                 fpath=None, ftype=None,
+                 mdata=None,
                  series=None,
+                 idx=None,
                  **options):
         """
-        Constructor of the measurement class. This is called by all measurements using super.
+        Constructor of the measurement class.
 
         Several checks have to be done:
             1. is the measurement implemented:
-                this is checked by looking if the measurement is in the Measurement.measurement_formatters dictionary
-
-            2. if mdata is given, we can directly create the measurement
-            3. if the file format (ftype) is implemented
+                this is checked by looking if the measurement is in the RockPy3.implemented_measurements
+            2. if mdata is given, we can directly create the measurement #todo from_mdata?
+            3. if the file format (ftype) is implemented #todo from_file
                 The ftype has to be given. This is how RockPy can format data from different sources into the same
                 format, so it can be analyzed the same way.
 
         Parameters
         ----------
-            @type sobj: RockPy3.Sample
+            sobj: RockPy3.Sample
                 the sample object the measurement belongs to. The constructor is usually called from the
                 Sample.add_measurement method
-            @type mtype: str
+            mtype: str
                 MANDATORY: measurement type to be imported. Implemented measurements can be seen when calling
                 >>> print Measurement.measurement_formatters()
-           mfile:
-           machine:
-           mdata: when mdata is set, this will be directly used as measurement data without formatting from file
-           color: color used for plotting if specified
-           options:
-        :return:
-        """
+            fpath: str
+                path to the file including filename
+            ftype: str
+                file type. e.g. vsm
+            mdata: dict
+                when mdata is set, this will be directly used as measurement data without formatting from file
+            initial_state:
+                RockPy3.Measurement obj
 
-        self.logger = logging.getLogger('RockPy3.MEASURMENT.' + self.get_subclass_name())
+        """
+        self.sobj = sobj
+        self._plt_props = {'label': ''}
+        self.log = logging.getLogger('RockPy3.MEASURMENT.' + self.get_subclass_name())
 
         # the data that is used for calculations and corrections
-        self._data = {}
+        self._data = mdata
 
         # _raw_data is a backup deepcopy of _data it will be used to reset the _data if reset_data() is called
-        self._raw_data = {}
+        self._raw_data = deepcopy(mdata)
 
         # coordinate system that is currently used in data; _raw_data is always assumed to be in core coordiantes
         self._actual_data_coord = 'core'
@@ -445,18 +614,11 @@ class Measurement(object):
         self.is_mean = False  # flag for mean measurements
         self.base_measurements = []  # list with all measurements used to generate the mean
 
-        if ftype is not None:
-            ftype = ftype.lower()  # for consistency in code
-
-        if mtype is not None:
-            mtype = mtype.lower()  # for consistency in code
-
-        ''' initialize parameters '''
-        self.ftype_data = None  # returned data from io.ftype()
+        self.ftype = ftype
+        self.fpath = fpath
 
         ''' initial state '''
         self.is_initial_state = False
-        self.is_ftype_data = None  # returned data from io.ftype()
         self.initial_state = None
 
         ''' calibration, correction and holder'''
@@ -464,64 +626,22 @@ class Measurement(object):
         self.holder = None
         self._correction = []
 
-
         self.__initialize()
 
-        if mtype in Measurement.measurement_formatters():
-            self.logger.debug('MTYPE << %s >> implemented' % mtype)
-            self.mtype = mtype  # set mtype
-
-            if mdata is not None:  # we have mdata -> ignore fpath and just use that data directly
-                self.logger.debug('mdata passed -> using as measurement data without formatting')
-                self.sobj = sobj
-                self._data = mdata
-            # ftype == combined for special measurements that need two measurements e.g. REM'
-            elif ftype in Measurement.measurement_formatters()[mtype] or ftype in ['combined', 'result']:
-                self.logger.debug('ftype << %s >> implemented' % ftype)
-                self.ftype = ftype  # set machine
-                self.sobj = sobj  # set sobj
-                if not fpath:
-                    if mtype in RockPy3.Packages.Generic.Measurements.parameters.Parameter.subclasses():
-                        self.logger.info(
-                            'NO fpath passed -> but measurement Parameter subclass, likely no fpath needed')
-                    else:
-                        self.logger.warning('NO fpath passed -> no raw_data will be generated')
-                else:
-                    self.fpath = fpath
-                    self.import_data()
-            else:
-                self.logger.error('UNKNOWN ftype: << %s >>' % ftype)
-                self.logger.error(
-                    'most likely cause is the \"format_%s\" method is missing in the measurement << %s >>' % (
-                        ftype, mtype))
-                return
-        else:
-            self.logger.error('UNKNOWN\t MTYPE: << %s >>' % mtype)
-            return
-
-        # SAMPLE IMPORT DONE
-        # now we can start the formatting
+        # normalization
+        self.is_normalized = False  # normalized flag for visuals, so its not normalized twice
+        self.norm = None  # the actual parameters
 
         # add series if provided
         ''' series '''
         self._series = []
         self.add_series(series=series)
 
-        # dynamic data formatting
-        # checks if format_'ftype' exists. If exists it formats self.raw_data according to format_'ftype'
-        if ftype == 'combined':
-            pass
-        elif ftype == 'simulation':
-            pass
-        elif ftype == 'result':
-            pass
-        elif callable(getattr(self, 'format_' + ftype)):
-            self.logger.debug('FORMATTING raw data from << %s >>' % ftype)
-            getattr(self, 'format_' + ftype)()
-        else:
-            self.logger.error(
-                'FORMATTING raw data from << %s >> not possible, probably not implemented, yet.' % ftype)
-            return
+        if not idx:
+            idx = self.__class__.n_created
+
+        self.idx = idx
+        self.__class__.n_created += 1
 
     def __repr__(self):
         if self.is_mean:
@@ -539,18 +659,16 @@ class Measurement(object):
         """
         pickle_me = {k: v for k, v in self.__dict__.items() if k in
                      (
-                         'mtype', 'ftype', 'fpath',
+                         'ftype', 'fpath',
                          # plotting related
                          '_plt_props',
                          'calculation_parameters',
                          # data related
-                         'has_data',  # 'ftype_data', #removed ftype_data because it is not needed post import
-                         '_raw_data', '_data', 'temperature',
+                         '_raw_data', '_data',
                          'initial_state', 'is_initial_state', 'is_mean',
                          # sample related
                          'sobj',
-                         '_series_opt', '_series',
-                         'suffix',
+                         '_series',
                          'calibration', 'holder', 'correction',
                      )
                      }
@@ -569,6 +687,16 @@ class Measurement(object):
         result_name, recipe = get_result_recipe_name(method)
         self.calculation_recipes.setdefault(result_name, dict()).setdefault(recipe, method)
 
+    @property
+    def calulation_methods(self):
+        # dynamically generating the calculation and standard parameters for each calculation method.
+        # This just sets the values to non, the values have to be specified in the class itself
+        return {i: getattr(self, i) for i in dir(self)
+                if i.startswith('calculate_')
+                if not i.endswith('generic')
+                if not i.endswith('result')
+                }
+
     def __initialize(self):
         """
         Initialize function is called inside the __init__ function, it is also called when the object is reconstructed
@@ -577,23 +705,10 @@ class Measurement(object):
         :return:
         """
 
-        self.results = RockPy3.Data(
-            column_names=self.result_methods(),
-            data=[np.nan for i in self.result_methods()])  # dynamic entry creation for all available result methods
-
-        # dynamically generating the calculation and standard parameters for each calculation method.
-        # This just sets the values to non, the values have to be specified in the class itself
-        self.calculation_methods = {i: getattr(self, i) for i in dir(self)
-                                    if i.startswith('calculate_')
-                                    if not i.endswith('generic')
-                                    if not i.endswith('result')
-                                    }
-
+        # dynamic entry creation for all available result methods #todo change to as needed creation
+        self.results = RockPy3.Data(column_names=self.result_methods(),
+                                    data=[np.nan for i in self.result_methods()])
         self.calculation_parameter = {}
-
-        self.is_normalized = False  # normalized flag for visuals, so its not normalized twice
-        self.norm = None  # the actual parameters
-
         self._info_dict = self.__create_info_dict()
 
     @property
@@ -616,65 +731,7 @@ class Measurement(object):
         -------
            str: filename from full path
         """
-        return os.path.split(self.fpath)[-1]
-
-    def import_data(self, rtn_raw_data=None, **options):
-        """
-        Importing the data from mfile and machine
-           rtn_raw_data:
-           options:
-        :return:
-        """
-
-        self.logger.info('IMPORTING << %s , %s >> data' % (self.ftype, self.mtype))
-
-        ftype = options.get('ftype', self.ftype)
-        mtype = options.get('mtype', self.mtype)
-        fpath = options.get('fpath', self.fpath)
-        raw_data = self.measurement_formatters()[mtype][ftype](fpath, self.sobj.name)
-        if raw_data is None:
-            self.logger.error('IMPORTING\t did not transfer data - CHECK sample name and data file')
-            return
-        else:
-            if rtn_raw_data:
-                self.logger.info('RETURNING raw_data for << %s , %s >> data' % (ftype, mtype))
-                return raw_data
-            else:
-                self.ftype_data = raw_data
-
-    def set_initial_state(self,
-                          mtype, fpath, ftype,  # standard
-                          **options):
-        """
-        creates a new measurement (ISM) as initial state of base measurement (BSM).
-        It dynamically calls the measurement _init_ function and assigns the created measurement to the
-        self.initial_state value. It also sets a flag for the ISM to check if a measurement is a MIS.
-
-        Parameters
-        ----------
-           mtype: str
-              measurement type
-           mfile: str
-              measurement data file
-           machine: str
-              measurement machine
-           options:
-        """
-        mtype = mtype.lower()
-        ftype = ftype.lower()
-
-        self.logger.info('CREATING << %s >> initial state measurement << %s >> data' % (mtype, self.mtype))
-        # implemented = {i.__name__.lower(): i for i in Measurement.implemented_visuals()}
-
-        # can only be created if the measurement is actually implemented
-        if mtype in RockPy3.implemented_measurements():
-            self.initial_state = RockPy3.implemented_measurements()[mtype](self.sobj, mtype, fpath, ftype)
-            # self.initial_state.sobj = self.sobj
-            # print self.initial_state.sobj
-            self.initial_state.is_initial_state = True
-            return self.initial_state
-        else:
-            self.logger.error('UNABLE to find measurement << %s >>' % mtype)
+        return os.path.basename(self.fpath)
 
     @property
     def has_initial_state(self):
@@ -826,11 +883,11 @@ class Measurement(object):
             # extract coreaz, coredip, bedaz and beddip
             # transform x, y, z columns in _data['data']
             # final_xyz = RockPy3.utils.general.coord_transform(initial_xyz, self._actual_data_coord, final_coord)
-            self.logger.warning('data needs to be transformed from %s to %s coordinates. NOT IMPLEMENTED YET!' % (
+            self.log.warning('data needs to be transformed from %s to %s coordinates. NOT IMPLEMENTED YET!' % (
                 self._actual_data_coord, final_coord))
             # return self._data
         else:
-            self.logger.debug('data is already in %s coordinates.' % final_coord)
+            self.log.debug('data is already in %s coordinates.' % final_coord)
             # return self._data
 
     @property
@@ -868,12 +925,12 @@ class Measurement(object):
         """
 
         if not self.has_result(result):
-            self.logger.warning('%s does not have result << %s >>' % self.mtype, result)
+            self.log.warning('%s does not have result << %s >>' % self.mtype, result)
             return
         else:
-            # todo figure out why logger wrong when called from Visualize
-            self.logger = logging.getLogger('RockPy3.MEASURMENT.' + self.mtype + '[%s]' % self.sobj.name)
-            self.logger.info('CALCULATING << %s >>' % result)
+            # todo figure out why log wrong when called from Visualize
+            self.log = logging.getLogger('RockPy3.MEASURMENT.' + self.mtype + '[%s]' % self.sobj.name)
+            self.log.info('CALCULATING << %s >>' % result)
             out = getattr(self, 'result_' + result)(**parameter)
         return out
 
@@ -936,19 +993,19 @@ class Measurement(object):
             if self.results[caller] is None or self.results[caller] == np.nan or recalc:
                 # recalc causes a forced racalculation of the result
                 if recalc:
-                    self.logger.debug('FORCED recalculation of << %s >>' % (method))
+                    self.log.debug('FORCED recalculation of << %s >>' % (method))
                 else:
-                    self.logger.debug('CANNOT find result << %s >> -> calculating' % (method))
+                    self.log.debug('CANNOT find result << %s >> -> calculating' % (method))
                 getattr(self, 'calculate_' + method)(**parameter)  # calling calculation method
             else:
-                self.logger.debug('FOUND previous << %s >> parameters' % (method))
+                self.log.debug('FOUND previous << %s >> parameters' % (method))
                 if self.check_parameters(caller, parameter):  # are parameters equal to previous parameters
-                    self.logger.debug('RESULT parameters different from previous calculation -> recalculating')
+                    self.log.debug('RESULT parameters different from previous calculation -> recalculating')
                     getattr(self, 'calculate_' + method)(**parameter)  # recalculating if parameters different
                 else:
-                    self.logger.debug('RESULT parameters equal to previous calculation')
+                    self.log.debug('RESULT parameters equal to previous calculation')
         else:
-            self.logger.error(
+            self.log.error(
                 'CALCULATION of << %s >> not possible, probably not implemented, yet.' % method)
 
     def calc_all(self, recalc=False, **parameter):
@@ -959,21 +1016,21 @@ class Measurement(object):
             calc_param = calc_param.get(result_method, {})
             getattr(self, 'result_' + result_method)(recalc=recalc, **calc_param)
         if kwargs:
-            self.logger.warning('--------------------------------------------------')
-            self.logger.warning('| %46s |' % 'SOME PARAMETERS COULD NOT BE USED')
-            self.logger.warning('--------------------------------------------------')
+            self.log.warning('--------------------------------------------------')
+            self.log.warning('| %46s |' % 'SOME PARAMETERS COULD NOT BE USED')
+            self.log.warning('--------------------------------------------------')
             for i, v in kwargs.items():
-                self.logger.warning('| %22s: %22s |' % (i, v))
-            self.logger.warning('--------------------------------------------------')
+                self.log.warning('| %22s: %22s |' % (i, v))
+            self.log.warning('--------------------------------------------------')
         if calculation_parameter:
-            self.logger.info('--------------------------------------------------')
-            self.logger.info('| %46s |' % 'these parameters were used')
-            self.logger.info('--------------------------------------------------')
+            self.log.info('--------------------------------------------------')
+            self.log.info('| %46s |' % 'these parameters were used')
+            self.log.info('--------------------------------------------------')
             for i, v in calculation_parameter.items():
-                self.logger.info('| %46s |' % i)
+                self.log.info('| %46s |' % i)
                 for method, parameter in v.items():
-                    self.logger.info('| %22s: %22s |' % (method, parameter))
-            self.logger.info('--------------------------------------------------')
+                    self.log.info('| %22s: %22s |' % (method, parameter))
+            self.log.info('--------------------------------------------------')
 
         return self.results
 
@@ -1186,7 +1243,6 @@ class Measurement(object):
         series = RockPy3.core.utils.to_list(series)
         for sobj in series:
             if not any(sobj == s for s in self._series):
-                print(sobj)
                 self._series.append(sobj)
                 self._add_sval_to_data(sobj)
                 self._add_sval_to_results(sobj)
@@ -1260,7 +1316,7 @@ class Measurement(object):
     def normalize(self,
                   reference='data', ref_dtype='mag', norm_dtypes='all', vval=None,
                   norm_method='max', norm_factor=None, result=None,
-                  normalize_variable=False, dont_normalize=['time', 'temp'],
+                  normalize_variable=False, dont_normalize=None,
                   norm_initial_state=True, **options):
         """
         normalizes all available data to reference value, using norm_method
@@ -1294,8 +1350,7 @@ class Measurement(object):
                 default: True
         """
         # separate the calc from non calc parameters
-        calculation_parameter, options = core.utils.separate_calculation_parameter_from_kwargs(rpobj=self,
-                                                                                                          **options)
+        calculation_parameter, options = core.utils.separate_calculation_parameter_from_kwargs(rpobj=self, **options)
 
         # getting normalization factor
         if not norm_factor:  # if norm_factor specified
@@ -1305,7 +1360,7 @@ class Measurement(object):
                                                 result=result,
                                                 **calculation_parameter)
 
-        norm_dtypes = _to_tuple(norm_dtypes)  # make sure its a list/tuple
+        norm_dtypes = RockPy3.core.utils._to_tuple(norm_dtypes)  # make sure its a list/tuple
         for dtype, dtype_data in self.data.items():  # cycling through all dtypes in data
             if dtype_data:
                 if 'all' in norm_dtypes:  # if all, all non stype data will be normalized
@@ -1318,23 +1373,23 @@ class Measurement(object):
                     norm_dtypes = [i for i in norm_dtypes if not i == variable]
 
                 if dont_normalize:
-                    dont_normalize = _to_tuple(dont_normalize)
+                    dont_normalize = RockPy3.core.utils._to_tuple(dont_normalize)
                     norm_dtypes = [i for i in norm_dtypes if not i in dont_normalize]
 
                 for ntype in norm_dtypes:  # else use norm_dtypes specified
                     try:
                         dtype_data[ntype] = dtype_data[ntype].v / norm_factor
                     except KeyError:
-                        self.logger.warning(
+                        self.log.warning(
                             'CAN\'T normalize << %s, %s >> to %s' % (self.sobj.name, self.mtype, ntype))
 
                 if 'mag' in dtype_data.column_names:
                     try:
                         self.data[dtype]['mag'] = self.data[dtype].magnitude(('x', 'y', 'z'))
                     except KeyError:
-                        self.logger.debug('no (x,y,z) data found keeping << mag >>')
+                        self.log.debug('no (x,y,z) data found keeping << mag >>')
 
-        self.logger.debug('NORMALIZING << %s >> with << %.2e >>' % (', '.join(norm_dtypes), norm_factor))
+        self.log.debug('NORMALIZING << %s >> with << %.2e >>' % (', '.join(norm_dtypes), norm_factor))
 
         if self.initial_state and norm_initial_state:
             for dtype, dtype_rpd in self.initial_state.data.items():
@@ -1384,7 +1439,7 @@ class Measurement(object):
         elif result:
             norm_factor = getattr(self, 'result_' + result)(**calculation_parameter)[0]
         else:
-            self.logger.warning('NO reference specified, do not know what to normalize to.')
+            self.log.warning('NO reference specified, do not know what to normalize to.')
         return norm_factor
 
     def _norm_method(self, norm_method, vval, rtype, data):
@@ -1464,7 +1519,7 @@ class Measurement(object):
         if stypes is True:
             stypes = self.stypes
 
-        stypes = _to_tuple(stypes)
+        stypes = RockPy3.core.utils._to_tuple(stypes)
 
         for stype in stypes:
             if self.get_series(stype=stype):
@@ -1479,8 +1534,8 @@ class Measurement(object):
                 if not stype_label in out:
                     out.append(stype_label)
             else:
-                self.logger.warning('CANT find series << %s >>' % stype)
-                self.logger.warning('\tonly one of these are possible:\t%s' % self.stypes)
+                self.log.warning('CANT find series << %s >>' % stype)
+                self.log.warning('\tonly one of these are possible:\t%s' % self.stypes)
         return '; '.join(out)
 
     def has_mtype_stype_sval(self, mtype=None, stype=None, sval=None):
@@ -1899,39 +1954,39 @@ def calculate(func, *args, **kwargs):
     # get the measurement object, equivalent to self in class
     self = parameters.pop('self')
 
-    self.logger.debug('CHECKING if << %s >> needs to be called' % func.__name__)
+    self.log.debug('CHECKING if << %s >> needs to be called' % func.__name__)
 
     do_calc = False  # flag, that shows if result should be returned or the result
     # recalc forces a new calculation
     if recalc:
         self.calculation_parameter.setdefault(calculation_method_name, parameters)
-        self.logger.debug('FORCED recalculation of << %s >>' % called_from)
-        self.logger.debug('\t with: %s' % parameters)
+        self.log.debug('FORCED recalculation of << %s >>' % called_from)
+        self.log.debug('\t with: %s' % parameters)
         do_calc = True
     # if result has not been calculated so far,
     # self.calculation_parameter[calculation_method_name] is an empty dictionary
     elif calculation_method_name not in self.calculation_parameter:
         self.calculation_parameter.setdefault(calculation_method_name, parameters)
-        self.logger.debug('RESULT << %s >> not calculated yet' % called_from)
-        self.logger.debug('\tcalculation with: %s' % parameters)
+        self.log.debug('RESULT << %s >> not calculated yet' % called_from)
+        self.log.debug('\tcalculation with: %s' % parameters)
         do_calc = True
     elif 'recipe' in parameters \
             and not parameters['recipe'] == self.calculation_parameter[calculation_method_name]['recipe']:
-        self.logger.debug('RESULT << %s >> calculated with different recipe' % calculation_method_name)
+        self.log.debug('RESULT << %s >> calculated with different recipe' % calculation_method_name)
         do_calc = True
     # # if only one of the parameters is different result has to be recalculated
     elif any(vold != parameters[key] for key, vold in self.calculation_parameter[calculation_method_name].items()):
-        self.logger.debug('RESULT << %s >> parameters have changed' % called_from)
-        self.logger.debug('\told parameters: %s' % self.calculation_parameter[calculation_method_name])
-        self.logger.debug('\tnew parameters: %s' % parameters)
+        self.log.debug('RESULT << %s >> parameters have changed' % called_from)
+        self.log.debug('\told parameters: %s' % self.calculation_parameter[calculation_method_name])
+        self.log.debug('\tnew parameters: %s' % parameters)
         self.calculation_parameter[calculation_method_name].update(parameters)
         do_calc = True
     if do_calc:
-        self.logger.info('CALCULATING << %s >>' % called_from)
+        self.log.info('CALCULATING << %s >>' % called_from)
         return func(*args, **kwargs)
     else:
-        self.logger.debug('RESULT << %s >> already calculated' % called_from)
-        self.logger.debug('\twith parameters: %s' % self.calculation_parameter[calculation_method_name])
+        self.log.debug('RESULT << %s >> already calculated' % called_from)
+        self.log.debug('\twith parameters: %s' % self.calculation_parameter[calculation_method_name])
 
 
 @decorator.decorator

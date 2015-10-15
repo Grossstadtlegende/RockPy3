@@ -4,6 +4,7 @@ from copy import deepcopy
 from math import tanh, cosh
 
 import numpy as np
+import numpy.random
 import scipy as sp
 import matplotlib.pyplot as plt
 from scipy import stats
@@ -59,9 +60,9 @@ class Hysteresis(measurement.Measurement):
     """
 
     @classmethod
-    def from_simulation(cls, sobj, m_idx=0, color=None,
-                 ms=250., mrs_ms=0.5, bc=0.2, hf_sus=1., bmax=1.8, b_sat=1, steps=100,
-                 noise=None):
+    def from_simulation(cls, sobj, idx=0,
+                        ms=250., mrs_ms=0.5, bc=0.2, hf_sus=1., bmax=1.8, b_sat=1, steps=100,
+                        noise=None, color=None):
         """
         Simulation of hysteresis loop using single tanh and sech functions.
 
@@ -85,6 +86,9 @@ class Hysteresis(measurement.Measurement):
 
            parameter:
 
+           noise: float
+            noise in percent
+
         :Returns:
 
         :Note:
@@ -96,7 +100,7 @@ class Hysteresis(measurement.Measurement):
            Not working properly, yet. Use with caution
         """
 
-        cls.logger.info('CREATING simulation measurement with {}'.format(locals()))
+        cls.log.info('CREATING simulation measurement with {}'.format(locals()))
 
         data = {'up_field': None,
                 'down_field': None,
@@ -106,14 +110,20 @@ class Hysteresis(measurement.Measurement):
 
         # uf = float(ms) * np.array([tanh(3*(i-bc)/b_sat) for i in fields]) + hf_sus * fields
         # df = float(ms) * np.array([tanh(3*(i+bc)/b_sat) for i in fields]) + hf_sus * fields
-        rev_mag = float(ms) * np.array([tanh(2 * i / b_sat) for i in fields]) + hf_sus * fields
         # irrev_mag = float(ms) * mrs_ms * np.array([cosh(i * (5.5 / b_sat)) ** -1 for i in fields])
+
+        rev_mag = float(ms) * np.array([tanh(2 * i / b_sat) for i in fields]) + hf_sus * fields
         irrev_mag = float(ms) * mrs_ms * np.array([cosh(3.5 * i / b_sat) ** -1 for i in fields])
+
+        if noise:
+            noise = max(max(rev_mag), max(irrev_mag)) * noise /100
+            rev_mag += np.random.normal(0, noise, len(rev_mag))
+            irrev_mag += np.random.normal(0, noise, len(irrev_mag))
 
         data['down_field'] = RockPyData(column_names=['field', 'mag'], data=np.c_[fields, rev_mag + irrev_mag])
         data['up_field'] = RockPyData(column_names=['field', 'mag'], data=np.c_[fields, rev_mag - irrev_mag])
 
-        return cls(sobj, mtype='hysteresis', fpath=None, mdata=data, ftype='simulation', color=color)
+        return cls(sobj, mtype='hysteresis', fpath=None, mdata=data, ftype='simulation', color=color, idx=idx)
 
     @classmethod
     def get_grid(cls, bmax=1, grid_points=30, tuning=10):
@@ -237,10 +247,14 @@ class Hysteresis(measurement.Measurement):
         return self._data
 
     # ## formatting functions
-    def format_vsm(self):
-        header = self.ftype_data.header
-        segments = self.ftype_data.get_segments_from_data()
-        data = self.ftype_data.get_data()
+    # have to return mdata matching the measurement type
+    @staticmethod
+    def format_vsm(ftype_data):
+        header = ftype_data.header
+        segments = ftype_data.get_segments_from_data()
+        data = ftype_data.get_data()
+
+        mdata = {}
 
         if 'adjusted field' in header:
             header[header.index('adjusted field')] = 'field'
@@ -250,40 +264,39 @@ class Hysteresis(measurement.Measurement):
             header[header.index('moment')] = 'uncorrected moment'
             header[header.index('adjusted moment')] = 'moment'
 
-
         if len(segments['segment number']) == 3:
-            self._raw_data['virgin'] = RockPyData(column_names=header, data=data[0],
-                                                  units=self.ftype_data.units).sort('field')
-            self._raw_data['down_field'] = RockPyData(column_names=header, data=data[1],
-                                                      units=self.ftype_data.units).sort('field')
-            self._raw_data['up_field'] = RockPyData(column_names=header, data=data[2],
-                                                    units=self.ftype_data.units).sort('field')
+            mdata.setdefault('virgin', RockPyData(column_names=header, data=data[0],
+                                                  units=ftype_data.units).sort('field'))
+            mdata.setdefault('down_field', RockPyData(column_names=header, data=data[1],
+                                                      units=ftype_data.units).sort('field'))
+            mdata.setdefault('up_field', RockPyData(column_names=header, data=data[2],
+                                                    units=ftype_data.units).sort('field'))
 
         if len(segments['segment number']) == 2:
-            self._raw_data['virgin'] = None
-            self._raw_data['down_field'] = RockPyData(column_names=header, data=data[0],
-                                                      units=self.ftype_data.units).sort('field')
-            self._raw_data['up_field'] = RockPyData(column_names=header, data=data[1],
-                                                    units=self.ftype_data.units).sort('field')
+            mdata.setdefault('virgin', None)
+            mdata.setdefault('down_field', RockPyData(column_names=header, data=data[0],
+                                                      units=ftype_data.units).sort('field'))
+            mdata.setdefault('up_field', RockPyData(column_names=header, data=data[1],
+                                                    units=ftype_data.units).sort('field'))
 
         if len(segments['segment number']) == 1:
-            self._raw_data['virgin'] = RockPyData(column_names=header, data=data[0],
+            mdata.setdefault('virgin', RockPyData(column_names=header, data=data[0],
                                                   # units=self.machine_data.units
-                                                  ).sort('field')
-            self._raw_data['down_field'] = None
-            self._raw_data['up_field'] = None
+                                                  ).sort('field'))
+            mdata.setdefault('down_field', None)
+            mdata.setdefault('up_field', None)
 
         with RockPy3.ignored(AttributeError):
-            self._raw_data['virgin'].rename_column('moment', 'mag')
+            mdata['virgin'].rename_column('moment', 'mag')
 
         with RockPy3.ignored(AttributeError):
-            self._raw_data['up_field'].rename_column('moment', 'mag')
+            mdata['up_field'].rename_column('moment', 'mag')
 
         with RockPy3.ignored(AttributeError):
-            self._raw_data['down_field'].rename_column('moment', 'mag')
+            mdata['down_field'].rename_column('moment', 'mag')
 
-        if self.ftype_data.temperature:
-            self.temperature = self.ftype_data.temperature
+        return mdata
+
 
     @property
     def max_field(self):
@@ -366,8 +379,8 @@ class Hysteresis(measurement.Measurement):
         # the field_limit has to be set higher than the lowest field
         # if not the field_limit will be chosen to be 2 points for uf and df separately
         if no_points < 2:
-            self.logger.warning('NO_POINTS INCOMPATIBLE minimum 2 required' % (no_points))
-            self.logger.warning('\t\t setting NO_POINTS - << 2 >> ')
+            self.log.warning('NO_POINTS INCOMPATIBLE minimum 2 required' % (no_points))
+            self.log.warning('\t\t setting NO_POINTS - << 2 >> ')
             self.calculation_parameter['bc']['no_points'] = 2
 
         # filter data for fields higher than field_limit
@@ -511,7 +524,7 @@ class Hysteresis(measurement.Measurement):
         ms_result = []
 
         if saturation_percent >= 100:
-            self.logger.warning('SATURATION > 100%! setting to default value (75%)')
+            self.log.warning('SATURATION > 100%! setting to default value (75%)')
             saturation_percent = 75.0
 
         # transform from percent value
@@ -630,9 +643,9 @@ class Hysteresis(measurement.Measurement):
         """
         pass
 
-
     ####################################################################################################################
     ''' Brh'''
+
     @calculate
     def calculate_brh(self, **parameter):
         pass  # todo implement
@@ -652,6 +665,7 @@ class Hysteresis(measurement.Measurement):
 
     ####################################################################################################################
     ''' E_delta_t'''
+
     @calculate
     def calculate_e_delta_t(self, **parameter):
         """
@@ -667,7 +681,7 @@ class Hysteresis(measurement.Measurement):
 
         """
         # if not self.msi_exists:
-        #     self.logger.error(
+        #     self.log.error(
         #         '%s\tMsi branch does not exist or not properly saturated. Please check datafile' % self.sobj.name)
         #     self.results['e_delta_t'] = np.nan
         #     return np.nan
@@ -692,6 +706,7 @@ class Hysteresis(measurement.Measurement):
 
     ####################################################################################################################
     ''' E_hys'''
+
     @calculate
     def calculate_e_hys(self, **parameter):
         '''
@@ -721,6 +736,7 @@ class Hysteresis(measurement.Measurement):
 
     ####################################################################################################################
     ''' Mrs/Ms'''
+
     @calculate
     def calculate_mrs_ms(self, **non_method_parameters):
         '''
@@ -736,18 +752,18 @@ class Hysteresis(measurement.Measurement):
 
         '''
         mrs = self.result_mrs(**non_method_parameters)
-        ms  = self.result_ms( **non_method_parameters)
-        self.results['mrs_ms'] = [[[mrs[0]/ms[0], mrs[1]+ms[1]]]]
+        ms = self.result_ms(**non_method_parameters)
+        self.results['mrs_ms'] = [[[mrs[0] / ms[0], mrs[1] + ms[1]]]]
 
     @result
     def result_mrs_ms(self, recalc=False, **options):
         pass
 
-
     ####################################################################################################################
     ''' Moment at Field'''
+
     @calculate
-    def calculate_m_b_SIMPLE(self, b=300., branches='all', **non_method_parameters):
+    def calculate_m_b(self, b=300., branches='all', **non_method_parameters):
         '''
 
         Parameters
@@ -757,7 +773,7 @@ class Hysteresis(measurement.Measurement):
         aux = []
         dtypes = []
 
-        possible = {'down_field':1, 'up_field':-1}
+        possible = {'down_field': 1, 'up_field': -1}
 
         if branches == 'all':
             branches = possible
@@ -765,27 +781,28 @@ class Hysteresis(measurement.Measurement):
             branches = RockPy3.utils.general.to_list(branches)
 
         if any(branch not in possible for branch in branches):
-            self.logger.error('ONE or MORE branches not possible << %s >>' %branches)
+            self.log.error('ONE or MORE branches not possible << %s >>' % branches)
 
         for branch in branches:
             if self.data[branch]:
                 field = float(b) * possible[branch]
-                m = self.data[branch].interpolate(new_variables=field/1000.) # correct mT -> T
+                m = self.data[branch].interpolate(new_variables=field / 1000.)  # correct mT -> T
                 aux.append(m['mag'].v[0])
                 dtypes.append(branch)
-        self.logger.info('M(%.1f mT) calculated as mean of %s branch(es)' %(b, dtypes))
+        self.log.info('M(%.1f mT) calculated as mean of %s branch(es)' % (b, dtypes))
         self.results['m_b'] = [[[np.nanmean(np.fabs(aux)), np.nanstd(np.fabs(aux))]]]
 
     @result
-    def result_m_b(self, recipe='simple', recalc=False, **options):
+    def result_m_b(self, recalc=False, **options):
         pass
 
     ####################################################################################################################
     ''' Bcr/ Bc '''
+
     @calculate
     def calculate_bcr_bc(self,
                          coe_obj=None, bcr_recipe='LINEAR', bcr_no_points=4,
-                         bc_no_points=4, bc_recipe ='LINEAR',
+                         bc_no_points=4, bc_recipe='LINEAR',
                          **non_method_parameters):
         '''
 
@@ -795,29 +812,27 @@ class Hysteresis(measurement.Measurement):
         '''
 
         if not coe_obj:
-            self.logger.info('NO backfield/coe measurement specified: searching through sample')
+            self.log.info('NO backfield/coe measurement specified: searching through sample')
             coe_objs = [m for m in self.sobj.get_measurement(mtype='backfield') if m.series == self.series]
             if len(coe_objs) == 0:
-                self.logger.info('CANT find measurement with << backfield, %s >>' %self.stype_sval_tuples)
+                self.log.info('CANT find measurement with << backfield, %s >>' % self.stype_sval_tuples)
                 return
             elif len(coe_objs) == 1:
-                self.logger.error('FOUND exactly one measurement with << backfield, %s >>' %self.stype_sval_tuples)
+                self.log.error('FOUND exactly one measurement with << backfield, %s >>' % self.stype_sval_tuples)
                 coe_obj = coe_objs[0]
             else:
-                self.logger.info('MULTIPLE find backfield/coe measurement found with same stypes/svals using first')
+                self.log.info('MULTIPLE find backfield/coe measurement found with same stypes/svals using first')
                 coe_obj = coe_objs[0]
 
-        bcr = coe_obj.result_bcr(recipe = bcr_recipe, no_points=bcr_no_points, **non_method_parameters)
-        bc  = self.result_bc(recipe=bc_recipe, no_points=bc_no_points, **non_method_parameters)
-        self.results['bcr_bc'] = [[[bcr[0]/bc[0], bcr[1]+bc[1]]]]
+        bcr = coe_obj.result_bcr(recipe=bcr_recipe, no_points=bcr_no_points, **non_method_parameters)
+        bc = self.result_bc(recipe=bc_recipe, no_points=bc_no_points, **non_method_parameters)
+        self.results['bcr_bc'] = [[[bcr[0] / bc[0], bcr[1] + bc[1]]]]
 
     @result
-    def result_bcr_bc(self, secondray='backfield', recalc=False, **options):
+    def result_bcr_bc(self, secondary='backfield', recalc=False, **options):
         pass
 
-
     """ CALCULATIONS """
-
 
     def get_irreversible(self, correct_symmetry=True):
         """
@@ -1250,7 +1265,7 @@ class Hysteresis(measurement.Measurement):
         """
 
         if len(self.data['down_field']['field'].v) <= 50:
-            self.logger.warning('Hysteresis branches have less than 50 (%i) points, gridding not possible' % (
+            self.log.warning('Hysteresis branches have less than 50 (%i) points, gridding not possible' % (
                 len(self.data['down_field']['field'].v)))
             return
 
@@ -1296,8 +1311,8 @@ class Hysteresis(measurement.Measurement):
                             mag = second(grid[i], *popt)
                             interp_data = interp_data.append_rows(data=[grid[i], mag])
                     except TypeError:
-                        self.logger.error('Length of data for interpolation < 2')
-                        self.logger.error(
+                        self.log.error('Length of data for interpolation < 2')
+                        self.log.error(
                             'consider reducing number of points for interpolation or lower tuning parameter')
 
             if 'temperature' in self.data[dtype].column_names:
@@ -1338,7 +1353,7 @@ class Hysteresis(measurement.Measurement):
            field_limit: float
               cut-off field, after which the data is removed from self.data. It is still in self.raw_data
         """
-        self.logger.debug('FILTERING fields larger than %.2f' %field_limit)
+        self.log.debug('FILTERING fields larger than %.2f' % field_limit)
         for dtype in self.data:
             self.data[dtype] = self.data[dtype].filter(abs(self.data[dtype]['field'].v) <= field_limit)
 
@@ -1357,7 +1372,7 @@ class Hysteresis(measurement.Measurement):
 
         if not filename:
             filename = RockPy3.get_fname_from_info(samplegroup='RockPy', sample_name=self.sobj.name,
-                                                  mtype='HYS', ftype=self.ftype, mass=mass, mass_unit='mg')[
+                                                   mtype='HYS', ftype=self.ftype, mass=mass, mass_unit='mg')[
                        :-4].replace('.', ',') \
                        + '.' + abbrev[self.mtype]
 

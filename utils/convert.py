@@ -181,7 +181,7 @@ def get_conversion_table(unit=None):
         return conversion_table
     else:
         if unit not in conversion_table:
-            RockPy3.logger.error('unit not recognized')
+            RockPy3.log.error('unit not recognized')
             return
         else:
             return conversion_table[unit]

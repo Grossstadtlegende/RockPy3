@@ -18,8 +18,7 @@ class Visual(object):
        - what if I want to add a non-required feature to the visual e.g. backfield to hysteresis
        - what if I want to have a different visual on a second y axis?
     """
-    logger = logging.getLogger('RockPy3.VISUALIZE')
-    _required = []
+    log = logging.getLogger('RockPy3.VISUALIZE')
 
     linestyles = ['-', '--', ':', '-.'] * 100
     marker = ['.', 's', 'o', '+', '*', ',', '1', '3', '2', '4', '8', '<', '>', 'D', 'H', '_', '^',
@@ -49,16 +48,22 @@ class Visual(object):
         else:
             return self._calculation_parameter
 
-    @property
-    def implemented_features(self):
+    @classmethod
+    def implemented_features(cls):
         out = {i.replace('feature_', ''):
-                   getattr(self, i) for i in dir(self) if i.startswith('feature_') if not i.endswith('names')}
+                   getattr(cls, i) for i in dir(cls) if i.startswith('feature_') if not i.endswith('names')}
         return out
 
     @property
     def feature_names(self):
         return [i.__name__[8:] for i in self.features]
 
+    @property
+    def plt_props(self):
+        return self._plt_props
+
+    def set_plt_props(self, prop, value): #todo
+        pass
     def __init__(self, plt_input=None, plt_index=None, fig=None, name=None, coord=None,
                  **options):
         '''
@@ -74,16 +79,18 @@ class Visual(object):
         calc_params, no_calc_params = core.utils.separate_calculation_parameter_from_kwargs(rpobj=None,
                                                                                             **options)
 
-        self.logger = logging.getLogger('RockPy3.VISUALIZE.' + self.get_subclass_name())
-        self.logger.info('CREATING new Visual')
+        self.log = logging.getLogger('RockPy3.VISUALIZE.' + self.get_subclass_name())
+        self.log.info('CREATING new Visual')
 
         self._plt_index = plt_index
         self._plt_input = {'sample': [], 'measurement': []}
 
+        self._plt_props = {}
+
         if plt_input:
             self.add_plt_input(plt_input=plt_input)
 
-        self._plt_obj = fig
+        self._RockPy_figure = fig
 
         # set the title: default is the name of the visual
         self.title = no_calc_params.pop('title', self.get_subclass_name())
@@ -104,7 +111,7 @@ class Visual(object):
 
     def init_visual(self):
         """ this part is needed by every plot, because it is executed automatically """
-        self.logger.debug('initializing visual...')
+        self.log.debug('initializing visual...')
 
         self.features = []  # list containing all features that have to be plotted for each measurement
         self.single_features = []  # list of features that only have to be plotted one e.g. zero lines
@@ -124,17 +131,17 @@ class Visual(object):
         features = RockPy3.utils.general.to_list(features)  # convert to list if necessary
         # check if feature has been provided, if not show list of implemented features
         if not features:
-            self.logger.warning('NO feature selected chose one of the following:')
-            self.logger.warning('%s' % sorted(self.implemented_features))
+            self.log.warning('NO feature selected chose one of the following:')
+            self.log.warning('%s' % sorted(self.implemented_features))
             raise TypeError
         # check if any of the features is not implemented
         if any(feature not in self.implemented_features for feature in features):
             for feature in features:
                 if feature not in self.implemented_features:
-                    self.logger.warning('FEATURE << %s >> not implemented chose one of the following:' % feature)
+                    self.log.warning('FEATURE << %s >> not implemented chose one of the following:' % feature)
                     # remove feature that is not implemented
                     features.remove(feature)
-            self.logger.warning('%s' % sorted(self.implemented_features.keys()))
+            self.log.warning('%s' % sorted(self.implemented_features.keys()))
 
         # check for duplicates and don't add them
         for feature in features:
@@ -142,7 +149,7 @@ class Visual(object):
                 # add features to self.features
                 list2add.append(self.implemented_features[feature])
             else:
-                self.logger.info('FEATURE << %s >> already used in %s' % (feature, feature_list))
+                self.log.info('FEATURE << %s >> already used in %s' % (feature, feature_list))
 
     def remove_feature(self, features=None):
         self.remove_feature_from_list(feature_list='features', features=features)
@@ -161,19 +168,19 @@ class Visual(object):
 
         # check if feature has been provided, if not show list of implemented features
         if not features:
-            self.logger.warning('NO FEATURE SELECTED')
-            self.logger.warning('%s' % sorted(self.features))
+            self.log.warning('NO FEATURE SELECTED')
+            self.log.warning('%s' % sorted(self.features))
 
         # check if any of the features is in used features
         for feature in features:
             if feature in list_names:
                 # remove feature that is not implemented
-                self.logger.warning('REMOVING feature << %s >>' % feature)
+                self.log.warning('REMOVING feature << %s >>' % feature)
                 idx = list_names.index(feature)
                 list2remove.remove(list2remove[idx])
                 list_names.remove(feature)
             else:
-                self.logger.warning('FEATURE << %s >> not used' % feature)
+                self.log.warning('FEATURE << %s >> not used' % feature)
 
     def add_standard(self):
         """
@@ -192,50 +199,9 @@ class Visual(object):
             if isinstance(item, RockPy3.Measurement):
                 self._plt_input['measurement'].append(item)
 
-    def get_virtual_study(self):
-        """
-        creates a virtual study so you can iterate over samplegroups, samples, measurements
-
-        Returns
-        -------
-           only_measurements: Bool
-              True if only measurements are to be plotted
-        """
-        # initialize
-        only_measurements = False
-        study = None
-
-        # because iterating over a study, samplegroup is like iterating over a list, I substitute them with lists if not
-        # applicable so the plotting is simpler
-        if isinstance(self._plt_input, RockPy3.Study):  # input is Study
-            study = self._plt_input  # no change
-        if isinstance(self._plt_input, RockPy3.SampleGroup):  # input is samplegroup
-            study = [self._plt_input]  # list = virtual study
-        if isinstance(self._plt_input, RockPy3.Sample):  # input is sample
-            study = [[self._plt_input]]  # list(list) = virtual study with a virtual samplegroup
-        if type(self._plt_input) in RockPy3.Measurement.inheritors():
-            only_measurements = True
-            study = [[[self._plt_input]]]
-        if isinstance(self._plt_input, list):
-            if all(isinstance(item, RockPy3.SampleGroup) for item in self._plt_input):  # all input == samples
-                study = self._plt_input
-            if all(isinstance(item, RockPy3.Sample) for item in self._plt_input):  # all input == samples
-                study = [self._plt_input]
-
-            # all items in _plt_input are measurements
-            if all(type(item) in RockPy3.Measurement.inheritors() for item in self._plt_input):
-                only_measurements = True
-                study = [[self._plt_input]]
-        return study, only_measurements
-
     def plt_visual(self):
         for feature in self.features:
             feature()
-        if self.legend.get('show', True):
-            self.ax.legend(**self.legend_options)
-        self.ax.set_title(self.title)
-        self.ax.set_xlabel(self.xlabel)
-        self.ax.set_ylabel(self.ylabel)
 
     @property
     def legend_options(self):
@@ -280,96 +246,12 @@ class Visual(object):
             options.setdefault('fontsize', 12)
         return options
 
-    def normalize_all(self,
-                      reference='data', ref_dtype='mag', norm_dtypes='all', vval=None,
-                      norm_method='max', norm_factor=None,
-                      norm_parameter=False,
-                      normalize_variable=False,
-                      dont_normalize=None):
-        """
-        Normalizes all measurements from _required. If _required is empty it will normalize all measurement.
-        
-        Parameters
-        ----------
-           reference: str
-              reference to normalize to e.g. 'mass', 'th', 'initial_state' ...
-           ref_dtype: str
-              data type of the reference. e.g. if you want to normalize to the magnetization of the downfield path in a
-              hysteresis loop you pur reference = 'downfield', ref_dtype='mag'
-           norm_dtypes: list, str
-              string or list of strings with the datatypes to be normalized to.
-              default: 'all' -> normalizes all dtypes
-           vval: flot
-              a variable to me normalizes to.
-              example: reference='downfield', ref_dtype='mag', vval='1.0', will normalize the
-                 data to the downfield branch magnetization at +1.0 T in a hysteresis loop
-           norm_method: str
-              the method for normalization.
-              default: max
-           norm_parameter: bool
-              if true, instances of the parameter subclass will also be normalized. Only useful in certain situations
-              default: False
-        """
-        study, all_measurements = self.get_virtual_study()
-        # cycle through all measurements that will get plotted
-        if not self.__class__._required:
-            mtypes = None
-        else:
-            mtypes = self.__class__._required
-
-        for sg_idx, sg in enumerate(study):
-            for sample_idx, sample in enumerate(sg):
-                if not all_measurements:
-                    measurements = sample.get_measurements(mtypes=mtypes)
-                else:
-                    measurements = study[0][0]
-                if not norm_parameter:
-                    measurements = [m for m in measurements if
-                                    not isinstance(m, RockPy3.Packages.Generic.Measurements.parameters.Parameter)]
-                if len(measurements) > 0:
-                    for m_idx, m in enumerate(measurements):
-                        m.normalize(reference=reference, ref_dtype=ref_dtype,
-                                    norm_dtypes=norm_dtypes, norm_method=norm_method,
-                                    vval=vval)
-
-    def get_mobj_plt_opt(self, mobj, indices):
-        ls, marker, color = self.get_ls_marker_color(indices=indices)
-
-        if mobj.plt_props['linestyle']:
-            ls = mobj.plt_props['linestyle']
-        if mobj.plt_props['marker']:
-            marker = mobj.plt_props['marker']
-        if mobj.plt_props['color']:
-            color = mobj.plt_props['color']
-
-        return {'linestyle': ls, 'marker': marker, 'color': color}
-
-    def set_mobj_plt_props(self, mobj, indices):
-        ls, marker, color = self.get_ls_marker_color(indices=indices)
-        if not 'linestyle' in mobj.plt_props:
-            mobj.set_plt_prop('linestyle', ls)
-        if not 'marker' in mobj.plt_props:
-            mobj.set_plt_prop('marker', marker)
-        if not 'color' in mobj.plt_props:
-            mobj.set_plt_prop('color', color)
-
-    def get_ls_marker_color(self, indices):
-        """
-        Looks up the appropriate color, marker, ls for given indices
-           indices:
-        :return:
-        """
-        if len(indices) == 3:
-            return Visual.linestyles[indices[0]], Visual.marker[indices[1]], Visual.colors[indices[2]]
-        if len(indices) == 2:
-            return Visual.linestyles[indices[0]], Visual.marker[indices[1]], Visual.colors[indices[2]]
-
     @feature(plt_frequency='single')
-    def feature_grid(self, **plt_opt):
+    def feature_grid(self):
         self.ax.grid()
 
     @feature(plt_frequency='single')
-    def feature_zero_lines(self, mobj=None, **plt_opt):
+    def feature_zero_lines(self, mobj=None):
         color = plt_opt.pop('color', 'k')
         zorder = plt_opt.pop('zorder', 0)
 
@@ -387,62 +269,26 @@ class Visual(object):
             setattr(self, '_legend', dict())
         return getattr(self, '_legend')
 
-    def add_2_legend(self, mobj=None, sample_group=False, sample_name=True,
-                     series=True, add_stype=False, add_unit=True,  # related to get_series_lables
-                     ):
-        """
-        adds something to the legend.
-
-        Example
-        -------
-           feature.add_2_legend(sample_name=True)
-
-        """
-        if not mobj:
-            if not self.legend:
-                self._legend = locals()
-            else:
-                self._legend.update(locals())
-            self.legend.pop('self')
-
-    def get_label_text(self, mobj):
-        text = []
-        legend = deepcopy(self.legend)
-        getter = {'sample_name': mobj.sample_obj.name,
-                  'series': mobj.get_series_labels(
-                      self.legend.get('series'), self.legend.get('add_stype'), self.legend.get('add_unit'))}
-
-        for type in sorted(legend):
-            if legend[type]:
-                with RockPy3.ignored(KeyError):
-                    text.append(getter[type])
-        return ' '.join(text)
-
-    # def feature_result_text(self, mobj, **plt_opt):
-    #     RockPy3.Visualize.Features.generic.add_result_text()
 
     @property
-    def ax(self):  # todo change so second y can be implemented
-        return RockPy3.Visualize.core.get_subplot(self.fig, self._plt_index)
-        # return self._plt_obj.axes[self._plt_index][0]
+    def ax(self):
+        return self.fig.axes[self._plt_index][1]
 
     @property
     def second_y(self):
-        if not self._plt_obj.axes[self._plt_index][1]:
-            self._plt_obj.axes[self._plt_index][1] = self._plt_obj.axes[self._plt_index][0].twinx()
-        # return self.ax.twinx()
+        if not self._RockPy_figure.axes[self._plt_index][1]:
+            self._RockPy_figure.axes[self._plt_index][1] = self._RockPy_figure.axes[self._plt_index][0].twiny()
         return self.fig.axes[self._plt_index][1]
 
     @property
     def second_x(self):
-        if not self._plt_obj.axes[self._plt_index][2]:
-            self._plt_obj.axes[self._plt_index][2] = self._plt_obj.axes[self._plt_index][0].twinx()
+        if not self._RockPy_figure.axes[self._plt_index][2]:
+            self._RockPy_figure.axes[self._plt_index][2] = self._RockPy_figure.axes[self._plt_index][0].twinx()
         return self.fig.axes[self._plt_index][2]
-        # return self.ax.twinx()
 
     @property
     def fig(self):
-        return self._plt_obj.fig
+        return self._RockPy_figure.fig
 
     ### PLOT PARAMETERS
     def set_plot_parameter(self):
@@ -458,7 +304,6 @@ class Visual(object):
         ---------
            scale:
         """
-        # try:
         self.ax.set_xscale(value=value)
 
     def set_yscale(self, value):
@@ -478,13 +323,4 @@ class Visual(object):
         self.ax.xaxis.major.formatter._useMathText = True
         self.ax.yaxis.major.formatter._useMathText = True
 
-    def no_marker(self):
-        study, measurements_only = self.get_virtual_study()
 
-        if measurements_only:
-            for m in study[0][0]:
-                m.marker = ''
-        else:
-            for sg in study:
-                for sample in sg:
-                    sample.set_marker = ''

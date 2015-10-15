@@ -106,6 +106,6 @@ implemented_visuals = RockPy3.core.visual.Visual.implemented_visuals()
 
 logger.debug('IMPLEMENTED MEASUREMENT TYPES: FTYPES')
 for m, obj in sorted(RockPy3.implemented_measurements.items()):
-    logger.debug('\t{:<15}: \t{}'.format(m, ', '.join(obj.measurement_formatters()[m].keys())))
+    logger.debug('\t{:<15}: \t{}'.format(m, ', '.join(obj.measurement_formatters().keys())))
 
 mtype_ftype_abbreviations_inversed, mtype_ftype_abbreviations = RockPy3.core.file_operations.mtype_ftype_abbreviations()

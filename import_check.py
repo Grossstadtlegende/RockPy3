@@ -29,9 +29,9 @@ def check_imports(): #todo is pip always installed?
 
         # try:
         #     import lmfit
-        #     RockPy3.logger.info('using lmfit version %s' % lmfit.__version__)
+        #     RockPy3.log.info('using lmfit version %s' % lmfit.__version__)
         # except ImportError:
-        #     RockPy3.logger.error('please install lmfit version')
+        #     RockPy3.log.error('please install lmfit version')
 
         try:
             import pint

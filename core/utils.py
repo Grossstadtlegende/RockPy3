@@ -66,6 +66,35 @@ def append_if_not_exists(elist, element, operation):
             elist.remove(element)
     return elist
 
+def get_common_dtypes_from_list(mlist):
+    """
+    Takes a list of measurements and returns a list of common dtypes.
+
+    Example
+    -------
+       mlist = [hys(down_field, up_field), hys(down_field, up_field, virgin)]
+       returns ['down_field', 'up_field']
+
+    Parameter
+    ---------
+       mlist: list
+          list of measurements
+
+    Returns
+    -------
+       dtypes
+          sorted list of comment dtypes
+    """
+    # get intersection of all measurements with certain dtype
+    dtypes = None
+    if not mlist:
+        raise ValueError('no measurements passed')
+    for m in mlist:
+        if not dtypes:
+            dtypes = set(m.data.keys())
+        else:
+            dtypes = dtypes & set(m.data.keys())
+    return sorted(list(dtypes))
 
 @contextmanager
 def ignored(*exceptions):
@@ -73,6 +102,20 @@ def ignored(*exceptions):
         yield
     except exceptions:
         pass
+
+def get_full_argspec(func, args=None, kwargs=None):
+    argspec = {}
+    signature = inspect.signature(func)
+    # print('args:', args)
+    # print('kwargs:', kwargs)
+    for i, v in enumerate(signature.parameters):
+        try:
+            # sets the value to the passed argument
+            argspec.setdefault(v, args[i])
+        except IndexError: #no arg has been passed
+            if not isinstance(signature.parameters[v].default, inspect._empty):
+                argspec.setdefault(v, signature.parameters[v].default)
+    return argspec
 
 
 class feature(object):
@@ -108,13 +151,13 @@ class feature(object):
         """
         self.plt_frequency = plt_frequency
         self.update_lims= update_lims
-        self.mtypes = RockPy3.core.utils.tuple2list_of_tuples(mtypes)
+        self.mtypes = tuple2list_of_tuples(mtypes)
 
     def plt_single_feature(self, feature, visual, *args, **kwargs):
         """
         plotting of a single feature
         """
-        visual.logger.debug('PLOTTING SINGLE FEATURE: {}'.format(feature.__name__))
+        visual.log.debug('PLOTTING SINGLE FEATURE: {}'.format(feature.__name__))
 
         # get all lines in visual.ax object BEFORE the feature is plotted
         old_lines = set(visual.ax.lines)
@@ -133,83 +176,9 @@ class feature(object):
         """
         def wrapped_feature(*args, **kwargs):
             # format the argspec
-            parameter = RockPy3.utils.general.get_full_argspec(func=feature, args=args)
+            parameter = get_full_argspec(func=feature, args=args, kwargs=kwargs)
 
             visual = parameter['self']
-            study, measurements_only = visual.get_virtual_study()
-
-            if 'calculation_parameter' in parameter:
-                calculation_parameter, kwargs = RockPy3.utils.general.separate_calculation_parameter_from_kwargs(mtype_list=self.mtypes, **kwargs)
-
-            #get xlims for first axis
-            xlims = deepcopy(visual.ax.get_xlim())
-            ylims = deepcopy(visual.ax.get_ylim())
-
-            # plot single features only once
-            if self.plt_frequency == 'single':
-                self.plt_single_feature(feature, visual, *args, **kwargs)
-
-            # plot multiple features for each measurement
-            else:
-                for sg_idx, sample_group in enumerate(study):
-                    if isinstance(sample_group, RockPy.SampleGroup) and sample_group.has_mean:
-                        sample_group.set_plt_prop(prop='alpha', value=0.5)
-
-                    for sample_idx, sample in enumerate(sample_group):
-                        for mtype in self.mtypes:
-
-                            # if only measurements have been passed to the visual
-                            if measurements_only:
-                                measurements = [m for m in sample if m.mtype in mtype]
-                            # otherwise search though the sample fo the correct measurements
-                            else:
-                                if isinstance(sample, RockPy3.MeanSample):
-                                    measurements = sample.get_measurements(mtypes=mtype, mean=True)
-                                else:
-                                    measurements = sample.get_measurements(mtypes=mtype)
-
-                            measurements = RockPy3.utils.general.MlistToTupleList(measurements, mtypes=mtype)
-
-                            if not measurements:
-                                visual.logger.error('CANT find/generate correct measurements tuple')
-                                break
-
-                            for m_idx, m in enumerate(measurements):
-                                visual.logger.debug(
-                                    'PLOTTING FEATURE: {} with measurement {}'.format(feature.__name__, ', '.join(i.mtype for i in m)))
-
-                                # update single measurement if only one mtype
-                                if len(mtype) == 1:
-                                    mobj = m[0]
-                                else:
-                                    mobj = m
-
-                                # change the mobj colors, ls and markers if not previously specified
-                                visual.set_mobj_plt_props(m[0], [sg_idx, sample_idx, m_idx])
-
-                                #set the measurement that should be plottet
-                                kwargs.update(dict(mobj=mobj))
-
-                                old_lines = set(visual.ax.lines)
-                                # calculate the feature
-                                feature(*args, **kwargs)
-
-                                # extract the new lines generated by feature
-                                new_lines = [i for i in visual.ax.lines if i not in old_lines]
-
-                                for mobj in m:
-                                    # finally add the sample, mobj,
-                                    visual.vdict['sample'].setdefault(mobj.sample_obj.name, []).append(feature.__name__)
-                                    visual.vdict['mobj'].setdefault(mobj, []).append(feature.__name__)
-                                    visual.vdict['visual'].setdefault(feature.__name__, []).append(mobj)
-
-                                    visual.linedict.setdefault(mobj, []).extend(new_lines)
-                                    visual.linedict.setdefault(feature.__name__, []).extend(new_lines)
-
-            # reset xlims and ylims to old limits
-            if not self.update_lims:
-                visual.ax.set_xlim(xlims)
-                visual.ax.set_ylim(ylims)
 
         return wrapped_feature
 
@@ -423,7 +392,7 @@ def MlistToTupleList(mlist, mtypes):
     return out
 
 
-def get_full_argspec(func, args, kwargs=None):
+def get_full_argspec_old(func, args, kwargs=None):
     """
     gets the full argspec from a function including the default values.
 

@@ -26,9 +26,10 @@ class Figure(object):
               title text written on top of figure
 
         """
-        self.logger = logging.getLogger(__name__)
-        self.logger.info('CREATING new figure')
-
+        self.log = logging.getLogger(__name__)
+        self.log.info('CREATING new figure')
+        self.logged_implemented = False
+        self.__log_implemented(ignore_once=False)
         # create dictionary for visuals {visual_name:visual_object}
         self._visuals = []
         self._n_visuals = 0
@@ -82,8 +83,8 @@ class Figure(object):
         for visual in visuals:
             # check if visual exists otherwise don't create it
             if visual in RockPy3.implemented_visuals:
-                self.logger.debug('VISUAL << %s > found' % visual)
-                self.logger.debug('\tIMPLEMENTED VISUALS: %s' % ', '.join(RockPy3.implemented_visuals.keys()))
+                self.log.debug('VISUAL << %s > found' % visual)
+                self.__log_implemented()
                 if not name:
                     name = visual
                 n = self._n_visuals
@@ -93,12 +94,20 @@ class Figure(object):
                 self._visuals.append([name, visual, visual_obj])
                 self._n_visuals += 1
             else:
-                self.logger.warning('VISUAL << %s >> not implemented yet' % visual)
-                self.logger.warning('\tIMPLEMENTED VISUALS: %s' % ', '.join(RockPy3.implemented_visuals.keys()))
+                self.log.warning('VISUAL << %s >> not implemented yet' % visual)
+                self.__log_implemented(ignore_once=True)
                 return
-
-        self.fig, self.axes = self._create_fig(xsize=self.xsize, ysize=self.ysize)
         return visual_obj
+
+    def __log_implemented(self, ignore_once=False):
+        if not self.logged_implemented or ignore_once:
+            self.log.info('-'.join('' for i in range(70)))
+            self.log.info('IMPLEMENTED \tVISUALS: features')
+            for n, v in RockPy3.implemented_visuals.items():
+                self.log.info('\t{}:\t{}'.format(n, ', '.join(v.implemented_features().keys())))
+            self.log.info('-'.join('' for i in range(70)))
+            if not ignore_once:
+                self.logged_implemented = True
 
     @property
     def vnames(self):
@@ -113,6 +122,11 @@ class Figure(object):
         return [i[2] for i in self._visuals]
 
     def plt_all(self):
+        """
+        helper function calls plt_visual for each visual
+        :return:
+        """
+        self.fig, self.axes = self._create_fig(xsize=self.xsize, ysize=self.ysize)
         for name, type, visual in self._visuals:
             visual.plt_visual()
 
@@ -120,8 +134,6 @@ class Figure(object):
         """
         Wrapper that creates a new figure but first deletes the old one.
         """
-        # closes old figure before it is actually shown
-        plt.close(self.fig)
         # create new figure with appropriate number of subplots
         return generate_plots(n=self._n_visuals, xsize=xsize, ysize=ysize)
 
@@ -154,9 +166,9 @@ class Figure(object):
             TypeError if no visuals have been added
         """
         if not self.visuals:
-            self.logger.error('NO VISUALS ADDED! Please add any of the followig visuals:')
+            self.log.error('NO VISUALS ADDED! Please add any of the followig visuals:')
             for visual in sorted(Visual.implemented_visuals()):
-                self.logger.info('\t %s' % visual)
+                self.log.info('\t %s' % visual)
             raise TypeError('add a visual')
 
         # actual plotting of the visuals
