@@ -5,6 +5,14 @@ from contextlib import contextmanager
 from copy import deepcopy
 import RockPy3
 import logging
+from functools import wraps
+
+
+def colorscheme(scheme='simple'):
+    colors = {'simple': ['r', 'g', 'b', 'c', 'm', 'y', 'k'] * 100,
+              }
+    return colors[scheme]
+
 
 def create_logger(name):
     log = logging.getLogger(name=name)
@@ -22,16 +30,20 @@ def create_logger(name):
 
     return log  # ch#, fh
 
+
 def to_list(oneormoreitems):
     """
     convert argument to tuple of elements
     :param oneormoreitems: single number or string or list of numbers or strings
     :return: list of elements
     """
-    if type(oneormoreitems)==list:
+    if type(oneormoreitems) == list:
         return oneormoreitems
+    elif type(oneormoreitems) == tuple:
+        return [i for i in oneormoreitems]
     else:
         return [oneormoreitems]
+
 
 def set_get_attr(obj, attr, value=None):
     """
@@ -50,6 +62,7 @@ def set_get_attr(obj, attr, value=None):
         setattr(obj, attr, value)
     return getattr(obj, attr)
 
+
 def append_if_not_exists(elist, element, operation):
     """
     appends an element to a list if it does not exist in list
@@ -65,6 +78,7 @@ def append_if_not_exists(elist, element, operation):
         if element in elist:
             elist.remove(element)
     return elist
+
 
 def get_common_dtypes_from_list(mlist):
     """
@@ -96,6 +110,7 @@ def get_common_dtypes_from_list(mlist):
             dtypes = dtypes & set(m.data.keys())
     return sorted(list(dtypes))
 
+
 @contextmanager
 def ignored(*exceptions):
     try:
@@ -103,23 +118,23 @@ def ignored(*exceptions):
     except exceptions:
         pass
 
+
 def get_full_argspec(func, args=None, kwargs=None):
     argspec = {}
     signature = inspect.signature(func)
-    # print('args:', args)
-    # print('kwargs:', kwargs)
+
     for i, v in enumerate(signature.parameters):
         try:
             # sets the value to the passed argument
             argspec.setdefault(v, args[i])
-        except IndexError: #no arg has been passed
+        except IndexError:  # no arg has been passed
             if not isinstance(signature.parameters[v].default, inspect._empty):
                 argspec.setdefault(v, signature.parameters[v].default)
     return argspec
 
 
-class feature(object):
-    def __init__(self, plt_frequency='multiple', mtypes='none', update_lims=True): #todo define axis here? second_y?
+class plot(object):
+    def __init__(self, single=False, mtypes='none', update_lims=True):  # todo define axis here? second_y?
         """
         If there are decorator arguments, the function
         to be decorated is not passed to the constructor!
@@ -149,11 +164,16 @@ class feature(object):
                 4. mtypes = [('mtype1', 'mtype2'),('mtype3','mtype4')] #todo cant think of an example but maybe possible
 
         """
-        self.plt_frequency = plt_frequency
-        self.update_lims= update_lims
+        self.single = single
+        self.update_lims = update_lims
         self.mtypes = tuple2list_of_tuples(mtypes)
 
-    def plt_single_feature(self, feature, visual, *args, **kwargs):
+    @staticmethod
+    def short_feature_name(feature):
+        return feature.__name__.replace('feature_', '')
+
+    @staticmethod
+    def plt_single_feature(feature, visual, *args, **kwargs):
         """
         plotting of a single feature
         """
@@ -161,26 +181,133 @@ class feature(object):
 
         # get all lines in visual.ax object BEFORE the feature is plotted
         old_lines = set(visual.ax.lines)
-        #plot the feature
-        feature(*args, **kwargs)
+        feature(visual, *args, **kwargs)
 
         # get all NEW lines in visual.ax object AFTER the feature is plotted
         new_lines = [i for i in visual.ax.lines if i not in old_lines]
         visual.linedict.setdefault(feature.__name__, []).extend(new_lines)
 
-    def __call__(self, feature):
+    def __call__(self, feature, idx=None):
         """
         If there are decorator arguments, __call__() is only called
         once, as part of the decoration process! You can only give
         it a single argument, which is the function object.
         """
+
         def wrapped_feature(*args, **kwargs):
             # format the argspec
             parameter = get_full_argspec(func=feature, args=args, kwargs=kwargs)
-
             visual = parameter['self']
 
+            # update the plt_props of the feature
+            kwargs.setdefault('plt_props', {})
+
+            idx = kwargs.pop('idx', '')
+            feature_name = feature.__name__.replace('feature_', '') + str(idx)
+            visual_props = visual.plt_props[feature_name]
+            kwargs['plt_props'].update(visual_props)
+
+            if self.single:
+                self.plt_single_feature(feature=feature, visual=visual, **kwargs)
+            else:
+                for mtype in self.mtypes:
+                    for sample in visual._plt_input['sample']:
+                        mlist = sample.get_measurement(mtype=mtype)
+                        if len(mtype) > 1:
+                            mobj = MlistToTupleList(mlist, mtype)
+                        elif len(mtype) == 1:
+                            mobj = mlist
+                        else:
+                            visual.log.error(
+                                'FEATURE {} input doesnt match mtype requirements {}'.format(feature_name, mtype))
+                        for mt_tuple in mobj:
+                            try:
+                                kwargs['plt_props'].update(mt_tuple[0].plt_props)
+                            except TypeError:
+                                kwargs['plt_props'].update(mt_tuple.plt_props)
+                            kwargs['plt_props'].update(visual._plt_props_forced[feature_name])
+                            feature(visual, mobj=mt_tuple, **kwargs)
+
+                    if len(mtype) > 1:
+                        mobj = MlistToTupleList(visual._plt_input['measurement'], mtype)
+                    elif len(mtype) == 1:
+                        mobj = visual._plt_input['measurement']
+                    else:
+                        visual.log.error(
+                            'FEATURE {} input doesnt match mtype requirements {}'.format(feature.__name__, mtype))
+                    for mt_tuple in mobj:
+                        try:
+                            kwargs['plt_props'].update(mt_tuple[0].plt_props)
+                        except TypeError:
+                            kwargs['plt_props'].update(mt_tuple.plt_props)
+                        kwargs['plt_props'].update(visual._plt_props_forced[feature.__name__.replace('feature_', '')])
+                        feature(visual, mobj=mt_tuple, **kwargs)
+
         return wrapped_feature
+
+
+def MlistToTupleList(mlist, mtypes, ignore_series=False):
+    """
+    Transforma a list of measurements into a tuplelist, according to the mtypes specified.
+
+    Parameter
+    ---------
+        mlist: list
+            list of RockPy Measurements
+        mtypes: tuple
+            tuple for the mlist to be organized by.
+
+    Example
+    -------
+        1. multiple mtypes (tuple)
+            mlist = [Hys(S1), Hys(S2), Coe(S1), Coe(S2)] assuming that S1 means all series are the same
+            mtypes = (hys, coe)
+
+            1. the list is sorted into a dictionary with mtype:list(m)
+            2. for each member of dict[hys] a corresponding coe measurement is searched which has
+                a) the same parent sample
+                b) exactly the same series
+
+
+    """
+    # create the dictionary
+    mdict = {mtype: [m for m in mlist if m.mtype == mtype] for mtype in mtypes}
+
+    out = []
+    for m_mtype1 in mdict[mtypes[0]]:
+        aux = [m_mtype1]
+        for mtype in mtypes[1:]:
+            for m_mtype_n in mdict[mtype]:
+                if not m_mtype1.sample_obj == m_mtype_n.sample_obj:
+                    break
+                if compare_measurement_series(m_mtype1, m_mtype_n) or ignore_series:
+                    aux.append(m_mtype_n)
+                    if not ignore_series:
+                        break
+        out.append(tuple(aux))
+    return out
+
+
+def compare_measurement_series(m1, m2):
+    """
+    returns True if both series have exactly the same series.
+
+    Parameter
+    ---------
+        m1: RockPy.Measeurement
+        m2: RockPy.Measeurement
+
+    Note
+    ----
+        ignores multiples of the same series
+    """
+    s1 = m1.series
+    s2 = m2.series
+
+    if all(s in s2 for s in s1) and all(s in s1 for s in s2):
+        return True
+    else:
+        return False
 
 
 def kwargs_to_calculation_parameter(rpobj=None, mtype_list=None, result=None, **kwargs):
@@ -244,8 +371,8 @@ def kwargs_to_calculation_parameter(rpobj=None, mtype_list=None, result=None, **
 
     for kwarg in kwarg_list:
         remove = False
-        mtypes, methods, parameter = RockPy3.utils.general.separate_mtype_method_parameter(kwarg=kwarg)
-        # print(mtypes, methods, parameter)
+        mtypes, methods, parameter = RockPy3.core.utils.separate_mtype_method_parameter(kwarg=kwarg)
+
         # get all mtypes, methods if not specified in kwarg
         # nothing specified
         if not mtypes and not methods:
@@ -275,7 +402,7 @@ def kwargs_to_calculation_parameter(rpobj=None, mtype_list=None, result=None, **
             methods = [method for method, params in RockPy3.Measurement.method_calculation_parameter_list().items()
                        if
                        parameter in params]
-        print(mtypes, methods, parameter, rpobj)
+        # print(mtypes, methods, parameter, rpobj)
 
         # i an object is given, we can filter the possible mtypes, and methods further
         # 1. a measurement object
@@ -293,7 +420,6 @@ def kwargs_to_calculation_parameter(rpobj=None, mtype_list=None, result=None, **
         # 5. a visual object
         # 6. a result
         if result:
-
             methods = [method for method in methods if method in rpobj.possible_calculation_parameter()[result]]
 
 

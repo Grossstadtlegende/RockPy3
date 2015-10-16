@@ -7,6 +7,8 @@ from core import utils
 import RockPy3.core.sample
 import os
 from multiprocessing import Pool
+
+
 class Study(object):
     """
     comprises data of a whole study
@@ -79,6 +81,9 @@ class Study(object):
     def groupnames(self):
         return sorted(list(set(i for j in self.samplelist for i in j._samplegroups)))
 
+    @property
+    def n_samples(self):
+        return len(self._samples)
     ####################################################################################################################
     ''' add functions '''
 
@@ -96,7 +101,7 @@ class Study(object):
                    ):
         if name in self.samplenames:
             RockPy3.logger.warning('CANT create << %s >> already in Study. Please use unique sample names. '
-                                   'Returning sample' %name)
+                                   'Returning sample' % name)
             return self._samples[name]
 
         if not sobj:
@@ -185,7 +190,7 @@ class Study(object):
 
         slist = self.samplelist
 
-        if not any(i for i in locals() if i != 'self'):
+        if not any(i for i in [gname, sname, mtype, series, stype, sval, sval_range, mean, invert]):
             return slist
 
         # samplegroup filtering
@@ -200,7 +205,7 @@ class Study(object):
 
         return slist
 
-    def get_samplegroup(self, gname):
+    def get_samplegroup(self, gname=None):
         """
         wrapper for simply getting all samples of one samplegroup
         :param gname: str
@@ -210,8 +215,22 @@ class Study(object):
         """
         return self.get_sample(gname=gname)
 
-    def get_measurement(self):
-        pass
+    def get_measurement(self,
+                        gname=None,
+                        sname=None,
+                        mtype=None,
+                        series=None,
+                        stype=None, sval=None, sval_range=None,
+                        mean=False,
+                        invert=False,
+                        ):
+        samples = self.get_sample(gname=gname, sname=sname, mtype=mtype, series=series,
+                                  stype=stype, sval=sval, sval_range=sval_range, mean=mean, invert=invert)
+
+        mlist = [m for s in samples for m in s.get_measurement(mtype=mtype, series=series,
+                                                               stype=stype, sval=sval, sval_range=sval_range, mean=mean,
+                                                               invert=invert)]
+        return mlist
 
     def import_folder(self, folder):
         files = [os.path.join(folder, i) for i in os.listdir(folder)
@@ -221,7 +240,8 @@ class Study(object):
                  ]
 
         sample_groups = set(os.path.basename(f).split('_')[0] for f in files)
-        RockPy3.logger.debug('TRYING to import {} files for these samplegroups {}'.format(len(files), sorted(list(sample_groups))))
+        RockPy3.logger.debug(
+            'TRYING to import {} files for these samplegroups {}'.format(len(files), sorted(list(sample_groups))))
 
         start = time.clock()
 
@@ -232,7 +252,8 @@ class Study(object):
         #
         measurements = [self.import_file(file) for file in files]
         end = time.clock()
-        RockPy3.logger.debug('IMPORT generated {} measurements: finished in {:<3}s'.format(len(measurements),end-start))
+        RockPy3.logger.debug(
+            'IMPORT generated {} measurements: finished in {:<3}s'.format(len(measurements), end - start))
         return measurements
 
     def import_file(self, fpath):
@@ -259,7 +280,7 @@ class Study(object):
             stypes = ', '.join(list(s.mdict['stype'].keys()))
 
             # count how many measurements for each mtype
-            measurements = ', '.join(['%ix %s' %(len(s.mdict['mtype'][i]), i) for i in mtypes])
+            measurements = ', '.join(['%ix %s' % (len(s.mdict['mtype'][i]), i) for i in mtypes])
 
             # does the measurement have an initial state
             i_state = [True if any(m.has_initial_state for m in s.measurements) else False][0]

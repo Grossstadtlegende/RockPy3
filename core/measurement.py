@@ -36,7 +36,6 @@ class Measurement(object):
     n_created = 0
     log = logging.getLogger('RockPy3.MEASUREMENT')
 
-    colors = ['r', 'g', 'b', 'c', 'm', 'y', 'k'] * 100
     possible_plt_props = ['agg_filter', 'alpha', 'animated', 'antialiased', 'axes', 'clip_box', 'clip_on', 'clip_path',
                           'color', 'contains', 'dash_capstyle', 'dash_joinstyle', 'dashes', 'drawstyle', 'figure',
                           'fillstyle', 'gid', 'label', 'linestyle', 'linewidth', 'lod', 'marker', 'markeredgecolor',
@@ -638,10 +637,14 @@ class Measurement(object):
         self.add_series(series=series)
 
         if not idx:
-            idx = self.__class__.n_created
+            idx = len(self.sobj.measurements)
 
         self.idx = idx
         self.__class__.n_created += 1
+
+        #### automatically set the plt_props for the measurement according to the
+        self.set_plt_prop(prop='color', value=RockPy3.colorscheme[self.idx])
+        self.set_plt_prop(prop='marker', value=RockPy3.marker[self.sobj.idx])
 
     def __repr__(self):
         if self.is_mean:
@@ -1695,12 +1698,12 @@ class Measurement(object):
         sval_index = svals.index(sval)
         self.color = color_map[sval_index]
 
-    def plt_all(self, **plt_opt):
+    def plt_all(self, **plt_props):
         fig = RockPy3.Figure()
         calculation_parameter, non_calculation_parameter = core.utils.separate_calculation_parameter_from_kwargs(
-            self, **plt_opt)
+            self, **plt_props)
         for visual in self.plottable:
-            fig.add_visual(visual=visual, plt_input=self, **plt_opt)
+            fig.add_visual(visual=visual, plt_input=self, **plt_props)
         fig.show(**non_calculation_parameter)
 
     ####################################################################################################################
@@ -1810,16 +1813,6 @@ class Measurement(object):
             doc.generate_pdf(filepath=filepath, clean=clean)
 
 
-def separate_result_name(res):
-    """
-    separates the 'result_', 'result_method' and 'RECIPE'
-    :param
-        res: str
-    :return:
-    """
-    print(res.split('_'))
-
-
 @decorator.decorator
 def result(func, *args, **kwargs):
     """
@@ -1847,7 +1840,7 @@ def result(func, *args, **kwargs):
     self = parameters.pop('self')
 
     calculation_parameters, p = core.utils.separate_calculation_parameter_from_kwargs(self, **parameters)
-    print(calculation_parameters, p)
+    # print(calculation_parameters, p)
     # calculation method has to be popped from dictionary, otherwise it is stored in calculation parameters
     # when the calculation_method is called
     if 'calculation_method' in parameters:

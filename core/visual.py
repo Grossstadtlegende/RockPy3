@@ -2,14 +2,15 @@ import core.utils
 
 __author__ = 'volk'
 import logging
+import inspect
+
 from copy import deepcopy
 
 import RockPy3
 import RockPy3.core
 import RockPy3.utils
 import RockPy3.core.measurement
-
-from RockPy3.core.utils import feature
+from RockPy3.core.utils import plot, to_list
 
 
 class Visual(object):
@@ -19,11 +20,26 @@ class Visual(object):
        - what if I want to have a different visual on a second y axis?
     """
     log = logging.getLogger('RockPy3.VISUALIZE')
+    required = []
 
     linestyles = ['-', '--', ':', '-.'] * 100
     marker = ['.', 's', 'o', '+', '*', ',', '1', '3', '2', '4', '8', '<', '>', 'D', 'H', '_', '^',
               'd', 'h', 'p', 'v', '|'] * 100
     colors = ['k', 'b', 'g', 'r', 'm', 'y', 'c'] * 100
+
+    possible_text_props = ['x', 'y', 'text', 'rotation',
+                           'agg_filter', 'alpha', 'animated', 'axes', 'clip_box', 'clip_on',
+                           'clip_path', 'figure', 'fontsize', 'gid', 'label', 'lod',
+                           'picker', 'rasterized', 'transform', 'visible', 'zorder',
+                           ]
+    possible_plt_props = ['agg_filter', 'alpha', 'animated', 'antialiased', 'axes', 'clip_box', 'clip_on', 'clip_path',
+                          'color', 'contains', 'dash_capstyle', 'dash_joinstyle', 'dashes', 'drawstyle', 'figure',
+                          'fillstyle', 'gid', 'label', 'linestyle', 'linewidth', 'lod', 'marker', 'markeredgecolor',
+                          'markeredgewidth', 'markerfacecolor', 'markerfacecoloralt', 'markersize', 'markevery',
+                          'path_effects', 'picker', 'pickradius', 'rasterized', 'sketch_params', 'snap',
+                          'solid_capstyle', 'solid_joinstyle', 'transform', 'url', 'visible', 'xdata', 'ydata',
+                          'zorder',
+                          ]
 
     @classmethod
     def implemented_visuals(cls):
@@ -50,20 +66,18 @@ class Visual(object):
 
     @classmethod
     def implemented_features(cls):
-        out = {i.replace('feature_', ''):
-                   getattr(cls, i) for i in dir(cls) if i.startswith('feature_') if not i.endswith('names')}
+        out = {i.replace('feature_', ''): getattr(cls, i) for i in dir(cls) if i.startswith('feature_') if
+               not i.endswith('names')}
         return out
 
     @property
     def feature_names(self):
-        return [i.__name__[8:] for i in self.features]
+        return self.features
 
     @property
     def plt_props(self):
         return self._plt_props
 
-    def set_plt_props(self, prop, value): #todo
-        pass
     def __init__(self, plt_input=None, plt_index=None, fig=None, name=None, coord=None,
                  **options):
         '''
@@ -85,7 +99,10 @@ class Visual(object):
         self._plt_index = plt_index
         self._plt_input = {'sample': [], 'measurement': []}
 
-        self._plt_props = {}
+        # low hierarchy properties are overwritten by measurement props
+        self._plt_props = {i: {} for i in self.implemented_features()}
+        # higher hierarchy properties, overwrite the measurement props
+        self._plt_props_forced = {i: {} for i in self.implemented_features()}
 
         if plt_input:
             self.add_plt_input(plt_input=plt_input)
@@ -102,6 +119,9 @@ class Visual(object):
         self.linedict = {}
         self._calculation_parameter = calc_params
         self.init_visual()
+        self.feature_methods = [getattr(self, 'feature_' + name) for name in self.features]
+        self.generic_features = []
+        self.generic_feature_methods = []
 
     def __getattr__(self, item):
         try:
@@ -113,43 +133,44 @@ class Visual(object):
         """ this part is needed by every plot, because it is executed automatically """
         self.log.debug('initializing visual...')
 
-        self.features = []  # list containing all features that have to be plotted for each measurement
-        self.single_features = []  # list of features that only have to be plotted one e.g. zero lines
+        self.features = []  # list containing all feature names that have to be plotted for each measurement
 
         self.xlabel = 'xlabel'
         self.ylabel = 'ylabel'
 
-    def add_feature(self, features=None):
-        self.add_feature_to_list(features=features, feature_list='features')
+    def add_feature(self, feature=None, **plt_props):
+        self.add_feature_to_list(feature=feature)
+        self.set_plt_prop(feature=feature, **plt_props)
 
-    def add_feature_to_list(self, feature_list, features=None):
+    def add_feature_to_list(self, feature=None):
         """
         Adds a feature to the list of feature that will be plotted (self.features)
         """
-        list2add = getattr(self, feature_list)
-
-        features = RockPy3.utils.general.to_list(features)  # convert to list if necessary
         # check if feature has been provided, if not show list of implemented features
-        if not features:
+        if not feature:
             self.log.warning('NO feature selected chose one of the following:')
-            self.log.warning('%s' % sorted(self.implemented_features))
+            self.log.warning('%s' % sorted(self.implemented_features().keys()))
             raise TypeError
         # check if any of the features is not implemented
-        if any(feature not in self.implemented_features for feature in features):
-            for feature in features:
-                if feature not in self.implemented_features:
-                    self.log.warning('FEATURE << %s >> not implemented chose one of the following:' % feature)
-                    # remove feature that is not implemented
-                    features.remove(feature)
-            self.log.warning('%s' % sorted(self.implemented_features.keys()))
+        if feature not in self.implemented_features():
+            self.log.warning('FEATURE << %s >> not implemented chose one of the following:' % feature)
+            self.log.warning('%s' % sorted(self.implemented_features().keys()))
 
         # check for duplicates and don't add them
-        for feature in features:
-            if feature not in self.feature_names:
-                # add features to self.features
-                list2add.append(self.implemented_features[feature])
-            else:
-                self.log.info('FEATURE << %s >> already used in %s' % (feature, feature_list))
+        if feature not in self.features and not 'generic' in feature:
+            # generic features can be added multiple times:
+            # add features to self.features
+            self.features.append(feature)
+            self.feature_methods.append(getattr(self, 'feature_' + feature))
+        elif 'generic' in feature:
+            # create entry in plotproperty dictionary and high hierachy dictionary
+            self._plt_props.setdefault(feature + str(len(self.generic_features)), {})
+            self._plt_props_forced.setdefault(feature + str(len(self.generic_features)), {})
+            self.generic_features.append(feature + str(len(self.generic_features)))
+            self.generic_feature_methods.append(getattr(self, 'feature_' + feature))
+
+        else:
+            self.log.info('FEATURE << %s >> already used' % (feature))
 
     def remove_feature(self, features=None):
         self.remove_feature_from_list(feature_list='features', features=features)
@@ -194,14 +215,19 @@ class Visual(object):
     def add_plt_input(self, plt_input):
         plt_input = RockPy3.core.utils.to_list(plt_input)
         for item in plt_input:
+            if isinstance(item, RockPy3.RpStudy):
+                self._plt_input['sample'].extend([deepcopy(s) for s in item.samplelist])
             if isinstance(item, RockPy3.Sample):
-                self._plt_input['sample'].append(item)
+                self._plt_input['sample'].append(deepcopy(item))
             if isinstance(item, RockPy3.Measurement):
-                self._plt_input['measurement'].append(item)
+                self._plt_input['measurement'].append(deepcopy(item))
 
-    def plt_visual(self):
-        for feature in self.features:
+    def __call__(self, *args, **kwargs):
+        self.add_standard()
+        for feature in self.feature_methods:
             feature()
+        for idx, generic_feature in enumerate(self.generic_feature_methods):
+            generic_feature(idx=idx)
 
     @property
     def legend_options(self):
@@ -246,19 +272,23 @@ class Visual(object):
             options.setdefault('fontsize', 12)
         return options
 
-    @feature(plt_frequency='single')
-    def feature_grid(self):
-        self.ax.grid()
+    @plot(single=True)
+    def feature_grid(self, plt_props=None):
+        self.ax.grid(**plt_props)
 
-    @feature(plt_frequency='single')
-    def feature_zero_lines(self, mobj=None):
-        color = plt_opt.pop('color', 'k')
-        zorder = plt_opt.pop('zorder', 0)
+    @plot(single=True)
+    def feature_generic_data(self, plt_props=None):
+        # pass
+        RockPy3.Packages.Generic.Features.generic.plot_x_y(ax=self.ax, **plt_props)
 
-        self.ax.axhline(0, color=color, zorder=zorder,
-                        **plt_opt)
-        self.ax.axvline(0, color=color, zorder=zorder,
-                        **plt_opt)
+    @plot(single=True)
+    def feature_generic_text(self, plt_props=None):
+        RockPy3.Packages.Generic.Features.generic.text_x_y(ax=self.ax, **plt_props)
+
+    @plot(single=True)
+    def feature_zero_lines(self, plt_props=None):
+        self.ax.axhline(0, **plt_props)
+        self.ax.axvline(0, **plt_props)
 
     ####################################################################################################################
     # LEGEND PART
@@ -269,10 +299,9 @@ class Visual(object):
             setattr(self, '_legend', dict())
         return getattr(self, '_legend')
 
-
     @property
     def ax(self):
-        return self.fig.axes[self._plt_index][1]
+        return self._RockPy_figure.axes[self._plt_index][0]
 
     @property
     def second_y(self):
@@ -284,15 +313,50 @@ class Visual(object):
     def second_x(self):
         if not self._RockPy_figure.axes[self._plt_index][2]:
             self._RockPy_figure.axes[self._plt_index][2] = self._RockPy_figure.axes[self._plt_index][0].twinx()
-        return self.fig.axes[self._plt_index][2]
+        return self._RockPy_figure.axes[self._plt_index][2]
 
     @property
     def fig(self):
         return self._RockPy_figure.fig
 
     ### PLOT PARAMETERS
-    def set_plot_parameter(self):
-        pass
+    def set_plt_prop(self, feature=None, overwrite_m=False, **prop):
+        """
+        sets the plot properties for a feature of list of features
+
+        :param feature:
+        :param overwrite_m:
+        :param prop:
+        :return:
+
+        Note
+        ----
+            'generic' type features can be plotted multiple times -> they get a suffix
+        """
+        # check if there is a given feature
+        if not feature:
+            self.log.error('NO FEATURE specified chose one:')
+            self.log.error('{}'.format(self.features))
+
+        # iteerate through properties passed
+        for p, value in prop.items():
+            if p in self.possible_plt_props or p in self.possible_text_props:
+                feature = RockPy3.core.utils.to_list(feature)
+                for f in feature:
+                    if f in self.implemented_features():
+                        if 'generic' in f:
+                            f += str(len(self.generic_features) - 1)
+                        try:
+                            self.log.debug(
+                                'CHANGING plot property {}.{} from {} -> {}'.format(f, p, self.plt_props[f][p], value))
+                        except KeyError:
+                            self.log.debug('Setting plot property {}.{} to {}'.format(f, p, value))
+                        if overwrite_m:
+                            self._plt_props_forced[f].setdefault(p, value)
+                        else:
+                            self.plt_props[f].setdefault(p, value)
+            else:
+                self.log.warning('PROPERTY << {} >> not in Line2D properties nor text properties'.format(p))
 
     def set_xscale(self, value):
         """
@@ -324,3 +388,6 @@ class Visual(object):
         self.ax.yaxis.major.formatter._useMathText = True
 
 
+def set_colorscheme(scheme):
+    RockPy3.colorscheme = RockPy3.core.utils.colorscheme(scheme)
+    return RockPy3.core.utils.colorscheme(scheme)

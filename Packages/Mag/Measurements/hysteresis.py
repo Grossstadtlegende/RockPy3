@@ -281,7 +281,7 @@ class Hysteresis(measurement.Measurement):
 
         if len(segments['segment number']) == 1:
             mdata.setdefault('virgin', RockPyData(column_names=header, data=data[0],
-                                                  # units=self.machine_data.units
+                                                  units=ftype_data.units
                                                   ).sort('field'))
             mdata.setdefault('down_field', None)
             mdata.setdefault('up_field', None)

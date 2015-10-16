@@ -2,23 +2,23 @@ __author__ = 'mike'
 import RockPy3
 # import Features.backfield
 import RockPy3.Packages.Mag
-from RockPy3.core.utils import feature
+from RockPy3.core.utils import plot
+from RockPy3.core.visual import Visual
 
-
-class Hysteresis(RockPy3.core.visual.Visual):
+class Hysteresis(Visual):
     def init_visual(self):
-        self.features = [self.feature_zero_lines]#, self.feature_hysteresis_data]
+        self.features = ['zero_lines', 'grid', 'hysteresis_data']
 
         self.xlabel = 'Field'
         self.ylabel = 'Moment'
 
+    @plot(mtypes='hysteresis')
+    def feature_hysteresis_data(self, mobj, plt_props=None):
+        RockPy3.Packages.Mag.Features.hysteresis.hysteresis(self.ax, mobj, **plt_props)
+        pass
+
     # @feature(mtypes='hysteresis')
-    # def feature_hysteresis_data(self, **plt_opt):
-    #     RockPy3.Packages.Mag.Features.hysteresis.hysteresis(self.ax, plt_opt.pop('mobj'), **plt_opt)
-    #     pass
-    #
-    # @feature(mtypes='hysteresis')
-    # def feature_virgin(self, mobj, **plt_opt):
+    # def feature_virgin(self, mobj, **plt_props):
     #     pass
 
 # class Fabian2003(base.Visual):
@@ -32,20 +32,20 @@ class Hysteresis(RockPy3.core.visual.Visual):
 #         self.ylabel = 'Moment'
 #
 #     @feature(mtypes='hysteresis')
-#     def feature_hysteresis_data(self, **plt_opt):
-#         Features.hysteresis.hysteresis(self.ax, plt_opt.pop('mobj'), **plt_opt)
+#     def feature_hysteresis_data(self, **plt_props):
+#         Features.hysteresis.hysteresis(self.ax, plt_props.pop('mobj'), **plt_props)
 #
 #     @feature(mtypes='backfield')
-#     def feature_backfield_data(self, **plt_opt):
-#         plt_opt.get('mobj').marker = ''
-#         Features.backfield.backfield(self.ax, plt_opt.pop('mobj'), **plt_opt)
+#     def feature_backfield_data(self, **plt_props):
+#         plt_props.get('mobj').marker = ''
+#         Features.backfield.backfield(self.ax, plt_props.pop('mobj'), **plt_props)
 #
 #     @feature(plt_frequency='single')
-#     def feature_zero_lines(self, mobj=None, **plt_opt):
-#         color = plt_opt.pop('color', 'k')
-#         zorder = plt_opt.pop('zorder', 0)
+#     def feature_zero_lines(self, mobj=None, **plt_props):
+#         color = plt_props.pop('color', 'k')
+#         zorder = plt_props.pop('zorder', 0)
 #
 #         self.ax.axhline(0, color=color, zorder=zorder,
-#                         **plt_opt)
+#                         **plt_props)
 #         self.ax.axvline(0, color=color, zorder=zorder,
-#                         **plt_opt)
+#                         **plt_props)

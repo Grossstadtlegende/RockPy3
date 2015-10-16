@@ -84,7 +84,6 @@ class Vsm(io.ftype):
         # That line has a ',' at the point where we want to break, the index of the comma is used
         # to separate the line
         header_text = [i for i in self.raw_data if i]
-
         field_lengths = [0] + \
                         [i for i, v in enumerate(self._data[0]) if v == ','] + \
                         [len(self._data[0])]
@@ -94,7 +93,11 @@ class Vsm(io.ftype):
 
         header_text = [[j[v: field_lengths[i + 1]].strip() for j in header_text] + [i] for i, v in
                        enumerate(field_lengths[:-1])]
-        return [i[0].lower() for i in header_text], [i[1] for i in header_text]
+
+        for i in range(len(header_text)):
+            header_text[i] = [' '.join(header_text[i][:-2]).strip(), header_text[i][-2], header_text[i][-1]]
+
+        return [i[0].lower() for i in header_text], [i[-2] for i in header_text]
 
     @staticmethod
     def split_comma_float(item):

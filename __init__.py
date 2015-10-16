@@ -2,34 +2,38 @@ import os
 import logging
 # matplotlib.use('QT4Agg') #not working on OSX!
 
-import RockPy3.core.utils
-
-RockPy3.core.utils.create_logger('RockPy3')
-logger = logging.getLogger('RockPy3')
-
+import RockPy3.Packages
 import RockPy3.core
-import RockPy3.core.study
+
+from RockPy3.core.visual import Visual
+from RockPy3.core.visual import set_colorscheme
+
+# core imports
+from RockPy3.core.study import Study as RpStudy
 from RockPy3.core.sample import Sample#, MeanSample
 from RockPy3.core.measurement import Measurement
 from RockPy3.core.series import Series
-
 from RockPy3.core.data import RockPyData as Data
-from RockPy3.core.data import condense
+
+from RockPy3.core.figure import Figure
+
+from RockPy3.core.utils import ignored
+
+
+# from RockPy3.core.data import condense
 
 from RockPy3.core.file_operations import save, load, abbrev_to_name
 from RockPy3.core.file_operations import get_fname_from_info, get_info_from_fname, import_folder
 
-from RockPy3.core.utils import ignored
-# from RockPy3.utils.general import ignored, check_coordinate_system
+### utility imports
+from RockPy3.utils.general import check_coordinate_system
 
-from RockPy3.core.figure import Figure
-from RockPy3.core.visual import Visual
-from RockPy3.core.series import Series
-
-from RockPy3.Packages import *
-import RockPy3.Packages
 
 import subprocess
+
+
+RockPy3.core.utils.create_logger('RockPy3')
+logger = logging.getLogger('RockPy3')
 
 test_data_path = os.path.join(os.getcwd().split('RockPy3')[0], 'RockPy3', 'Tutorials', 'test_data')
 installation_directory = os.path.dirname(RockPy3.__file__)
@@ -109,3 +113,8 @@ for m, obj in sorted(RockPy3.implemented_measurements.items()):
     logger.debug('\t{:<15}: \t{}'.format(m, ', '.join(obj.measurement_formatters().keys())))
 
 mtype_ftype_abbreviations_inversed, mtype_ftype_abbreviations = RockPy3.core.file_operations.mtype_ftype_abbreviations()
+
+colorscheme = set_colorscheme('simple')
+linestyles = ['-', '--', ':', '-.'] * 100
+marker = ['.', 's', 'o', '+', '*', ',', '1', '3', '2', '4', '8', '<', '>', 'D', 'H', '_', '^',
+              'd', 'h', 'p', 'v', '|'] * 100

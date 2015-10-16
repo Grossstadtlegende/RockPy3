@@ -1,53 +1,47 @@
 __author__ = 'mike'
+import RockPy3.Packages.Generic.Features.generic
+
+def hysteresis(ax, mobj, **plt_props):
+    df_branch(ax, mobj, **plt_props)
+    uf_branch(ax, mobj, **plt_props)
 
 
-def hysteresis(ax, mobj, **plt_opt):
-    df_branch(ax, mobj, **plt_opt)
-    uf_branch(ax, mobj, **plt_opt)
-
-
-def df_branch(ax, mobj, **plt_opt):
+def df_branch(ax, mobj, **plt_props):
     """
     Plots the down_field branch of a hysteresis
     """
     ax.plot(mobj.data['down_field']['field'].v,
             mobj.data['down_field']['mag'].v,
-            ls=mobj.linestyle, marker='', color=mobj.color, label=mobj.label,
-            **plt_opt)
+            **plt_props)
 
 
-def uf_branch(ax, mobj, **plt_opt):
+def uf_branch(ax, mobj, **plt_props):
     """
     Plots the down_field branch of a hysteresis
     """
     ax.plot(mobj.data['up_field']['field'].v,
             mobj.data['up_field']['mag'].v,
-            ls=mobj.linestyle, marker='', color=mobj.color,
-            **plt_opt)
+            **plt_props)
 
 
-def virgin_branch(ax, mobj, **plt_opt):
+def virgin_branch(ax, mobj, **plt_props):
     """
     Plots the down_field branch of a hysteresis
     """
-    ls = plt_opt.pop('ls', '-')
-    marker = plt_opt.pop('marker', '')
 
     ax.plot(mobj.data['virgin']['field'].v,
             mobj.data['virgin']['mag'].v,
-            ls=mobj.linestyle, marker='', color=mobj.color,
-            **plt_opt)
+            **plt_props)
 
 
-def irreversible(ax, mobj, **plt_opt):
+def irreversible(ax, mobj, **plt_props):
     irrev = mobj.get_irreversible()
     ax.plot(irrev['field'].v,
             irrev['mag'].v,
-            ls=mobj.linestyle, marker='', color=mobj.color, label=mobj.label,
-            **plt_opt)
+            **plt_props)
 
 
-def reversible(ax, mobj, **plt_opt):
+def reversible(ax, mobj, **plt_props):
     """
     Plots the down_field branch of a hysteresis
     """
@@ -55,5 +49,4 @@ def reversible(ax, mobj, **plt_opt):
     rev = mobj.get_reversible()
     ax.plot(rev['field'].v,
             rev['mag'].v,
-            ls=mobj.linestyle, marker='', color=mobj.color, label=mobj.label,
-            **plt_opt)
+            **plt_props)

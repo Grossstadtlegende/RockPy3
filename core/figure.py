@@ -35,7 +35,7 @@ class Figure(object):
         self._n_visuals = 0
         self.xsize = figsize[0]
         self.ysize = figsize[1]
-        self.fig = plt.figure()  # initialize figure
+        self.fig = None
         self.title = title
 
     @property
@@ -100,11 +100,16 @@ class Figure(object):
         return visual_obj
 
     def __log_implemented(self, ignore_once=False):
+        """
+        short logging function to show what is implemented
+        :param ignore_once:
+        :return:
+        """
         if not self.logged_implemented or ignore_once:
             self.log.info('-'.join('' for i in range(70)))
             self.log.info('IMPLEMENTED \tVISUALS: features')
             for n, v in RockPy3.implemented_visuals.items():
-                self.log.info('\t{}:\t{}'.format(n, ', '.join(v.implemented_features().keys())))
+                self.log.info('\t{}:\t{}'.format(n.upper(), ', '.join(v.implemented_features().keys())))
             self.log.info('-'.join('' for i in range(70)))
             if not ignore_once:
                 self.logged_implemented = True
@@ -126,9 +131,8 @@ class Figure(object):
         helper function calls plt_visual for each visual
         :return:
         """
-        self.fig, self.axes = self._create_fig(xsize=self.xsize, ysize=self.ysize)
         for name, type, visual in self._visuals:
-            visual.plt_visual()
+            visual()
 
     def _create_fig(self, xsize=5, ysize=5):
         """
@@ -165,6 +169,8 @@ class Figure(object):
         ------
             TypeError if no visuals have been added
         """
+        self.fig, self.axes = self._create_fig(xsize=self.xsize, ysize=self.ysize)
+
         if not self.visuals:
             self.log.error('NO VISUALS ADDED! Please add any of the followig visuals:')
             for visual in sorted(Visual.implemented_visuals()):

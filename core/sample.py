@@ -26,7 +26,8 @@ class Sample(object):
                  length_unit='mm', length_ftype='generic',
                  sample_shape='cylinder',
                  coord=None,
-                 samplegroup=None
+                 samplegroup=None,
+                 study=None,
                  ):
 
         """
@@ -59,9 +60,22 @@ class Sample(object):
         """
         if not name:
             name = 'S%02i' % Sample.snum
+
+        if not study:
+            study = RockPy3.Study
+        else:
+            if not isinstance(study, RockPy3.core.study.Study):
+                self.log.error('STUDY not a valid RockPy3.core.Study object. Using RockPy Masterstudy')
+                study = RockPy3.Study
+
+
         self.name = name  # unique name, only one per study
         self.comment = comment
-        self.idx = Sample.snum
+
+        # add sample to study
+        self.study = study
+        self.study.add_sample(sobj=self)
+        self.idx = self.study.n_samples
 
         Sample.snum += 1
 
@@ -408,8 +422,9 @@ class Sample(object):
             self.log.warning('SAMPLE {} already in samplegroup {}'.format(self.name, gname))
 
     def remove_from_samplegroup(self, gname):
-        self.log.debug('REMOVING {} from samplegroup {}'.format(self.name, gname))
-        self._samplegroups.remove(gname)
+        if gname in self._samplegroups:
+            self.log.debug('REMOVING {} from samplegroup {}'.format(self.name, gname))
+            self._samplegroups.remove(gname)
 
     def generate_import_info(self, mtype=None, fpath=None, ftype=None, idx=None, series=None):
         """
@@ -515,7 +530,7 @@ class Sample(object):
 
     def get_measurement(self,
                         mtype=None,
-                        serie=None,
+                        series=None,
                         stype=None, sval=None, sval_range=None,
                         mean=False,
                         invert=False,
@@ -563,7 +578,7 @@ class Sample(object):
 
         """
         # if no parameters are given, return all measurments/none (invert=True)
-        if not any(i for i in [mtype, serie, stype, sval, sval_range, mean]):
+        if not any(i for i in [mtype, series, stype, sval, sval_range, mean]):
             if not invert:
                 return self.measurements
             else:
@@ -588,7 +603,7 @@ class Sample(object):
 
         out = []
 
-        if not serie:
+        if not series:
             for mt in mtype:
                 for st in stype:
                     for sv in sval:
@@ -597,7 +612,7 @@ class Sample(object):
                         out.extend(measurements)
         else:
             # searching for specific series, all mtypes specified that fit the series description will be returned
-            serie = RockPy3.utils.general.tuple2list_of_tuples(serie)
+            serie = RockPy3.utils.general.tuple2list_of_tuples(series)
             for mtype in mtype:  # cycle through mtypes
                 aux = []
                 for s in serie:
