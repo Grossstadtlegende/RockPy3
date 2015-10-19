@@ -44,6 +44,8 @@ diameter: diameter
 height: height
 volume: volume
 
+simulation: simulation
+
 none: none
 # ftypes
 cryomag: cry

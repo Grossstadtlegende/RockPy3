@@ -195,6 +195,7 @@ class Sample(object):
             if ftype in RockPy3.mtype_ftype_abbreviations_inversed:
                 ftype = RockPy3.mtype_ftype_abbreviations_inversed[ftype]
                 import_info.setdefault('ftype', ftype)
+
         if idx is None:
             idx = len(self.measurements)
 
