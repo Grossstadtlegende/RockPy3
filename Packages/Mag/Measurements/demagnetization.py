@@ -20,7 +20,6 @@ from pprint import pprint
 
 
 class Demagnetization(measurement.Measurement):
-
     @staticmethod
     def format_cryomag(ftype_data, sobj_name=None):
         if not sobj_name in ftype_data.raw_data:
@@ -39,8 +38,84 @@ class Demagnetization(measurement.Measurement):
         data = RockPy3.Data(data=data, column_names=list(map(str.lower, header)))
         data.rename_column('m', 'mag')
         data.define_alias('m', ('x', 'y', 'z'))
+        data.define_alias('variable', 'step')
         out = {'data': data}
         return out
+
+    ####################################################################################################################
+    """ M1/2 """
+
+    @calculate
+    def calculate_m05_NONLINEAR(self, no_points=4, component='mag', check=False, **non_method_parameters):
+        """
+        """
+        d = self.data['data'][component].v
+        # get maximal moment
+        mx_ind = np.argmax(np.fabs(d))
+        mx = d[mx_ind]
+
+        dnorm = d / mx
+        # get limits for a calculation using the no_points points closest to 0 fro each direction
+        ind = np.argmin(np.fabs(dnorm - 0.5))
+
+        if dnorm[ind] > 0.5:
+            max_idx = ind + no_points / 2
+            min_idx = max_idx - no_points
+        else:
+            min_idx = ind - no_points / 2
+            max_idx = min_idx + no_points
+        variables = self.data['data']['variable'].v[min_idx:max_idx]
+        data_points = dnorm[min_idx:max_idx]
+
+        # generate new x from variables
+        x = np.linspace(min(variables), max(variables), 10000)
+        spl = UnivariateSpline(variables, data_points)
+        y_new = spl(x)
+        idx = np.argmin(abs(y_new - 0.5))
+        result = abs(x[idx])
+
+        if check:
+            plt.plot(self.data['data']['variable'].v, dnorm, '.')
+            plt.plot(x, y_new, '--')
+            plt.plot(result, 0.5, 'xk')
+            plt.grid()
+            plt.show()
+
+        # set result so it can be accessed
+        self.results['m05'] = [[(np.nanmean(result), np.nan)]]
+
+    @result
+    def result_m05(self, recipe='nonlinear', recalc=False, **non_method_parameters):
+        """
+        the variable, where the moment is 1/2 of the max moment
+        """
+        pass
+
+    @correction
+    def correct_last_step(self, recalc_mag=True):
+        """
+        Subtracts the x,y,z values of the last step from the rest of the data
+        """
+        last_step = self.get_last_step()
+        self.data['data']['m'] = self.data['data']['m'].v - last_step['m'].v
+        if recalc_mag:
+            self.data['data']['mag'] = self.data['data'].magnitude('m')
+        else:
+            self.data['data']['mag'] = self.data['data']['mag'].v - last_step['mag'].v
+
+    @correction
+    def correct_arbitrary_data(self, xyz, mag=None, recalc_mag=True):
+        self.data['data']['m'] = self.data['data']['m'].v - xyz
+        if recalc_mag:
+            self.data['data']['mag'] = self.data['data'].magnitude('m')
+        else:
+            self.data['data']['mag'] = self.data['data']['mag'].v - mag
+
+    def get_last_step(self):
+        nsteps = len(self.data['data']['variable'].v)
+        # get the rPdata of the last step
+        last_step = self.data['data'].filter_idx(nsteps - 1)
+        return last_step
 
 
 class AfDemagnetization(Demagnetization):

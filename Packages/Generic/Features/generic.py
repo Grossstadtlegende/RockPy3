@@ -5,7 +5,7 @@ def plot_x_y(ax, xdata, ydata, **plt_props):
     ax.plot(xdata, ydata, **plt_props)
 
 
-def text_x_y(ax, text, x, y, **plt_props):
+def text_x_y(ax, s, x, y, **plt_props):
     """
     plots text in data coordinates
     :param ax:
@@ -15,4 +15,5 @@ def text_x_y(ax, text, x, y, **plt_props):
     :param plt_props:
     :return:
     """
-    ax.text(x, y, s=text, **plt_props)
+    print(plt_props)
+    ax.text(x, y, s, **plt_props)

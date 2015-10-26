@@ -2059,6 +2059,8 @@ def correction(func, *args, **kwargs):
     automatically adds the called correction_function to self._correct
     """
     self = args[0]
+    if func.__name__ in self.correction:
+        self.log.warning('CORRECTION {} has already been applied'.format(func.__name__))
     self.correction.append(func.__name__)
     return func(*args, **kwargs)
 

@@ -8,6 +8,7 @@ import RockPy3
 import RockPy3.core
 import RockPy3.utils
 import RockPy3.core.measurement
+import RockPy3.Packages.Generic.Features.generic
 from RockPy3.core.utils import plot, to_list
 
 
@@ -25,7 +26,7 @@ class Visual(object):
               'd', 'h', 'p', 'v', '|'] * 100
     colors = ['k', 'b', 'g', 'r', 'm', 'y', 'c'] * 100
 
-    possible_text_props = ['x', 'y', 'text', 'rotation',
+    possible_text_props = ['x', 'y', 's', 'rotation', 'size',
                            'agg_filter', 'alpha', 'animated', 'axes', 'clip_box', 'clip_on',
                            'clip_path', 'figure', 'fontsize', 'gid', 'label', 'lod',
                            'picker', 'rasterized', 'transform', 'visible', 'zorder',
@@ -362,6 +363,20 @@ class Visual(object):
         self.add_standard()
         for feature in self.features:
             self.features[feature]['method'](name=feature)
+        if self.show_legend():
+            self.ax.legend(**self.legend_options)
+
+    def show_legend(self):
+        # if self.legend_options['show']:
+        #     return True
+        if any(m.plt_props['label'] != '' for m in self.plt_input):
+            return True
+        for f in self.features:
+            if any(m.plt_props['label'] != '' for m in self.features[f]['feature_input']):
+                return True
+        else:
+            return False
+
 
     @property
     def plt_input(self):
@@ -395,7 +410,7 @@ class Visual(object):
                                'bbox_to_anchor',  # the bbox that the legend will be anchored.
                                'bbox_transform',  # the transform for the bbox. transAxes if None.
                                ]
-        options = {i: v for i, v in self.legend.iteritems() if i in possible_parameters}
+        options = {i: v for i, v in self.legend.items() if i in possible_parameters}
 
         # set standards
         if not 'loc' in options:
@@ -405,7 +420,7 @@ class Visual(object):
         if not 'numpoints' in options:
             options.setdefault('numpoints', 1)
         if not 'handlelength' in options:
-            options.setdefault('handlelength', 0.6)
+            options.setdefault('handlelength', 1)
         if not 'fontsize' in options:
             options.setdefault('fontsize', 12)
         return options
@@ -414,13 +429,15 @@ class Visual(object):
     def feature_grid(self, plt_props=None):
         self.ax.grid(**plt_props)
 
-    @plot(single=True)
+    @plot(single=True, overwrite_mobj_plt_props={'marker':'s', 'color':'k'})
     def feature_generic_data(self, plt_props=None):
-        # pass
         RockPy3.Packages.Generic.Features.generic.plot_x_y(ax=self.ax, **plt_props)
 
     @plot(single=True)
     def feature_generic_text(self, plt_props=None):
+        # print(plt_props)
+        # print(self.ax.text(x=plt_props.get('x', 0), y=plt_props.get('y', 0), s=plt_props.get('s', '')))
+
         RockPy3.Packages.Generic.Features.generic.text_x_y(ax=self.ax, **plt_props)
 
     @plot(single=True)

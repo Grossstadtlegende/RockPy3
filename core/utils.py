@@ -8,6 +8,8 @@ import logging
 from functools import wraps
 import matplotlib.dates
 import datetime
+import decorator
+from pprint import pprint
 
 def colorscheme(scheme='simple'):
     colors = {'simple': ['r', 'g', 'b', 'c', 'm', 'y', 'k'] * 100,
@@ -23,7 +25,7 @@ def create_logger(name):
     fh.setLevel(logging.NOTSET)
 
     ch = logging.StreamHandler()
-    ch.setLevel(logging.NOTSET)
+    ch.setLevel(logging.INFO)
     ch.setFormatter(formatter)
     log.addHandler(fh)
     log.addHandler(ch)
@@ -175,14 +177,16 @@ class plot(object):
         self.result_feature = result_feature
         self.update_lims = update_lims
         self.mtypes = tuple2list_of_tuples(mtypes)
+        if not overwrite_mobj_plt_props:
+            overwrite_mobj_plt_props = {}
         self.overwrite_mobj_plt_props = overwrite_mobj_plt_props
 
     @staticmethod
     def short_feature_name(feature):
         return feature.__name__.replace('feature_', '')
 
-    @staticmethod
-    def plt_single_feature(feature, visual, *args, **kwargs):
+    # @staticmethod
+    def plt_single_feature(self, feature, visual, *args, **kwargs):
         """
         plotting of a single feature
         """
@@ -215,8 +219,10 @@ class plot(object):
             visual_props = visual.plt_props
 
             if self.single:
+                kwargs['plt_props'].update(self.overwrite_mobj_plt_props)
                 kwargs['plt_props'].update(visual_props)
                 kwargs['plt_props'].update(visual.features[name]['feature_props'])
+                # kwargs.setdefault()
                 self.plt_single_feature(feature=feature, visual=visual, **kwargs)
                 return wrapped_feature
 

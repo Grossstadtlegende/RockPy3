@@ -11,9 +11,8 @@ class SushiBar(io.ftype):
     def __init__(self, dfile, dialect=None):
         super(SushiBar, self).__init__(dfile=dfile, dialect=dialect)
         data = [i.split('\t') for i in self.simple_import()]
-        self.header = ['meas. time', 'x', 'y', 'z', 'M', 'Dc', 'Ic', 'a95', 'sM',
-                  'npos', 'Dspin', 'Ispin', ' holder/sample', 'cup/sample', 'bl diff/sample', 'steps/rev',
-                  'par1', 'par2', 'par3', 'par4', 'par5', 'par6']
+        self.header = ['meas. time', 'x', 'y', 'z', 'M', 'a95', 'sM',
+                  'npos', 'par1', 'par2', 'par3', 'par4', 'par5', 'par6']
         header = data.pop(0)
         self.raw_data = {}
         for d in data:

@@ -35,7 +35,6 @@ from RockPy3.utils.general import check_coordinate_system
 
 import subprocess
 
-
 RockPy3.core.utils.create_logger('RockPy3')
 logger = logging.getLogger('RockPy3')
 
