@@ -260,8 +260,11 @@ class Visual(object):
                   norm_method='max', norm_factor=None, result=None,
                   normalize_variable=False, dont_normalize=None,
                   norm_initial_state=True, **options):
+        # print('visual:', locals())
         if self.plt_input:
             for m in self.plt_input:
+                if isinstance(m, RockPy3.Parameter):
+                    continue
                 m.normalize(reference=reference, ref_dtype=ref_dtype, norm_dtypes=norm_dtypes, vval=vval,
                             norm_method=norm_method, norm_factor=norm_factor, result=result,
                             normalize_variable=normalize_variable, dont_normalize=dont_normalize,

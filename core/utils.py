@@ -6,7 +6,8 @@ from copy import deepcopy
 import RockPy3
 import logging
 from functools import wraps
-
+import matplotlib.dates
+import datetime
 
 def colorscheme(scheme='simple'):
     colors = {'simple': ['r', 'g', 'b', 'c', 'm', 'y', 'k'] * 100,
@@ -28,6 +29,9 @@ def create_logger(name):
     log.addHandler(ch)
     return log  # ch#, fh
 
+def convert_time(time):
+    return matplotlib.dates.date2num(
+                datetime.datetime.strptime(time.replace('.500000', ''), "%Y-%m-%d %H:%M:%S"))
 
 def to_list(oneormoreitems):
     """
@@ -276,12 +280,12 @@ class plot(object):
                         # plot each individual result, append them to data
                         if plot_base:
                             kwargs['plt_props'] = m.plt_props
-                            print('plot_base: m:', kwargs['plt_props'])
+                            # print('plot_base: m:', kwargs['plt_props'])
                             # overwrite the plot properties of the measurement object if specified in the decorator
                             # e.g. for setting marker = '' in the hysteresis_data feature
                             if self.overwrite_mobj_plt_props:
                                 kwargs['plt_props'].update(self.overwrite_mobj_plt_props)
-                                print('plot_base: overwrite:', kwargs['plt_props'])
+                                # print('plot_base: overwrite:', kwargs['plt_props'])
 
                             if input == 'visual' and visual.plot_mean:
                                 kwargs['plt_props'].update({'alpha': visual.base_alpha})
@@ -289,9 +293,9 @@ class plot(object):
                                 kwargs['plt_props'].update({'alpha', visual.feature[name]['base_alpha']})
 
                             kwargs['plt_props'].update(visual_props)
-                            print('plot_base: visual:', kwargs['plt_props'])
+                            # print('plot_base: visual:', kwargs['plt_props'])
                             kwargs['plt_props'].update(visual.features[name]['feature_props'])
-                            print('plot_base: feature:', kwargs['plt_props'])
+                            # print('plot_base: feature:', kwargs['plt_props'])
                             feature(visual, data=d, **kwargs)
 
                     if plot_mean:
@@ -308,8 +312,12 @@ class plot(object):
                         feature(visual, data=data, **kwargs)
                 return wrapped_feature
 
+            ############################################################################################################
+            # NORMAL FEATURES
             else:
                 for mtype in self.mtypes:
+                    if type(mtype)==str:
+                        mtype = (mtype,)
                     if len(mtype) > 1:
                         mobj = MlistToTupleList(mlist, mtype)
                     elif len(mtype) == 1:

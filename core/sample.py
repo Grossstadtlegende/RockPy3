@@ -211,6 +211,7 @@ class Sample(object):
         """
         if all([mtype, fpath, ftype]) or fpath:
             import_info = self.generate_import_info(mtype, fpath, ftype, idx, series)
+            import_info.update(options)
             # if given add samplegroup to sample
             sg = import_info.pop('samplegroup', None)
 
@@ -230,7 +231,6 @@ class Sample(object):
         """
 
         if any(i in options for i in ['mass', 'diameter', 'height', 'x_len', 'y_len', 'z_len']):
-            print(options)
             mobj = RockPy3.implemented_measurements[mtype](sobj=self, **options)
 
 
@@ -486,7 +486,7 @@ class Sample(object):
         if not file_info:
             self.log.warning(
                 'CANNOT readin fpath automatically. See RockPy naming conventions for proper naming scheme.')
-            fname = RockPy3.get_fname_from_info(samplegroup='SG', sample_name=self.name, mtype=mtype, ftype=ftype)
+            fname = RockPy3.get_fname_from_info(samplegroup='SG', sample_name=self.name, mtype=mtype, ftype=ftype, series=series)
             self.log.info('FILE NAME proposition:')
             self.log.info('-'.join('' for i in range(50)))
             self.log.info('%s' % fname)

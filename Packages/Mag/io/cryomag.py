@@ -3,7 +3,7 @@ __author__ = 'wack'
 
 import xml.etree.ElementTree as ET
 from RockPy3.core import io
-
+from RockPy3.core.utils import convert_time
 class CryoMag(io.ftype):
     def __init__(self, dfile, dialect=None):
         tree = ET.parse(dfile)
@@ -46,7 +46,7 @@ class CryoMag(io.ftype):
                     measurement_data['values']['M'] = float(magmoment.attrib['M'])
                     measurement_data['values']['sM'] = float(magmoment.attrib['sM'])
                     measurement_data['values']['a95'] = float(magmoment.attrib['a95'])
-                    measurement_data['values']['time'] = magmoment.attrib['time']
+                    measurement_data['values']['time'] = convert_time(magmoment.attrib['time'])
 
                     # in files before version 1.4 attribute no_readings does not exist
                     # use default of three which was always used
@@ -70,7 +70,7 @@ class CryoMag(io.ftype):
                 stepdata['results']['M'] = float(results.attrib['M'])
                 stepdata['results']['sM'] = float(results.attrib['sM'])
                 stepdata['results']['a95'] = float(results.attrib['a95'])
-                stepdata['results']['time'] = results.attrib['time']
+                stepdata['results']['time'] = convert_time(results.attrib['time'])
 
                 # if we do not have a holder measurement
                 # look for holder data that was substracted from the measurement values

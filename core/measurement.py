@@ -423,7 +423,7 @@ class Measurement(object):
                   idx=None, sample_name=None,
                   # for special import of pure data (needs to be formatted as specified in data of measurement class)
                   series=None,
-                  # **options
+                  **options
                   ):
 
         if ftype in cls.implemented_ftypes():
@@ -433,7 +433,9 @@ class Measurement(object):
 
         if ftype in cls.measurement_formatters():
             cls.log.debug('ftype_formatter << %s >> implemented' % ftype)
-            mdata = cls.measurement_formatters()[ftype](ftype_data)
+            mdata = cls.measurement_formatters()[ftype](ftype_data, sobj_name = sobj.name)
+            if not mdata:
+                return
         else:
             cls.log.error('UNKNOWN ftype: << %s >>' % ftype)
             cls.log.error(
@@ -441,7 +443,7 @@ class Measurement(object):
                     ftype, cls.__name__))
             return
 
-        return cls(sobj=sobj, fpath=fpath, ftype=ftype, mdata=mdata, series=series, idx=idx)
+        return cls(sobj=sobj, fpath=fpath, ftype=ftype, mdata=mdata, series=series, idx=idx, **options)
 
     @classmethod
     def from_simulation(cls, sobj=None, idx=None, **parameter):
@@ -1428,7 +1430,7 @@ class Measurement(object):
                                                 result=result,
                                                 **calculation_parameter)
 
-        norm_dtypes = RockPy3.core.utils._to_tuple(norm_dtypes)  # make sure its a list/tuple
+        norm_dtypes = RockPy3.core.utils.to_list(norm_dtypes)  # make sure its a list/tuple
         for dtype, dtype_data in self.data.items():  # cycling through all dtypes in data
             if dtype_data:
                 if 'all' in norm_dtypes:  # if all, all non stype data will be normalized
@@ -1484,6 +1486,7 @@ class Measurement(object):
            normalization factor: float
         """
         norm_factor = 1  # inititalize
+        # print('measurement:', locals())
         if reference and not result:
             if reference == 'nrm' and reference not in self.data and 'data' in self.data:
                 reference = 'data'
@@ -1499,7 +1502,9 @@ class Measurement(object):
 
             if reference == 'mass':
                 m = self.get_mtype_prior_to(mtype='mass')
-                norm_factor = m.data['data']['mass'].v[0]
+                if not m:
+                    raise KeyError('CANT find mass measurement')
+                return m.data['data']['mass'].v[0]
 
             if isinstance(reference, float) or isinstance(reference, int):
                 norm_factor = float(reference)

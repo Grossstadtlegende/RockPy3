@@ -17,6 +17,8 @@ from RockPy3.core.measurement import Measurement
 from RockPy3.core.series import Series
 from RockPy3.core.data import RockPyData as Data
 
+from RockPy3.Packages.Generic.Measurements.parameters import Parameter
+
 from RockPy3.core.figure import Figure
 
 from RockPy3.core.utils import ignored

@@ -26,11 +26,11 @@ class OrientationGeo(Parameter):
                                              series=series,
                                              **options)
 
-        self._raw_data = {'data': RockPy3.RockPyData(column_names=['variable', 'dec', 'inc', 'sun', 'time'])}
-        self._raw_data['data']['dec'] = dec
-        self._raw_data['data']['inc'] = inc
-        self._raw_data['data']['sun'] = sun
-        self._raw_data['data']['time'] = time
+        self._data = {'data': RockPy3.RockPyData(column_names=['variable', 'dec', 'inc', 'sun', 'time'])}
+        self._data['data']['dec'] = dec
+        self._data['data']['inc'] = inc
+        self._data['data']['sun'] = sun
+        self._data['data']['time'] = time
 
     def format_generic(self):
         pass
@@ -52,10 +52,10 @@ class Bedding(Parameter):
                                       series=series,
                                       **options)
 
-        self._raw_data = {'data': RockPy3.RockPyData(column_names=['variable', 'dip_dir', 'dip', 'time'])}
-        self._raw_data['data']['dip_dir'] = dip_dir
-        self._raw_data['data']['dip'] = dip
-        self._raw_data['data']['time'] = time
+        self._data = {'data': RockPy3.RockPyData(column_names=['variable', 'dip_dir', 'dip', 'time'])}
+        self._data['data']['dip_dir'] = dip_dir
+        self._data['data']['dip'] = dip
+        self._data['data']['time'] = time
 
     def format_generic(self):
         pass
@@ -82,11 +82,11 @@ class LocationGeo(Parameter):
         if coordinate_system != 'wgs84':
             self.log.warning('support for geographic coordinate systems is not implemented yet.')
 
-        self._raw_data = {'data': RockPy3.RockPyData(column_names=['variable', 'lat', 'lon', 'alt', 'time'])}
-        self._raw_data['data']['lat'] = lat
-        self._raw_data['data']['lon'] = lon
-        self._raw_data['data']['alt'] = alt
-        self._raw_data['data']['time'] = time
+        self._data = {'data': RockPy3.RockPyData(column_names=['variable', 'lat', 'lon', 'alt', 'time'])}
+        self._data['data']['lat'] = lat
+        self._data['data']['lon'] = lon
+        self._data['data']['alt'] = alt
+        self._data['data']['time'] = time
 
     def format_generic(self):
         pass
@@ -116,10 +116,10 @@ class Mass(Parameter):
             self.has_data = False
             return
 
-        self._raw_data = {'data': RockPy3.Data(column_names=['variable', 'mass', 'time', 'std_dev'])}
-        self._raw_data['data'][mtype] = mass * mass_conversion
-        self._raw_data['data']['time'] = time
-        self._raw_data['data']['std_dev'] = std
+        self._data = {'data': RockPy3.Data(column_names=['variable', 'mass', 'time', 'std_dev'])}
+        self._data['data'][mtype] = mass * mass_conversion
+        self._data['data']['time'] = time
+        self._data['data']['std_dev'] = std
 
     def format_generic(self):
         pass
@@ -152,10 +152,10 @@ class Length(Parameter):
             self.has_data = False
             return
 
-        self._raw_data = {'data': RockPy3.Data(column_names=[self.mtype, 'time', 'std_dev'])}
-        self._raw_data['data'][self.mtype] = value * length_conversion
-        self._raw_data['data']['time'] = time
-        self._raw_data['data']['std_dev'] = std
+        self._data = {'data': RockPy3.Data(column_names=[self.mtype, 'time', 'std_dev'])}
+        self._data['data'][self.mtype] = value * length_conversion
+        self._data['data']['time'] = time
+        self._data['data']['std_dev'] = std
 
     def format_generic(self):
         pass
@@ -250,10 +250,10 @@ class Volume(Parameter):
                 volume = self.sphere(diameter_data)
 
         # store in RockPy Data object
-        self._raw_data = {'data': RockPy3.Data(column_names=['volume', 'time', 'std_dev'])}
-        self._raw_data['data'][mtype] = volume
-        self._raw_data['data']['time'] = time
-        self._raw_data['data']['std_dev'] = std
+        self._data = {'data': RockPy3.Data(column_names=['volume', 'time', 'std_dev'])}
+        self._data['data'][mtype] = volume
+        self._data['data']['time'] = time
+        self._data['data']['std_dev'] = std
 
 
 def test():

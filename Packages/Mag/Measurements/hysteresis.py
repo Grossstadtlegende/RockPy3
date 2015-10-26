@@ -251,7 +251,7 @@ class Hysteresis(measurement.Measurement):
     # ## formatting functions
     # have to return mdata matching the measurement type
     @staticmethod
-    def format_vsm(ftype_data):
+    def format_vsm(ftype_data, sobj_name=None):
         header = ftype_data.header
         segments = ftype_data.get_segments_from_data()
         data = ftype_data.get_data()
