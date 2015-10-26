@@ -24,7 +24,7 @@ except ImportError:
     log.warning('Please install module tabulate for nicer output formatting.')
 
 #from core import ureg
-import core
+import RockPy3.core
 
 from scipy import stats
 
