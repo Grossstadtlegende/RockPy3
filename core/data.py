@@ -23,7 +23,7 @@ except ImportError:
     tabulate_available = False
     log.warning('Please install module tabulate for nicer output formatting.')
 
-from core import ureg
+from RockPy3.core import ureg
 
 from scipy import stats
 
@@ -535,11 +535,9 @@ class RockPyData(object):
 
         """
         self_copy = deepcopy(self)
-
         # check if we have another RockPyData object to append
         if isinstance(data, RockPyData):
             row_names = data.row_names
-
 
             scn = set(self_copy.column_names)
             dcn = set(data.column_names)

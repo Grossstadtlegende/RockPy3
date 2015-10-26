@@ -1,7 +1,7 @@
 __author__ = 'mike'
 import logging
 
-from RockPy3.utils.general import create_logger
+from RockPy3.core.utils import create_logger
 import numpy as np
 
 

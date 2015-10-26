@@ -1,6 +1,8 @@
 import os
 import logging
-# matplotlib.use('QT4Agg') #not working on OSX!
+import matplotlib
+# matplotlib.use('TkAgg') #not working on OSX!
+matplotlib.use('QT4Agg') #not working on OSX!
 
 import RockPy3.Packages
 import RockPy3.core
@@ -9,7 +11,7 @@ from RockPy3.core.visual import Visual
 from RockPy3.core.visual import set_colorscheme
 
 # core imports
-from RockPy3.core.study import Study as RpStudy
+from RockPy3.core.study import Study as RockPyStudy
 from RockPy3.core.sample import Sample#, MeanSample
 from RockPy3.core.measurement import Measurement
 from RockPy3.core.series import Series
@@ -20,9 +22,9 @@ from RockPy3.core.figure import Figure
 from RockPy3.core.utils import ignored
 
 
-# from RockPy3.core.data import condense
+from RockPy3.core.data import condense
 
-from RockPy3.core.file_operations import save, load, abbrev_to_name
+from RockPy3.core.file_operations import save, load, abbrev_to_classname
 from RockPy3.core.file_operations import get_fname_from_info, get_info_from_fname, import_folder
 
 ### utility imports
@@ -98,7 +100,7 @@ coord = 'geo'
 # log error message if default coordinate system is invalid
 # check_coordinate_system(coord)
 
-import import_check
+import RockPy3.import_check
 import_check.check_imports()
 
 ''' add master study '''
@@ -108,13 +110,13 @@ Study = RockPy3.core.study.Study(name='MasterStudy')
 implemented_measurements = {m.__name__.lower(): m for m in Measurement.inheritors()}
 implemented_visuals = RockPy3.core.visual.Visual.implemented_visuals()
 
-logger.debug('IMPLEMENTED MEASUREMENT TYPES: FTYPES')
+logger.debug('IMPLEMENTED MEASUREMENT TYPES: \tFTYPES')
 for m, obj in sorted(RockPy3.implemented_measurements.items()):
-    logger.debug('\t{:<15}: \t{}'.format(m, ', '.join(obj.measurement_formatters().keys())))
+    logger.debug('\t{:<26}: \t{}'.format(m, ', '.join(obj.measurement_formatters().keys())))
 
 mtype_ftype_abbreviations_inversed, mtype_ftype_abbreviations = RockPy3.core.file_operations.mtype_ftype_abbreviations()
 
-colorscheme = set_colorscheme('simple')
+colorscheme = set_colorscheme('pretty')
 linestyles = ['-', '--', ':', '-.'] * 100
 marker = ['.', 's', 'o', '+', '*', ',', '1', '3', '2', '4', '8', '<', '>', 'D', 'H', '_', '^',
               'd', 'h', 'p', 'v', '|'] * 100

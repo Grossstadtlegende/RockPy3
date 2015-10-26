@@ -1,5 +1,3 @@
-import core.utils
-
 __author__ = 'volk'
 
 import logging
@@ -16,6 +14,7 @@ import os.path
 import decorator
 
 import RockPy3.core.io
+import RockPy3.core.utils
 
 try:
     from pylatex import Document, Section, Subsection, Tabular, Description, Math, TikZ, Axis, Plot, Figure, Package
@@ -379,9 +378,13 @@ class Measurement(object):
         ------
             KeyError if the plt_prop not in the matplotlib.lines.Line2D
         """
+        if value is None:
+            return
         if prop not in Measurement.possible_plt_props:
             raise KeyError
-        self._plt_props.setdefault(prop, value)
+        self._plt_props.setdefault(prop, None)
+        self.log.debug('SETTING {} from {} -> {}'.format(prop, self._plt_props[prop], value))
+        self._plt_props[prop] = value
 
     ####################################################################################################################
 
@@ -393,14 +396,22 @@ class Measurement(object):
         print("returning" + str(self.sobj.coord))
         return self.sobj.coord
 
-    @property
-    def mtype(self):
-        return self._mtype()
-
     """
     ####################################################################################################################
     measurement creation through function
     """
+
+    @classmethod
+    def empty(cls, sobj,
+              fpath=None, ftype='generic',  # file path and file type
+              idx=None,
+              # for special import of pure data (needs to be formatted as specified in data of measurement class)
+              series=None,
+              ):
+
+        mdata = {'data': RockPy3.Data(column_names=[])}
+
+        return cls(sobj=sobj, fpath='', ftype='empty', mdata=mdata, series=series, idx=idx)
 
     @classmethod
     def from_mdata(cls):
@@ -409,7 +420,7 @@ class Measurement(object):
     @classmethod
     def from_file(cls, sobj,
                   fpath=None, ftype='generic',  # file path and file type
-                  idx=None,
+                  idx=None, sample_name=None,
                   # for special import of pure data (needs to be formatted as specified in data of measurement class)
                   series=None,
                   # **options
@@ -443,7 +454,8 @@ class Measurement(object):
     @classmethod
     def from_measurements_create_mean(cls, sobj, mlist,
                                       interpolate=False, recalc_mag=False,
-                                      substfunc='mean', ignore_series=False):
+                                      substfunc='mean', ignore_series=False,
+                                      color=None, marker=None, linestyle=None):
         """
         Creates a new measurement from a list of measurements
         :param sobj:
@@ -456,6 +468,7 @@ class Measurement(object):
         """
         # convert to single measurement
         mlist = RockPy3.core.utils.to_list(mlist)
+
         if any(m.mtype != cls.__name__.lower() for m in mlist):
             cls.log.error('Some measurements have wrong mtype. They will be ignored')
             mlist = [m for m in mlist if m.mtype == cls.__name__.lower()]
@@ -470,7 +483,7 @@ class Measurement(object):
             dtype_list = [m.data[dtype] for m in mlist if m.data[dtype]]  # get all data for dtype in one list
             if dtype_list:
                 if interpolate:
-                    varlist = cls.__get_variable_list(dtype_list)
+                    varlist = cls._get_variable_list(rpdata_list=dtype_list)
                     if len(varlist) > 1:
                         dtype_list = [m.interpolate(varlist) for m in dtype_list]
 
@@ -485,13 +498,13 @@ class Measurement(object):
         ################################################################################################################
         # initial state
         initial = None
-        # print(list(m.has_initial_state for m in mlist))
-        # print(mlist)
+
         if all(m.has_initial_state for m in mlist):
             init_list = [m.initial_state for m in mlist if m.has_initial_state]
             initial = cls.from_measurements_create_mean(sobj=sobj, mlist=init_list, interpolate=interpolate,
                                                         recalc_mag=recalc_mag, substfunc=substfunc)
-
+        # add series if needed
+        series = None
         if not ignore_series:
             slist = (set(s.data for s in m.series) for m in mlist)
             series = set()
@@ -500,13 +513,12 @@ class Measurement(object):
                     series = s
                 else:
                     series = series & s
-            if not series:
-                series = None
-            else:
+            if series:
                 series = list(series)
 
-        return cls(sobj=sobj, mtype=cls._mtype(), ftype='from_measurements_create_mean', mdata=mdata,
-                   initial_state=initial, series=series)
+        return cls(sobj=sobj, ftype='from_measurements_create_mean', mdata=mdata,
+                   initial_state=initial, series=series, ismean=True, base_measurements=mlist,
+                   color=color, marker=marker, linestyle=linestyle)
 
     @classmethod
     def from_measurement(cls):
@@ -567,7 +579,10 @@ class Measurement(object):
                  mdata=None,
                  series=None,
                  idx=None,
-                 **options):
+                 initial_state=None,
+                 ismean=False, base_measurements=None,
+                 color=None, marker=None, linestyle=None,
+                 ):
         """
         Constructor of the measurement class.
 
@@ -597,8 +612,10 @@ class Measurement(object):
                 RockPy3.Measurement obj
 
         """
+        self.id = id(self)
         self.sobj = sobj
         self._plt_props = {'label': ''}
+
         self.log = logging.getLogger('RockPy3.MEASURMENT.' + self.get_subclass_name())
 
         # the data that is used for calculations and corrections
@@ -610,15 +627,15 @@ class Measurement(object):
         # coordinate system that is currently used in data; _raw_data is always assumed to be in core coordiantes
         self._actual_data_coord = 'core'
 
-        self.is_mean = False  # flag for mean measurements
-        self.base_measurements = []  # list with all measurements used to generate the mean
+        self.is_mean = ismean  # flag for mean measurements
+        self.base_measurements = base_measurements  # list with all measurements used to generate the mean
 
         self.ftype = ftype
         self.fpath = fpath
 
         ''' initial state '''
         self.is_initial_state = False
-        self.initial_state = None
+        self.initial_state = initial_state
 
         ''' calibration, correction and holder'''
         self.calibration = None
@@ -634,7 +651,10 @@ class Measurement(object):
         # add series if provided
         ''' series '''
         self._series = []
-        self.add_series(series=series)
+        if series:
+            self.add_series(series=series)
+        else:
+            self.study._series.setdefault('none', []).append(self)
 
         if not idx:
             idx = len(self.sobj.measurements)
@@ -645,6 +665,23 @@ class Measurement(object):
         #### automatically set the plt_props for the measurement according to the
         self.set_plt_prop(prop='color', value=RockPy3.colorscheme[self.idx])
         self.set_plt_prop(prop='marker', value=RockPy3.marker[self.sobj.idx])
+        self.set_plt_prop(prop='linestyle', value='-')
+
+        if any([color, marker, linestyle]) or marker == '':
+            self.set_plt_prop('color', color)
+            self.set_plt_prop('marker', marker)
+            self.set_plt_prop('linestyle', linestyle)
+
+    @property
+    def mtype(self):
+        return self._mtype()
+
+    @property
+    def base_ids(self):
+        """
+        returns a list of ids for all base measurements
+        """
+        return [m.id for m in self.base_measurements]
 
     def __repr__(self):
         if self.is_mean:
@@ -662,13 +699,15 @@ class Measurement(object):
         """
         pickle_me = {k: v for k, v in self.__dict__.items() if k in
                      (
+                         'id',
                          'ftype', 'fpath',
                          # plotting related
                          '_plt_props',
                          'calculation_parameters',
                          # data related
                          '_raw_data', '_data',
-                         'initial_state', 'is_initial_state', 'is_mean',
+                         'initial_state', 'is_initial_state',
+                         'is_mean', 'base_measurements',
                          # sample related
                          'sobj',
                          '_series',
@@ -691,7 +730,7 @@ class Measurement(object):
         self.calculation_recipes.setdefault(result_name, dict()).setdefault(recipe, method)
 
     @property
-    def calulation_methods(self):
+    def calculation_methods(self):
         # dynamically generating the calculation and standard parameters for each calculation method.
         # This just sets the values to non, the values have to be specified in the class itself
         return {i: getattr(self, i) for i in dir(self)
@@ -1013,7 +1052,7 @@ class Measurement(object):
 
     def calc_all(self, recalc=False, **parameter):
         # get possible calculation parameters and put them in a dictionary
-        calculation_parameter, kwargs = core.utils.kwargs_to_calculation_parameter(rpobj=self, **parameter)
+        calculation_parameter, kwargs = RockPy3.core.utils.kwargs_to_calculation_parameter(rpobj=self, **parameter)
         for result_method in self.result_methods():
             calc_param = calculation_parameter.get(self.mtype, {})
             calc_param = calc_param.get(result_method, {})
@@ -1130,6 +1169,25 @@ class Measurement(object):
         else:
             return False
 
+    @classmethod
+    def _get_variable_list(self, rpdata_list, var='variable'):
+        """
+        takes a list of rpdata objects. it checks for all steps, the size of the step and min and max values of the
+        variable. It then generates a list of new variables from the max(min) -> min(max) with the mean step size
+
+
+        """
+        min_vars = []
+        max_vars = []
+        stepsizes = []
+        for rp in rpdata_list:
+            stepsizes.append(np.diff(rp[var].v))
+            min_vars.append(min(rp[var].v))
+            max_vars.append(max(rp[var].v))
+        idx, steps = max(enumerate(stepsizes), key=lambda tup: len(tup[1]))
+        new_variables = np.arange(max(min_vars), min(max_vars), np.mean(steps))
+        return sorted(list(set(new_variables)))
+
     """
     ####################################################################################################################
 
@@ -1237,6 +1295,13 @@ class Measurement(object):
         else:
             series = RockPy3.Series(stype=stype, value=sval, unit=unit)
 
+        series = RockPy3.core.utils.to_list(series)
+
+        for s in series:
+            self.study._series.setdefault(s.data, []).append(self)  # todo see if better
+            with RockPy3.ignored(ValueError):
+                self.study._series['none'].remove(self)  # todo see if better
+
         # remove default series from sobj.mdict if non series exists previously
         if not self._series:
             self.sobj._remove_series_from_mdict(mobj=self, series=self.series[0],
@@ -1292,7 +1357,7 @@ class Measurement(object):
         """
         return sorted(list(set(values)))
 
-    def _get_idx_dtype_var_val(self, dtype, var, val, *args):
+    def _get_idx_dtype_var_val(self, dtype, var, val):
         """
         returns the index of the closest value with the variable(var) and the step(step) to the value(val)
 
@@ -1353,7 +1418,7 @@ class Measurement(object):
                 default: True
         """
         # separate the calc from non calc parameters
-        calculation_parameter, options = core.utils.separate_calculation_parameter_from_kwargs(rpobj=self, **options)
+        calculation_parameter, options = RockPy3.core.utils.separate_calculation_parameter_from_kwargs(rpobj=self, **options)
 
         # getting normalization factor
         if not norm_factor:  # if norm_factor specified
@@ -1476,7 +1541,7 @@ class Measurement(object):
            RockPy3.Measurement
         """
 
-        measurements = self.sobj.get_measurements(mtypes=mtype)
+        measurements = self.sobj.get_measurement(mtype=mtype)
 
         if measurements:
             out = [i for i in measurements if i.m_idx <= self.m_idx]
@@ -1703,7 +1768,7 @@ class Measurement(object):
         calculation_parameter, non_calculation_parameter = core.utils.separate_calculation_parameter_from_kwargs(
             self, **plt_props)
         for visual in self.plottable:
-            fig.add_visual(visual=visual, plt_input=self, **plt_props)
+            fig.add_visual(visual=visual, visual_input=self, **plt_props)
         fig.show(**non_calculation_parameter)
 
     ####################################################################################################################
@@ -1805,7 +1870,7 @@ class Measurement(object):
                 fig = RockPy3.Figure()
                 for name, visual in self.plottable.items():
                     figname = os.path.join(filepath, '{}_{}.pdf'.format(self.sobj.name, name))
-                    visual = fig.add_visual(name, plt_input=self)
+                    visual = fig.add_visual(name, visual_input=self)
                     visual.title += ' ' + self.sobj.name
                 fig.show()
 
@@ -1834,13 +1899,16 @@ def result(func, *args, **kwargs):
             Some Results (e.g. Thellier.result_sigma) is calculated in a different method (in this case it
             is calculated by Thellier.result_slope) and therefore 'slope' has to be passed
     """
+    result_name = '_'.join(func.__name__.split('_')[1:])
+
     # compute the parameter dictionary from the functions argspecs
-    parameters = core.utils.get_full_argspec(func=func, args=args, kwargs=kwargs)
+    parameters = RockPy3.core.utils.get_full_argspec(func=func, args=args, kwargs=kwargs)
     # get the measurement object, equivalent to self in class = args[0]
     self = parameters.pop('self')
 
-    calculation_parameters, p = core.utils.separate_calculation_parameter_from_kwargs(self, **parameters)
-    # print(calculation_parameters, p)
+    parameters.setdefault('result', result_name)
+    calculation_parameters, p = RockPy3.core.utils.separate_calculation_parameter_from_kwargs(rpobj=self, **parameters)
+
     # calculation method has to be popped from dictionary, otherwise it is stored in calculation parameters
     # when the calculation_method is called
     if 'calculation_method' in parameters:
@@ -1851,12 +1919,11 @@ def result(func, *args, **kwargs):
     # recipes are the different possible calculation paths
     recipe = parameters.get('recipe', '').upper()  # not pop because needed for calculation_parameter check
 
-    result_name = '_'.join(func.__name__.split('_')[1:])
 
     # add called from to parameters so output will give correct result otherwise:
     # results that are calculated using calculation_method with show calculation method in output instead of
     # result
-    parameters.setdefault('called_from', result_name)
+
     # get a list of all possible calculation methods
     recipes = [i.split('_')[-1] for i in self.calculation_methods.keys()
                if len(i.split('_')) >= 3
@@ -1926,7 +1993,6 @@ def calculate(func, *args, **kwargs):
             if parameters are not equal -> new calculation with new parameters
     """
     parameters = {arg: args[i] for i, arg in enumerate(decorator.getfullargspec(func).args)}
-
     calculation_method_name, recipe_name = get_result_recipe_name(func_name=func.__name__)
 
     if 'called_from' in kwargs:

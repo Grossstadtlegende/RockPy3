@@ -3,7 +3,7 @@ import itertools
 from copy import deepcopy
 import RockPy3
 import RockPy3.core.study
-import core.utils
+import RockPy3.core.utils
 
 
 class Sample(object):
@@ -11,8 +11,9 @@ class Sample(object):
 
     @property
     def log(self):
-        return core.utils.set_get_attr(self, '_log',
-                                       value=logging.getLogger('RockPy3.Sample(#%03i)[%s]' % (Sample.snum, self.name)))
+        return RockPy3.core.utils.set_get_attr(self, '_log',
+                                               value=logging.getLogger(
+                                                   'RockPy3.Sample(#%03i)[%s]' % (Sample.snum, self.name)))
 
     def __lt__(self, other):
         return self.name < other.name
@@ -68,7 +69,6 @@ class Sample(object):
                 self.log.error('STUDY not a valid RockPy3.core.Study object. Using RockPy Masterstudy')
                 study = RockPy3.Study
 
-
         self.name = name  # unique name, only one per study
         self.comment = comment
 
@@ -102,14 +102,19 @@ class Sample(object):
 
         # adding paraeter measurements
         if mass is not None:
-            self.add_measurement(mtype='mass', fpath=None, ftype=mass_ftype,
-                                 value=float(mass), unit=mass_unit)
+            mass = RockPy3.implemented_measurements['mass'](sobj=self,
+                                                            mass=mass, mass_unit=mass_unit, ftype=mass_ftype)
+            self.add_measurement(mobj=mass)
         if diameter is not None:
-            self.add_measurement(mtype='diameter', fpath=None, ftype=length_ftype,
-                                 diameter=float(diameter), length_unit=length_unit)
+            diameter = RockPy3.implemented_measurements['diameter'](sobj=self,
+                                                                    diameter=diameter, length_unit=length_unit,
+                                                                    ftype=length_ftype)
+            self.add_measurement(mobj=diameter)
         if height is not None:
-            self.add_measurement(mtype='height', fpath=None, ftype=length_ftype,
-                                 height=float(height), length_unit=length_unit)
+            height = RockPy3.implemented_measurements['height'](sobj=self,
+                                                                    height=height, length_unit=length_unit,
+                                                                    ftype=length_ftype)
+            self.add_measurement(mobj=height)
 
         if x_len:
             x_len = self.add_measurement(mtype='length', fpath=None, ftype=length_ftype,
@@ -170,7 +175,7 @@ class Sample(object):
                 mdata = dict(mass=10)
                 mdata = dict( x=[1,2,3,4], y = [1,2,3,4],...)
 
-        create_parameter: bool NOT IMPLEMENTED YET
+        create_parameter:
             if true it will create the parameter (lenght, mass) measurements from path
             before creating the actual measurement
             default: False
@@ -185,6 +190,7 @@ class Sample(object):
 
         # lookup abbreviations of mtypes and ftypes
         import_info = {}
+
         if mtype and ftype:
             mtype = mtype.lower()
             if mtype in RockPy3.mtype_ftype_abbreviations_inversed:
@@ -199,7 +205,10 @@ class Sample(object):
         if idx is None:
             idx = len(self.measurements)
 
-        # data import from file
+        """
+        ################################################################################################################
+        # DATA import from FILE
+        """
         if all([mtype, fpath, ftype]) or fpath:
             import_info = self.generate_import_info(mtype, fpath, ftype, idx, series)
             # if given add samplegroup to sample
@@ -212,16 +221,34 @@ class Sample(object):
 
             if not self.mtype_not_implemented_check(mtype=mtype):
                 return
+
             mobj = RockPy3.implemented_measurements[mtype].from_file(sobj=self, **import_info)
 
-        # if mdata provided
+        """
+        ################################################################################################################
+        # DATA import from mass, height, diameter, len ...
+        """
+
+        if any(i in options for i in ['mass', 'diameter', 'height', 'x_len', 'y_len', 'z_len']):
+            print(options)
+            mobj = RockPy3.implemented_measurements[mtype](sobj=self, **options)
+
+
+        """
+        ################################################################################################################
+        # DATA import from MDATA
+        """
         if all([mdata, mtype]):
             if not self.mtype_not_implemented_check(mtype=mtype):
                 return
             mobj = RockPy3.implemented_measurements[mtype](sobj=self, mdata=mdata, series=series, idx=idx)
 
+        """
+        ################################################################################################################
+        # DATA import from MOBJ
+        """
         if mobj:
-            self.log.info('ADDING\t << %s, %s >>' % (import_info['ftype'], mtype))
+            self.log.info('ADDING\t << %s, %s >>' % (mobj.ftype, mobj.mtype))
             if series:
                 self.log.info(
                     '\t\t WITH series << %s >>' % ('; '.join(', '.join(str(j) for j in i) for i in series)))
@@ -296,14 +323,16 @@ class Sample(object):
                 else:
                     # get measurements with the same series
                     mlist = [measurement for measurement in measurements if m.equal_series(measurement)]
-                # remove the measurements from the measurements list so they dont get averaged twice
+
+                # remove the measurements from the measurements list so they don't get averaged twice
                 measurements = [m for m in measurements if m not in mlist]
 
                 if not mlist:
+                    self.log.debug('NO MORE measurements in mlist')
                     break
 
                 if self.mean_measurement_exists(mlist):
-                    self.logger.warning('MEAN measurement already exists for these measurements:\n\t\t{}'.format(mlist))
+                    self.log.warning('MEAN measurement already exists for these measurements:\n\t\t{}'.format(mlist))
                     break
 
                 self.create_mean_measurement(mlist=mlist,
@@ -322,7 +351,8 @@ class Sample(object):
                                 recalc_mag=False,
                                 reference=None, ref_dtype='mag', norm_dtypes='all', vval=None, norm_method='max',
                                 normalize_variable=False, dont_normalize=None,
-                                create_only=False):
+                                create_only=False,
+                                color=None, marker=None, linestyle=None):
 
         """
         takes a list of measurements and creates a mean measurement out of all measurements data
@@ -381,7 +411,7 @@ class Sample(object):
             raise TypeError('NO mtype specified. Please specify mtype')
 
         if not mlist:
-            mlist = self.get_measurement(mtype=mtype, serie=series,
+            mlist = self.get_measurement(mtype=mtype, series=series,
                                          stype=stype,
                                          sval=sval, sval_range=sval_range,
                                          mean=False, invert=invert)
@@ -395,25 +425,40 @@ class Sample(object):
             self.log.warning('NO measurement found >> %s, %s, %f >>' % (mtype, stype, sval))
             return None
 
+        mtype = RockPy3.abbrev_to_classname(mtype)
+
         if len(mlist) == 1:
             self.log.warning('Only one measurement found returning measurement')
             # add to self.mean_measurements if specified
             if not create_only:
+                mlist[0].base_measurements = mlist
                 self.mean_measurements.append(mlist[0])
                 self._add_m2_mdict(mobj=mlist[0], mdict_type='mean_mdict')
             return mlist[0]
 
-        mlist = [deepcopy(m) for m in mlist]  # create deepcopies #todo works?
+        mlist = [m for m in mlist]  # create deepcopies
 
+        # create mean measurement from a alist of measurements
         mean = RockPy3.implemented_measurements[mtype].from_measurements_create_mean(
             sobj=self, mlist=mlist, interpolate=interpolate, recalc_mag=recalc_mag,
-            substfunc=substfunc, ignore_series=ignore_series)
+            substfunc=substfunc, ignore_series=ignore_series, color=color, marker=marker, linestyle=linestyle)
 
         # add to self.mean_measurements if specified
         if not create_only:
             self.mean_measurements.append(mean)
             self._add_m2_mdict(mobj=mean, mdict_type='mean_mdict')
         return mean
+
+    def mean_measurement_exists(self, mlist):
+        """
+        Returns True if there is a mean measuement that contains all measurements in the mlist as its base measurements
+        Now uses the unique id of any measurement object.
+        """
+        if not self.mean_measurements:
+            return False
+        id_list = [m.id for m in mlist]
+        return True if any(all(id in id_list for id in mean.base_ids)
+                           for mean in self.mean_measurements) else False
 
     def add_to_samplegroup(self, gname):
         if gname not in self._samplegroups:
@@ -433,7 +478,7 @@ class Sample(object):
         After that the mtype, ftype, fpath and idx will be overwritten, assuming that you gave a proper
         filname.
         """
-        out = {'mtype':mtype, 'fpath':fpath, 'ftype':ftype, 'idx':idx, 'series':series}
+        out = {'mtype': mtype, 'fpath': fpath, 'ftype': ftype, 'idx': idx, 'series': series}
 
         file_info = dict()
         with RockPy3.ignored(ValueError):
@@ -451,14 +496,14 @@ class Sample(object):
             for check in ['mtype', 'ftype', 'series']:
                 if check in file_info and locals()[check]:
                     if not out[check] == file_info[check]:
-                        self.log.warning('!!! INPUT != file_name: info does not match. Please check input, assuming filename correct')
+                        self.log.warning(
+                            '!!! INPUT != file_name: info does not match. Please check input, assuming filename correct')
                         self.log.warning('!!! {} != {}'.format(locals()[check], file_info[check]))
         out.update(file_info)
         out.pop('name', None)
         return out
 
     def get_mobj_from_file(self, mtype=None, fpath=None, ftype=None, idx=None, series=None):
-
 
         return mobj, file_info
 
@@ -535,6 +580,7 @@ class Sample(object):
                         stype=None, sval=None, sval_range=None,
                         mean=False,
                         invert=False,
+                        id=None
                         ):
         """
         Returns a list of measurements of type = mtypes
@@ -562,6 +608,8 @@ class Sample(object):
               can be used to look up measurements within a certain range. if only one value is given,
                      it is assumed to be an upper limit and the range is set to [0, sval_range]
            mean: bool
+           id: list(int)
+            search for given measurement id
 
         Returns
         -------
@@ -577,16 +625,31 @@ class Sample(object):
             and you search for stypes=['pressure','temperature'], svals=[0,100]. It will return both M1 and M2 because
             both M1 and M2 have [temperature, 100.0, C].
 
-        """
-        # if no parameters are given, return all measurments/none (invert=True)
-        if not any(i for i in [mtype, series, stype, sval, sval_range, mean]):
+        """#todo fix search for only series
+        if id:
+            id = RockPy3.core.utils.to_list(id)
             if not invert:
-                return self.measurements
+                m = [m for m in self.measurements + self.mean_measurements if m.id in id]
+            else:
+                m = [m for m in self.measurements + self.mean_measurements if m.id not in id]
+            return m
+
+        # if no parameters are given, return all measurments/none (invert=True)
+        if not any(i for i in [mtype, series, stype, sval, sval_range]):
+            if not invert:
+                if mean:
+                    return self.mean_measurements
+                else:
+                    return self.measurements
             else:
                 return []
 
-        mtype = RockPy3.core.utils.to_list(mtype)
-        mtype = [RockPy3.abbrev_to_name(mt) for mt in mtype]
+        if mtype:
+            mtype = RockPy3.core.utils.to_list(mtype)
+            mtype = [RockPy3.abbrev_to_classname(mt) for mt in mtype]
+        else:
+            mtype = [None]
+
 
         stype = RockPy3.core.utils.to_list(stype)
         sval = RockPy3.core.utils.to_list(sval)
@@ -606,7 +669,11 @@ class Sample(object):
 
         if not series:
             for mt in mtype:
+                if not stype:
+                    stype = [None]
                 for st in stype:
+                    if not sval:
+                        sval = [None]
                     for sv in sval:
                         measurements = [m for m in mdict['measurements'] if
                                         m.has_mtype_stype_sval(mtype=mt, stype=st, sval=sv) if m not in out]
@@ -614,7 +681,7 @@ class Sample(object):
         else:
             # searching for specific series, all mtypes specified that fit the series description will be returned
             serie = RockPy3.utils.general.tuple2list_of_tuples(series)
-            for mtype in mtype:  # cycle through mtypes
+            for mt in mtype:  # cycle through mtypes
                 aux = []
                 for s in serie:
                     aux.extend(self.get_mtype_stype_sval(mtype=mt, stype=s[0], sval=float(s[1])))
@@ -780,3 +847,20 @@ class Sample(object):
         if mdict_type == 'mean_mdict':
             add_m2_mean_mdict = partial(self._add_m2_mdict, mdict_type='mean_mdict')
             map(add_m2_mean_mdict, self.measurements)
+
+    def calc_all(self, **parameter):
+        for m in self.measurements:
+            m.calc_all(**parameter)
+
+    @property
+    def stypes(self):
+        return list(self.mdict['stype'].keys())
+    @property
+    def mtypes(self):
+        return list(self.mdict['mtype'].keys())
+
+    ####################################################################################################################
+    ''' PLOTTING PART'''
+    def set_plt_prop(self, prop, value):
+        for m in self.measurements + self.mean_measurements:
+            m.set_plt_prop(prop, value)

@@ -4,22 +4,28 @@ import RockPy3
 import RockPy3.Packages.Mag
 from RockPy3.core.utils import plot
 from RockPy3.core.visual import Visual
-
+import RockPy3.Packages.Mag.Features.hysteresis
+import inspect
 class Hysteresis(Visual):
     def init_visual(self):
-        self.features = ['zero_lines', 'grid', 'hysteresis_data']
-
+        self.standard_features = ['zero_lines', 'grid', 'hysteresis_data']
+        # self.standard_plt_props = {'zero_lines': {'color': 'k'}}
         self.xlabel = 'Field'
         self.ylabel = 'Moment'
 
-    @plot(mtypes='hysteresis')
+    @plot(mtypes='hysteresis', overwrite_mobj_plt_props={'marker':''})
     def feature_hysteresis_data(self, mobj, plt_props=None):
         RockPy3.Packages.Mag.Features.hysteresis.hysteresis(self.ax, mobj, **plt_props)
         pass
 
-    # @feature(mtypes='hysteresis')
-    # def feature_virgin(self, mobj, **plt_props):
-    #     pass
+    @plot(mtypes='hysteresis')
+    def feature_hysteresis_error(self, mobj, plt_props=None):
+        RockPy3.Packages.Mag.Features.hysteresis.hysteresis_error(self.ax, mobj, **plt_props)
+        pass
+
+    @plot(mtypes='hysteresis')
+    def feature_virgin(self, mobj, **plt_props):
+        pass
 
 # class Fabian2003(base.Visual):
 #     _required = [('hysteresis', 'backfield')]

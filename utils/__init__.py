@@ -1,3 +1,3 @@
 __author__ = 'mike'
-from RockPy3.utils.general import create_logger
+from RockPy3.core.utils import create_logger
 create_logger('RockPy3.FUNCTIONS')
