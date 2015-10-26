@@ -2,7 +2,7 @@ __author__ = 'wack'
 
 
 import xml.etree.ElementTree as ET
-from core import io
+from RockPy3.core import io
 
 class CryoMag(io.ftype):
     def __init__(self, dfile, dialect=None):
@@ -94,5 +94,5 @@ class CryoMag(io.ftype):
 # for initial testing
 # delete when no longer needed
 if __name__ == '__main__':
-    c = CryoMag( dfile='/home/wack/data/Python/svn/RockPy3/testing/test_data/IG_1291A.cmag.xml')
+    c = CryoMag( dfile= '/Users/mike/Dropbox/experimental_data/RelPint/Step1B/IG_1291A.cmag.xml')
     print(c.raw_data)

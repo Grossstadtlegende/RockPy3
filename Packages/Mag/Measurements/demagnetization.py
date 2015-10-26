@@ -15,10 +15,13 @@ import RockPy3
 from RockPy3.core import measurement
 from RockPy3.core.measurement import calculate, result, correction
 from RockPy3.core.data import RockPyData
-
+from pprint import pprint
 
 class Demagnetization(measurement.Measurement):
-    pass
+
+    @staticmethod
+    def format_cryomag(ftype_data):
+        pprint(ftype_data.raw_data)
 
 class AfDemagnetization(Demagnetization):
     pass

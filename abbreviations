@@ -26,7 +26,7 @@ arm_acquisition: armacq
 trm_acquisition: trmacq
 tarm_acquisition: tarmacq
 
-afdemag: af
+afdemagnetization: af, afdemag
 forc: forc
 thermocurve: rmp, mom
 hysteresis: hys, hysteresis
@@ -48,7 +48,7 @@ simulation: simulation
 
 none: none
 # ftypes
-cryomag: cry
+cryomag: cry, cryo
 vftb: vftb
 sushibar: sush
 vsm: vsm, vibrating sample magnetometer

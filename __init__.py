@@ -2,7 +2,7 @@ import os
 import logging
 import matplotlib
 # matplotlib.use('TkAgg') #not working on OSX!
-matplotlib.use('QT4Agg') #not working on OSX!
+# matplotlib.use('QT4Agg') #not working on OSX!
 
 import RockPy3.Packages
 import RockPy3.core
