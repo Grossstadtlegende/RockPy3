@@ -23,7 +23,8 @@ except ImportError:
     tabulate_available = False
     log.warning('Please install module tabulate for nicer output formatting.')
 
-from core import ureg
+#from core import ureg
+import core
 
 from scipy import stats
 
