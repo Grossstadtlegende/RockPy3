@@ -3,11 +3,11 @@ import time
 import tabulate
 
 import RockPy3
-from core import utils
+from RockPy3.core import utils
 import RockPy3.core.sample
 import os
 from multiprocessing import Pool
-
+from copy import deepcopy
 
 class Study(object):
     """
@@ -31,7 +31,8 @@ class Study(object):
         RockPy3.logger.info('CREATING study << {} >>'.format(name))
         self.name = name
         self._samples = dict()  # {'sname':'sobj'}
-        self._all_samplegroup = None
+
+        self._series = {'none': []}  # {series_obj: measurement}
 
     def __repr__(self):
         if self == RockPy3.Study:
@@ -84,6 +85,7 @@ class Study(object):
     @property
     def n_samples(self):
         return len(self._samples)
+
     ####################################################################################################################
     ''' add functions '''
 
@@ -99,6 +101,7 @@ class Study(object):
                    samplegroup=None,
                    sobj=None,
                    ):
+
         if name in self.samplenames:
             RockPy3.logger.warning('CANT create << %s >> already in Study. Please use unique sample names. '
                                    'Returning sample' % name)
@@ -203,6 +206,25 @@ class Study(object):
             sname = utils.to_list(sname)
             slist = [s for s in slist if s.name in sname]
 
+        slist = [s for s in slist if s.get_measurement(mtype=mtype,
+                                                       stype=stype, sval=sval,
+                                                       sval_range=sval_range, series=series)]
+        # # mtype filtering
+        # if mtype:
+        #     mtype = utils.to_list(mtype)
+        #     slist = [s for s in slist if any(mt in mtype for mt in s.mtypes)]
+        #
+        # # stype filtering
+        # if stype:
+        #     stype = utils.to_list(stype)
+        #     slist = [s for s in slist if any(mt in stype for mt in s.stypes)]
+        #
+        # # sval filtering
+        # if stype:
+        #     stype = utils.to_list(stype)
+        #     slist = [s for s in slist if any(mt in stype for mt in s.stypes)]
+
+
         return slist
 
     def get_samplegroup(self, gname=None):
@@ -223,13 +245,20 @@ class Study(object):
                         stype=None, sval=None, sval_range=None,
                         mean=False,
                         invert=False,
+                        id=None,
                         ):
-        samples = self.get_sample(gname=gname, sname=sname, mtype=mtype, series=series,
-                                  stype=stype, sval=sval, sval_range=sval_range, mean=mean, invert=invert)
 
-        mlist = [m for s in samples for m in s.get_measurement(mtype=mtype, series=series,
-                                                               stype=stype, sval=sval, sval_range=sval_range, mean=mean,
-                                                               invert=invert)]
+        if id:
+            mlist = [m for s in self.samplelist for m in s.get_measurement(id=id, invert=invert)]
+
+        else:
+            samples = self.get_sample(gname=gname, sname=sname, mtype=mtype, series=series,
+                                      stype=stype, sval=sval, sval_range=sval_range, mean=mean, invert=invert)
+
+            mlist = [m for s in samples for m in s.get_measurement(mtype=mtype, series=series,
+                                                                   stype=stype, sval=sval, sval_range=sval_range,
+                                                                   mean=mean,
+                                                                   invert=invert)]
         return mlist
 
     def import_folder(self, folder):
@@ -249,17 +278,22 @@ class Study(object):
         #     measurements = p.map(self.import_file, files)
         # print(measurements)
         # print(measurements[0].sobj)
-        #
         measurements = [self.import_file(file) for file in files]
         end = time.clock()
         RockPy3.logger.debug(
             'IMPORT generated {} measurements: finished in {:<3}s'.format(len(measurements), end - start))
+        measurements = [m for m in measurements if m]
         return measurements
 
     def import_file(self, fpath):
         info = RockPy3.get_info_from_fname(fpath)
-        s = self.add_sample(name=info['name'], samplegroup=info['samplegroup'])
-        m = s.add_measurement(**info)
+        sample_info = deepcopy(info)
+        # remove unnecessary info
+        for arg in ['series', 'idx', 'mtype', 'ftype', 'fpath']:
+            sample_info.pop(arg, None)
+        name = sample_info.pop('sample_name', None)
+        s = self.add_sample(name=name, **sample_info)
+        m = None#s.add_measurement(**info)
         return m
 
     def info(self, tablefmt='simple', parameters=True):
@@ -296,7 +330,7 @@ class Study(object):
 
             # add a line for each measurement
             for m in s.measurements:
-                if not isinstance(m, RockPy3.Packages.Generic.Measurements.parameters.Parameter) or parameters:
+                # if not isinstance(m, RockPy3.Packages.Generic.Measurements.parameters.Parameter) or parameters:
                     if m.has_initial_state:
                         initial = '{} [{}]'.format(m.initial_state.mtype, str(m.initial_state.idx))
                     else:
@@ -308,3 +342,7 @@ class Study(object):
             table.append([''.join(['-' for i in range(15)]) for j in line0])
 
         return tabulate.tabulate(table, headers=header, tablefmt=tablefmt)
+
+    def calc_all(self, **parameter):
+        for s in self.samplelist:
+            s.calc_all(**parameter)

@@ -30,7 +30,7 @@ afdemag: af
 forc: forc
 thermocurve: rmp, mom
 hysteresis: hys, hysteresis
-backfield: coe, backf
+backfield: coe, backfield
 thellier: tt
 viscosity: visc
 

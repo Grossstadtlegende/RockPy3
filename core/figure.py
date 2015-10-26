@@ -16,7 +16,7 @@ import RockPy3.core.utils
 
 
 class Figure(object):
-    def __init__(self, title=None, figsize=(5, 5)):  # todo size of figure
+    def __init__(self, title=None, figsize=(5, 5), columns=None, tightlayout=True):  # todo size of figure
         """
         Container for visuals.
 
@@ -33,8 +33,9 @@ class Figure(object):
         # create dictionary for visuals {visual_name:visual_object}
         self._visuals = []
         self._n_visuals = 0
-        self.xsize = figsize[0]
-        self.ysize = figsize[1]
+        self.columns = columns
+        self.tightlayout = tightlayout
+        self.xsize, self.ysize = figsize
         self.fig = None
         self.title = title
 
@@ -62,7 +63,8 @@ class Figure(object):
         else:
             raise KeyError('%s can not be found' % item)
 
-    def add_visual(self, visual, name=None, plt_input=None,
+    def add_visual(self, visual, name=None, visual_input=None,
+                   plot_mean=True, plot_base=True, plot_other=True, base_alpha=0.5,
                    **visual_opt):
         """
         adds a visual to the plot. This creates a new subplot.
@@ -79,7 +81,6 @@ class Figure(object):
         visuals = RockPy3.core.utils.to_list(visual)
         # for easy checking convert the names to lower case
         visuals = map(str.lower, visuals)
-
         for visual in visuals:
             # check if visual exists otherwise don't create it
             if visual in RockPy3.implemented_visuals:
@@ -89,8 +90,10 @@ class Figure(object):
                     name = visual
                 n = self._n_visuals
                 # create instance of visual by dynamically calling from implemented_visuals dictionary
-                visual_obj = RockPy3.implemented_visuals[visual](plt_input=plt_input, plt_index=n, fig=self, name=name,
-                                                                 **visual_opt)
+                visual_obj = RockPy3.implemented_visuals[visual](
+                    visual_input=visual_input, plt_index=n, fig=self, name=name,
+                    plot_mean=plot_mean, plot_base=plot_base, plot_other=plot_other, base_alpha=base_alpha,
+                    **visual_opt)
                 self._visuals.append([name, visual, visual_obj])
                 self._n_visuals += 1
             else:
@@ -139,7 +142,7 @@ class Figure(object):
         Wrapper that creates a new figure but first deletes the old one.
         """
         # create new figure with appropriate number of subplots
-        return generate_plots(n=self._n_visuals, xsize=xsize, ysize=ysize)
+        return generate_plots(n=self._n_visuals, xsize=xsize, ysize=ysize, columns=self.columns, tight_layout=self.tightlayout)
 
     def get_xylims(self, visuals=None):
         xlim = []
@@ -158,7 +161,7 @@ class Figure(object):
 
     def show(self,
              set_xlim=None, set_ylim=None,
-             equal_lims=False,
+             equal_lims=False, center_lims=False,
              save_path=None,
              pad=0.4, w_pad=0.5, h_pad=1.0,
              **options):
@@ -182,6 +185,11 @@ class Figure(object):
 
         if set_xlim == 'equal' or set_ylim == 'equal' or equal_lims:
             xlim, ylim = self.get_xylims()
+            if center_lims:
+                xl = max(np.abs(xlim))
+                yl = max(np.abs(ylim))
+                xlim = [-xl, xl]
+                ylim = [-yl, yl]
 
             # cycle through visuals to set
             for name, type, visual in self._visuals:
@@ -218,32 +226,39 @@ class Figure(object):
                 save_path = os.path.join(os.path.expanduser('~'), 'Desktop', file_name + '.pdf')
             plt.savefig(save_path)
         else:
+            with RockPy3.ignored(AttributeError):
+                self.fig.canvas.manager.window.raise_()
             plt.show()
 
 
-def generate_plots(n=3, xsize=5., ysize=5., tight_layout=False):
+def generate_plots(n=3, xsize=5., ysize=5., columns=None, tight_layout=True):
     """
     Generates a number of subplots that are organized in a way to fit on a landscape plot.
 
     Parameter
     ---------
-       n: int
-          number of plots to be generated
-       xsize: float
-          size along x for each plot
-       ysize: float
-          size along y for each plot
-       tight_layout: bool
-          using tight_layout (True) or not (False)
+        n: int
+            number of plots to be generated
+        xsize: float
+            size along x for each plot
+        ysize: float
+            size along y for each plot
+        rows: tries to fit the plots in as many rows
+        tight_layout: bool
+            using tight_layout (True) or not (False)
 
     Returns
     -------
        fig matplotlib figure instance
     """
-    a = np.floor(n ** 0.5).astype(int)
-    b = np.ceil(1. * n / a).astype(int)
-    # print "a\t=\t%d\nb\t=\t%d\na*b\t=\t%d\nn\t=\t%d" % (a,b,a*b,n)
-    fig = plt.figure(figsize=(xsize * b, ysize * a), tight_layout=True)
+    if columns:
+        b = columns
+        a = np.ceil(1. * n / b).astype(int)
+    else:
+        a = np.floor(n ** 0.5).astype(int)
+        b = np.ceil(1. * n / a).astype(int)
+
+    fig = plt.figure(figsize=(xsize * b, ysize * a), tight_layout=tight_layout)
 
     axes = []
 

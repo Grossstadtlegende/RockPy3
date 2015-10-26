@@ -1,9 +1,19 @@
 __author__ = 'mike'
 import RockPy3.Packages.Generic.Features.generic
 
+
 def hysteresis(ax, mobj, **plt_props):
     df_branch(ax, mobj, **plt_props)
     uf_branch(ax, mobj, **plt_props)
+
+
+def hysteresis_error(ax, mobj, **plt_props):
+    plt_props.setdefault('marker', '')
+    plt_props['marker'] = ''
+    plt_props.setdefault('linestyle', '')
+    plt_props['linestyle'] = ''
+    df_branch_error(ax, mobj, **plt_props)
+    uf_branch_error(ax, mobj, **plt_props)
 
 
 def df_branch(ax, mobj, **plt_props):
@@ -22,6 +32,31 @@ def uf_branch(ax, mobj, **plt_props):
     ax.plot(mobj.data['up_field']['field'].v,
             mobj.data['up_field']['mag'].v,
             **plt_props)
+
+
+def df_branch_error(ax, mobj, **plt_props):
+    """
+    Plots the down_field branch of a hysteresis
+    """
+
+    ax.errorbar(
+        x=mobj.data['down_field']['field'].v,
+        y=mobj.data['down_field']['mag'].v,
+        xerr=mobj.data['down_field']['field'].e,
+        yerr=mobj.data['down_field']['mag'].e,
+        **plt_props)
+
+def uf_branch_error(ax, mobj, **plt_props):
+    """
+    Plots the up_field branch of a hysteresis
+    """
+    ax.errorbar(
+        x=mobj.data['up_field']['field'].v,
+        y=mobj.data['up_field']['mag'].v,
+        xerr=mobj.data['up_field']['field'].e,
+        yerr=mobj.data['up_field']['mag'].e,
+        **plt_props)
+
 
 
 def virgin_branch(ax, mobj, **plt_props):

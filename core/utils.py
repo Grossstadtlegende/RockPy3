@@ -10,24 +10,22 @@ from functools import wraps
 
 def colorscheme(scheme='simple'):
     colors = {'simple': ['r', 'g', 'b', 'c', 'm', 'y', 'k'] * 100,
-              }
+              'pretty': ['k', '#7f0000', '#ed1c24', '#f18c22', '#ffde17', '#add136', '#088743', '#47c3d3', '#21409a', '#96649b', '#ee84b5']*100}
     return colors[scheme]
-
 
 def create_logger(name):
     log = logging.getLogger(name=name)
     log.setLevel(logging.DEBUG)
-    formatter = logging.Formatter('%(asctime)s %(levelname)-10s %(name)-20s %(message)s', "%H:%M:%S")
-    # formatter = logging.Formatter('%(asctime)s: %(levelname)-10s %(name)-20s %(message)s')
-    # fh = logging.FileHandler('RPV3.log')
-    # fh.setFormatter(formatter)
+    formatter = logging.Formatter('%(asctime)s: %(levelname)-10s %(name)-20s %(message)s')
+    fh = logging.FileHandler('RPV3.log')
+    fh.setFormatter(formatter)
+    fh.setLevel(logging.NOTSET)
+
     ch = logging.StreamHandler()
-    # ch.setLevel(logging.WARNING)
     ch.setLevel(logging.NOTSET)
     ch.setFormatter(formatter)
-    # log.addHandler(fh)
+    log.addHandler(fh)
     log.addHandler(ch)
-
     return log  # ch#, fh
 
 
@@ -130,11 +128,13 @@ def get_full_argspec(func, args=None, kwargs=None):
         except IndexError:  # no arg has been passed
             if not isinstance(signature.parameters[v].default, inspect._empty):
                 argspec.setdefault(v, signature.parameters[v].default)
+    argspec.update(kwargs)
     return argspec
 
 
 class plot(object):
-    def __init__(self, single=False, mtypes='none', update_lims=True):  # todo define axis here? second_y?
+    def __init__(self, single=False, result_feature=False, mtypes='none',
+                 update_lims=True, overwrite_mobj_plt_props=None):  # todo define axis here? second_y?
         """
         If there are decorator arguments, the function
         to be decorated is not passed to the constructor!
@@ -147,6 +147,9 @@ class plot(object):
                 default: True
                     if True updates both xlim and xlims to best fit the data
                     if False does not change the limits, might cause data to not be displayed
+            result_feature:
+                default: False
+                    for features that require a certain result to be calculated beforehand
 
         Explanation:
         -----------
@@ -165,8 +168,10 @@ class plot(object):
 
         """
         self.single = single
+        self.result_feature = result_feature
         self.update_lims = update_lims
         self.mtypes = tuple2list_of_tuples(mtypes)
+        self.overwrite_mobj_plt_props = overwrite_mobj_plt_props
 
     @staticmethod
     def short_feature_name(feature):
@@ -187,7 +192,7 @@ class plot(object):
         new_lines = [i for i in visual.ax.lines if i not in old_lines]
         visual.linedict.setdefault(feature.__name__, []).extend(new_lines)
 
-    def __call__(self, feature, idx=None):
+    def __call__(self, feature, name=None):
         """
         If there are decorator arguments, __call__() is only called
         once, as part of the decoration process! You can only give
@@ -202,45 +207,129 @@ class plot(object):
             # update the plt_props of the feature
             kwargs.setdefault('plt_props', {})
 
-            idx = kwargs.pop('idx', '')
-            feature_name = feature.__name__.replace('feature_', '') + str(idx)
-            visual_props = visual.plt_props[feature_name]
-            kwargs['plt_props'].update(visual_props)
+            name = kwargs.pop('name', '')
+            visual_props = visual.plt_props
 
             if self.single:
+                kwargs['plt_props'].update(visual_props)
+                kwargs['plt_props'].update(visual.features[name]['feature_props'])
                 self.plt_single_feature(feature=feature, visual=visual, **kwargs)
+                return wrapped_feature
+
+            if not visual.features[name]['feature_input']:
+                input = 'visual'
+                mlist = visual._visual_input
+            else:
+                input = 'feature'
+                mlist = visual.features[name]['feature_input']
+
+            if input == 'feature':
+                plot_mean = visual.features[name]['plot_mean']
+                plot_base = visual.features[name]['plot_base']
+                base_alpha = visual.features[name]['base_alpha']
+                ignore_samples = visual.features[name]['ignore_samples']
+            if input == 'visual':
+                plot_mean = visual.plot_mean
+                plot_base = visual.plot_base
+                base_alpha = visual.base_alpha
+                ignore_samples = visual.ignore_samples
+
+            ############################################################################################################
+            # RESULT FEATURES
+
+            if self.result_feature:
+                """
+                result feature uses either visual of feature plot_mean, plot_base and ignore_samples flags
+
+                if plot_means True: means are plotted
+                              False: means are not plotted
+                if plot_base True: base results are also plotted
+                            False: base results are not plotted
+                if ignore_samples True: the mean of all samples_is calculated
+                                  False: the mean for each individual sample is plotted
+
+                """
+                # get rid of measurements without result and series
+                mlist = [m for m in mlist if m.has_result(visual.result) if m.get_series(stype=visual.series)]
+                if not mlist:
+                    raise IndexError(
+                        'ZERO measurements found to calculate a result from. Check for input and if the series exists')
+
+                # seaparate list into separate lists for each sample
+                if not ignore_samples:
+                    samples = set(m.sobj.name for m in mlist)
+                    mlists = [[m for m in mlist if m.sobj.name == sname] for sname in samples]
+                else:
+                    mlists = [mlist]
+
+                for mlist in mlists:
+                    data = RockPy3.Data(column_names=[visual.series, visual.result], row_names=[])
+                    # calculate the results and get the series for all measurements
+                    for m in mlist:
+                        sval = m.get_series(visual.series)[0].v
+                        res = getattr(m, 'result_' + visual.result)(**visual.calculation_parameter)
+                        d = RockPy3.Data(data=[sval, res[0]],
+                                         column_names=[visual.series, visual.result],
+                                         row_names='{}({})'.format(m.sobj.name, m.id))
+                        data = data.append_rows(data=d)
+
+                        # plot each individual result, append them to data
+                        if plot_base:
+                            kwargs['plt_props'] = m.plt_props
+                            print('plot_base: m:', kwargs['plt_props'])
+                            # overwrite the plot properties of the measurement object if specified in the decorator
+                            # e.g. for setting marker = '' in the hysteresis_data feature
+                            if self.overwrite_mobj_plt_props:
+                                kwargs['plt_props'].update(self.overwrite_mobj_plt_props)
+                                print('plot_base: overwrite:', kwargs['plt_props'])
+
+                            if input == 'visual' and visual.plot_mean:
+                                kwargs['plt_props'].update({'alpha': visual.base_alpha})
+                            if input == 'feature' and visual.features[name]['plot_mean']:
+                                kwargs['plt_props'].update({'alpha', visual.feature[name]['base_alpha']})
+
+                            kwargs['plt_props'].update(visual_props)
+                            print('plot_base: visual:', kwargs['plt_props'])
+                            kwargs['plt_props'].update(visual.features[name]['feature_props'])
+                            print('plot_base: feature:', kwargs['plt_props'])
+                            feature(visual, data=d, **kwargs)
+
+                    if plot_mean:
+                        data = data.eliminate_duplicate_variable_rows(substfunc='mean').sort()
+                        kwargs['plt_props'] = {}
+                        kwargs['plt_props'].update(mlist[0].plt_props)
+                        # overwrite the plot properties of the measurement object if specified in the decorator
+                        # e.g. for setting marker = '' in the hysteresis_data feature
+                        if self.overwrite_mobj_plt_props:
+                            kwargs['plt_props'].update(self.overwrite_mobj_plt_props)
+                        kwargs['plt_props'].update(visual_props)
+                        kwargs['plt_props'].update(visual.features[name]['feature_props'])
+                        kwargs['plt_props'].update({'alpha': 1, 'zorder': 100})
+                        feature(visual, data=data, **kwargs)
+                return wrapped_feature
+
             else:
                 for mtype in self.mtypes:
-                    for sample in visual._plt_input['sample']:
-                        mlist = sample.get_measurement(mtype=mtype)
-                        if len(mtype) > 1:
-                            mobj = MlistToTupleList(mlist, mtype)
-                        elif len(mtype) == 1:
-                            mobj = mlist
-                        else:
-                            visual.log.error(
-                                'FEATURE {} input doesnt match mtype requirements {}'.format(feature_name, mtype))
-                        for mt_tuple in mobj:
-                            try:
-                                kwargs['plt_props'].update(mt_tuple[0].plt_props)
-                            except TypeError:
-                                kwargs['plt_props'].update(mt_tuple.plt_props)
-                            kwargs['plt_props'].update(visual._plt_props_forced[feature_name])
-                            feature(visual, mobj=mt_tuple, **kwargs)
-
                     if len(mtype) > 1:
-                        mobj = MlistToTupleList(visual._plt_input['measurement'], mtype)
+                        mobj = MlistToTupleList(mlist, mtype)
                     elif len(mtype) == 1:
-                        mobj = visual._plt_input['measurement']
+                        mobj = [m for m in mlist if m.mtype == mtype[0]]
                     else:
                         visual.log.error(
                             'FEATURE {} input doesnt match mtype requirements {}'.format(feature.__name__, mtype))
                     for mt_tuple in mobj:
                         try:
-                            kwargs['plt_props'].update(mt_tuple[0].plt_props)
+                            kwargs['plt_props'] = mt_tuple[0].plt_props
                         except TypeError:
-                            kwargs['plt_props'].update(mt_tuple.plt_props)
-                        kwargs['plt_props'].update(visual._plt_props_forced[feature.__name__.replace('feature_', '')])
+                            kwargs['plt_props'] = mt_tuple.plt_props
+
+                        # overwrite the plot properties of the measurement object if specified in the decorator
+                        # e.g. for setting marker = '' in the hysteresis_data feature
+                        if self.overwrite_mobj_plt_props:
+                            kwargs['plt_props'].update(self.overwrite_mobj_plt_props)
+
+                        kwargs['plt_props'].update(visual_props)
+                        kwargs['plt_props'].update(visual.features[name]['feature_props'])
                         feature(visual, mobj=mt_tuple, **kwargs)
 
         return wrapped_feature
@@ -359,7 +448,6 @@ def kwargs_to_calculation_parameter(rpobj=None, mtype_list=None, result=None, **
     # 2. mtype & parameter
     # 3. method & parameter
     # 4. mtype & method & parameter
-
     param_only = [i for i in kwargs if [i] == i.split('___') if [i] == i.split('__')]
     mtype_only = [i for i in kwargs if [i] == i.split('___') if [i] != i.split('__')]
     method_only = [i for i in kwargs if [i] == i.split('__') if [i] != i.split('___')]
@@ -414,13 +502,12 @@ def kwargs_to_calculation_parameter(rpobj=None, mtype_list=None, result=None, **
         # 2. a sample object
         if isinstance(rpobj, RockPy3.Sample):
             mtypes = [mtype for mtype in mtypes if mtype == rpobj.mtypes]
-
         # 3. a samplegroup object
         # 4. a study object
         # 5. a visual object
         # 6. a result
         if result:
-            methods = [method for method in methods if method in rpobj.possible_calculation_parameter()[result]]
+            methods = [result]
 
 
         # if isinstance(rpobj, RockPy3.Visualize.base.Visual):
@@ -590,7 +677,7 @@ def separate_calculation_parameter_from_kwargs(rpobj=None, mtype_list=None, **kw
     """
     calculation_parameter, non_calculation_parameter = kwargs_to_calculation_parameter(rpobj=rpobj,
                                                                                        mtype_list=mtype_list, **kwargs)
-
+    # print(calculation_parameter, non_calculation_parameter)
     out = {}
 
     for key, value in kwargs.items():

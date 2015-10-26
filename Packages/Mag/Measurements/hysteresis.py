@@ -61,8 +61,8 @@ class Hysteresis(measurement.Measurement):
 
     @classmethod
     def from_simulation(cls, sobj, idx=0,
-                        ms=250., mrs_ms=0.5, bc=0.2, hf_sus=1., bmax=1.8, b_sat=1, steps=100,
-                        noise=None, color=None):
+                        ms=250., mrs_ms=0.5, bc=0.2, hf_sus=1., bmax=1.8, b_sat=1, steps=20,
+                        noise=None, color=None, marker=None, linestyle=None):
         """
         Simulation of hysteresis loop using single tanh and sech functions.
 
@@ -123,7 +123,9 @@ class Hysteresis(measurement.Measurement):
         data['down_field'] = RockPyData(column_names=['field', 'mag'], data=np.c_[fields, rev_mag + irrev_mag])
         data['up_field'] = RockPyData(column_names=['field', 'mag'], data=np.c_[fields, rev_mag - irrev_mag])
 
-        return cls(sobj, mtype='hysteresis', fpath=None, mdata=data, ftype='simulation', color=color, idx=idx)
+        return cls(sobj, fpath=None, mdata=data, ftype='simulation',
+                   color=color, marker=marker, linestyle=linestyle,
+                   idx=idx)
 
     @classmethod
     def get_grid(cls, bmax=1, grid_points=30, tuning=10):

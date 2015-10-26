@@ -46,10 +46,18 @@ def save(smthg, file_name, folder=None):
         f.write(dump)
         f.close()
 
-def abbrev_to_name(abbrev):
+def abbrev_to_classname(abbrev):
+    """
+    takes an abbreviated classname e.g. 'hys' and returns the true class_name
+    """
+    abbrev = abbrev.rstrip().lower()
     if not abbrev:
         return ''
-    return RockPy3.mtype_ftype_abbreviations_inversed[abbrev.lower()]
+    try:
+        class_name = RockPy3.mtype_ftype_abbreviations_inversed[abbrev.lower()]
+    except KeyError:
+        raise KeyError('{} not in abbrev -> class_name dictionary'.format(abbrev))
+    return class_name
 
 def name_to_abbrev(name):
     if not name:
@@ -58,7 +66,7 @@ def name_to_abbrev(name):
 
 def convert_to_fname_abbrev(name_or_abbrev):
     if name_or_abbrev:
-        name = abbrev_to_name(name_or_abbrev)
+        name = abbrev_to_classname(name_or_abbrev)
         abbrev = name_to_abbrev(name)
         return abbrev.upper()
     else:
@@ -70,7 +78,7 @@ def load(file_name, folder=None):
         folder = default_folder
     with open(join(folder, file_name), 'rb') as f:
         # out = numpyson.loads(f.read())
-        out = cPickle.loads(f.read())
+        out = Pickle.loads(f.read())
     return out
 
 
@@ -101,9 +109,9 @@ def get_fname_from_info(samplegroup='', sample_name='',
     :param options:
     :return:
     """
-    abbrev = fname_abbrevs()
-    mtype = abbrev_to_name(mtype)
-    ftype = abbrev_to_name(ftype)
+    # abbrev = fname_abbrevs()
+    mtype = abbrev_to_classname(mtype)
+    ftype = abbrev_to_classname(ftype)
 
     if not mtype.lower() in RockPy3.implemented_measurements:
         RockPy3.logger.warning('MEASUREMENT mtype << %s >> may be wrong or measurement not implemented, yet.' % mtype)
@@ -153,7 +161,7 @@ def get_fname_from_info(samplegroup='', sample_name='',
         ['_'.join(map(str, [stypes[i], svals[i], sunits[i]])) for i in range(len(stypes))])
 
     if options:
-        opt = ';'.join(['_'.join([k, str(v)]) for k, v in sorted(options.iteritems())])
+        opt = ';'.join(['_'.join([k, str(v)]) for k, v in sorted(options.items())])
     else:
         opt = ''
     if std:
@@ -254,7 +262,7 @@ def get_info_from_fname(path=None):
 
     out = {
         'samplegroup': samplegroup,
-        'name': sample_name, # not needed since 3.5 rewrite
+        'sample_name': sample_name, # not needed since 3.5 rewrite
         'mtype': mtype,
         'ftype': ftype,
         'fpath': join(folder, fpath),
@@ -263,18 +271,18 @@ def get_info_from_fname(path=None):
         'idx': int(index)
     }
 
-    if mtype == 'mass':
-        if mass[0]:
-            out.update({'mass': mass[0],
-                        'mass_unit': mass[1]})
-    if mtype == 'diameter':
-        if diameter[0]:
-            out.update({'diameter': diameter[0],
-                        'length_unit': diameter[1]})
-    if mtype == 'height':
-        if height[0]:
-            out.update({'height': height[0],
-                        'length_unit': diameter[1]})
+    # if mtype == 'mass':
+    if mass[0]:
+        out.update({'mass': mass[0],
+                    'mass_unit': mass[1]})
+    # if mtype == 'diameter':
+    if diameter[0]:
+        out.update({'diameter': diameter[0],
+                    'length_unit': diameter[1]})
+    # if mtype == 'height':
+    if height[0]:
+        out.update({'height': height[0],
+                    'length_unit': diameter[1]})
     if options:
         out.update(options)
 

@@ -14,21 +14,6 @@ def get_date_str():
     return time.strftime("%d.%m.%Y")
 
 
-def create_logger(name):
-    log = logging.getLogger(name=name)
-    log.setLevel(logging.DEBUG)
-    formatter = logging.Formatter('%(asctime)s: %(levelname)-10s %(name)-20s %(message)s')
-    # fh = logging.FileHandler('RPV3.log')
-    # fh.setFormatter(formatter)
-    ch = logging.StreamHandler()
-    # ch.setLevel(logging.WARNING)
-    ch.setLevel(logging.NOTSET)
-    ch.setFormatter(formatter)
-    # log.addHandler(fh)
-    log.addHandler(ch)
-
-    return log  # ch#, fh
-
 
 def create_dummy_measurement(mtype, fpath=None, ftype=None, idx=0, mdata=None, sample=None):
     s = RockPy3.Sample(name='dummy_sample')

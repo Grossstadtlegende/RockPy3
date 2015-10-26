@@ -178,9 +178,9 @@ class RockPyData(object):
         if units is None:
             self._units = None
         elif isinstance(units, str):  # single string
-            self._units = [ureg(units), ]
+            self._units = [core.ureg(units), ]
         elif all(isinstance(u, str) for u in units):  # list of strings
-            self._units = [ureg(u) for u in units]
+            self._units = [core.ureg(u) for u in units]
         else:
             raise RuntimeError('unknown values type for units: %s' % units.__class__)
 
@@ -536,11 +536,9 @@ class RockPyData(object):
 
         """
         self_copy = deepcopy(self)
-
         # check if we have another RockPyData object to append
         if isinstance(data, RockPyData):
             row_names = data.row_names
-
 
             scn = set(self_copy.column_names)
             dcn = set(data.column_names)
