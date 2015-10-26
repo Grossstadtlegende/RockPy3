@@ -20,6 +20,8 @@ class CryoMag(io.ftype):
             specimens[specimen.attrib['name']]['bedaz'] = float(specimen.attrib['bedaz'])
             specimens[specimen.attrib['name']]['vol'] = float(specimen.attrib['vol'])
             specimens[specimen.attrib['name']]['weight'] = float(specimen.attrib['weight'])
+            specimens[specimen.attrib['name']]['stepdata'] = []
+
 
             for step in specimen.findall("step"):
                 # append all steps from the file
@@ -87,7 +89,7 @@ class CryoMag(io.ftype):
                     stepdata['holderresults']['time'] = holderresults.attrib['time']
 
                 # add stepdata for current step
-                specimens['stepdata'] = stepdata
+                specimens[specimen.attrib['name']]['stepdata'].append(stepdata)
 
         self.raw_data = specimens
 
