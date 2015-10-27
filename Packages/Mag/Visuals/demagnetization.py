@@ -8,6 +8,7 @@ import RockPy3.Packages.Mag.Features.demagneitzation
 import RockPy3.Packages.Mag.Features.acquisition
 import inspect
 
+
 class Demagnetization(Visual):
     def init_visual(self):
         self.standard_features = ['zero_lines', 'grid', 'demagnetization_data']
@@ -22,3 +23,10 @@ class Demagnetization(Visual):
     @plot(mtypes=['acquisition', 'arm_acquisition'])
     def feature_cumulative_acquisition_data(self, mobj, plt_props=None):
         RockPy3.Packages.Mag.Features.acquisition.cumsum_acquisition_data(self.ax, mobj, **plt_props)
+
+
+class Af_Demagnetization(Demagnetization):
+    def init_visual(self):
+        self.standard_features = ['zero_lines', 'grid', 'demagnetization_data']
+        self.xlabel = 'Step [mT]'
+        self.ylabel = 'Moment'

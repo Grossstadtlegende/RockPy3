@@ -103,8 +103,7 @@ def convert2(in_unit, out_unit, unit_type):
 
     factor = conversion[out_unit] / conversion[in_unit]
 
-    if not in_unit == out_unit:
-        log.debug('CONVERSION %s -> %s : FACTOR = %.2e' % (in_unit, out_unit, factor))
+    log.debug('CONVERSION %s -> %s : FACTOR = %.2e' % (in_unit, out_unit, factor))
 
     return factor
 

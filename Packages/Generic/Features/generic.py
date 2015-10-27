@@ -15,5 +15,4 @@ def text_x_y(ax, s, x, y, **plt_props):
     :param plt_props:
     :return:
     """
-    print(plt_props)
     ax.text(x, y, s, **plt_props)

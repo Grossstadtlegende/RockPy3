@@ -23,12 +23,12 @@ def create_logger(name):
     fh = logging.FileHandler('RPV3.log')
     fh.setFormatter(formatter)
     fh.setLevel(logging.NOTSET)
-
     ch = logging.StreamHandler()
     ch.setLevel(logging.INFO)
     ch.setFormatter(formatter)
     log.addHandler(fh)
     log.addHandler(ch)
+    print('test')
     return log  # ch#, fh
 
 def convert_time(time):

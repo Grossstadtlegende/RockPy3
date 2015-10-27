@@ -10,7 +10,7 @@ import inspect
 class Acquisition(Visual):
 
     def init_visual(self):
-        self.standard_features = ['zero_lines', 'grid', 'acquisition_data']
+        self.standard_features = ['zero_lines', 'acquisition_data']
         self.xlabel = 'Step'
         self.ylabel = 'Moment'
 
@@ -22,7 +22,7 @@ class Acquisition(Visual):
     def feature_cumulative_data(self, mobj, plt_props=None):
         RockPy3.Packages.Mag.Features.acquisition.cumsum_acquisition_data(self.ax, mobj, **plt_props)
 
-class Arm_acqisition(Acquisition):
+class Arm_Acquisition(Acquisition):
    def init_visual(self):
         self.standard_features = ['zero_lines', 'grid', 'acquisition_data']
         self.xlabel = 'Step [mT]'

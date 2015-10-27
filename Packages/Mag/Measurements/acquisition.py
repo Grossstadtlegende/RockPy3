@@ -72,7 +72,6 @@ class Acquisition(measurement.Measurement):
         out['mag'] = out.magnitude(key='m')
         return out
 
-
 class Arm_Acquisition(Acquisition):
     def __init__(self, sobj,
                  fpath=None, ftype=None,
