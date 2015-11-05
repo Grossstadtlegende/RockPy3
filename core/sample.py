@@ -148,6 +148,7 @@ class Sample(object):
             mdata=None,
             mobj=None,  # for special import of a measurement instance
             series=None,
+            create_parameter=False,
             **options):
         '''
         All measurements have to be added here
@@ -176,9 +177,9 @@ class Sample(object):
                 mdata = dict( x=[1,2,3,4], y = [1,2,3,4],...)
 
         create_parameter:
+            default: True
             if true it will create the parameter (lenght, mass) measurements from path
-            before creating the actual measurement
-            default: False
+            !!! before creating the actual measurement !!!
             Note: NEEDS PATH with RockPy complient fname structure.
         mobj: RockPy3.Measurement object
             if provided, the object is added to self.measurements
@@ -190,6 +191,7 @@ class Sample(object):
 
         # lookup abbreviations of mtypes and ftypes
         import_info = {}
+        import_info.update(options)
 
         if mtype and ftype:
             mtype = mtype.lower()
@@ -210,8 +212,29 @@ class Sample(object):
         # DATA import from FILE
         """
         if all([mtype, fpath, ftype]) or fpath:
-            import_info = self.generate_import_info(mtype, fpath, ftype, idx, series)
+            # check if we can read the filename - fails if not
+            try:
+                import_info = self.generate_import_info(mtype, fpath, ftype, idx, series)
+            except:
+                import_info = dict(mtype=mtype, ftype=ftype, fpath=fpath)
+
+            # update any options e.g. series
             import_info.update(options)
+
+            # remove the parameter_info from the info_dict
+            parameter_info = {key: import_info.pop(key, None) for key in list(import_info.keys())
+                              if key in ['mass', 'diameter', 'height',
+                                         'x_len', 'y_len', 'z_len',
+                                         'length_unit', 'mass_unit', 'volume']}
+
+            # create the parameter measurement.
+            if parameter_info and create_parameter:
+                for mtype in ('mass', 'diameter', 'height'):
+                    if mtype in parameter_info:
+                        param = RockPy3.implemented_measurements[mtype](sobj=self, **parameter_info)
+                        self._add_mobj(param)
+
+
             # if given add samplegroup to sample
             sg = import_info.pop('samplegroup', None)
 
@@ -248,17 +271,25 @@ class Sample(object):
         # DATA import from MOBJ
         """
         if mobj:
+            if isinstance(mobj, tuple) or ftype=='from_measurement':
+                if not self.mtype_not_implemented_check(mtype=mtype):
+                    return
+                mobj = RockPy3.implemented_measurements[mtype].from_measurement(sobj=self, mobj=mobj, **import_info)
+
             self.log.info('ADDING\t << %s, %s >>' % (mobj.ftype, mobj.mtype))
             if series:
                 self.log.info(
                     '\t\t WITH series << %s >>' % ('; '.join(', '.join(str(j) for j in i) for i in series)))
-            if mobj not in self.measurements:
-                self.measurements.append(mobj)
-                self.raw_measurements.append(deepcopy(mobj))
-                self._add_m2_mdict(mobj)
+            self._add_mobj(mobj)
             return mobj
         else:
             self.log.error('COULD not create measurement << %s >>' % mtype)
+
+    def _add_mobj(self, mobj):
+        if mobj not in self.measurements:
+                    self.measurements.append(mobj)
+                    self.raw_measurements.append(deepcopy(mobj))
+                    self._add_m2_mdict(mobj)
 
     def add_simulation(self, mtype, idx=None, **sim_param):
         """
@@ -859,8 +890,43 @@ class Sample(object):
     def mtypes(self):
         return list(self.mdict['mtype'].keys())
 
+
+
     ####################################################################################################################
     ''' PLOTTING PART'''
     def set_plt_prop(self, prop, value):
         for m in self.measurements + self.mean_measurements:
             m.set_plt_prop(prop, value)
+
+    def series_to_color(self, stype):
+        """
+        adds corresponding color to each measurement with the stype
+        """
+        for m in self.measurements:
+            if m.has_series(stype=stype.lower()):
+                m.series_to_color(stype=stype.lower())
+
+
+    ####################################################################################################################
+    ''' LABES PART'''
+
+    def label_add_sample_name(self):
+        for m in self.measurements:
+            m.label_add_sample_name()
+
+    def label_add_series(self, stypes=None, add_stype=True, add_unit=True):
+        self.label_add_stype(stypes=stypes, add_stype=add_stype, add_unit=add_unit)
+
+    def label_add_stype(self, stypes=None, add_stype=True, add_unit=True):
+        for m in self.measurements:
+            m.label_add_stype(stypes=stypes, add_stype=add_stype, add_unit=add_unit)
+
+    def label_add_sval(self, stypes=None, add_stype=False, add_unit=True):
+        for m in self.measurements:
+            m.label_add_stype(stypes=stypes, add_stype=add_stype, add_unit=add_unit)
+
+    def remove_label(self):
+        for m in self.measurements:
+            m.label = ''
+        for m in self.mean_measurements:
+            m.label = ''

@@ -1,7 +1,7 @@
 import os
 import logging
 import matplotlib
-# matplotlib.use('TkAgg') #not working on OSX!
+# matplotlib.use('WXAgg') #not working on OSX!
 # matplotlib.use('QT4Agg') #not working on OSX!
 
 import RockPy3.Packages
@@ -119,5 +119,5 @@ mtype_ftype_abbreviations_inversed, mtype_ftype_abbreviations = RockPy3.core.fil
 
 colorscheme = set_colorscheme('pretty')
 linestyles = ['-', '--', ':', '-.'] * 100
-marker = ['.', 's', 'o', '+', '*', ',', '1', '3', '2', '4', '8', '<', '>', 'D', 'H', '_', '^',
-              'd', 'h', 'p', 'v', '|'] * 100
+marker = ['|', '.', 's', 'o', '+', '*', ',', '1', '3', '2', '4', '8', '<', '>', 'D', 'H', '_', '^',
+              'd', 'h', 'p', 'v'] * 100

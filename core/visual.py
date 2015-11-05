@@ -240,12 +240,12 @@ class Visual(object):
         """
         Parameters
         ----------
-            plt_input: study, sample or list of studies, measurement or list of measurements
+            visual_input: study, sample or list of studies, measurement or list of measurements
                 the measurements you want to have plotted
             ignore_mean: bool
                 default: False
                 if False: the study / sample is searched for mean_measurements.
-                    The base measurements are not added to the plt_input
+                    The base measurements are not added to the visual_input
         """
 
         self._visual_input = self._add_input_to_plot(plt_input,
@@ -262,8 +262,8 @@ class Visual(object):
                   normalize_variable=False, dont_normalize=None,
                   norm_initial_state=True, **options):
         # print('visual:', locals())
-        if self.plt_input:
-            for m in self.plt_input:
+        if self.visual_input:
+            for m in self.visual_input:
                 if isinstance(m, RockPy3.Parameter):
                     continue
                 m.normalize(reference=reference, ref_dtype=ref_dtype, norm_dtypes=norm_dtypes, vval=vval,
@@ -338,7 +338,7 @@ class Visual(object):
             if plot_mean:
                 # add all mean measurements
                 mlist.extend(means)
-                self.log.debug('ADDING {} mean measurements to plt_input'.format(len(means)))
+                self.log.debug('ADDING {} mean measurements to visual_input'.format(len(means)))
 
             if plot_base:
                 if plot_mean:
@@ -346,18 +346,18 @@ class Visual(object):
                     for base in bases:
                         base.set_plt_prop(prop='alpha', value=base_alpha)
                 # print('base', bases)
-                self.log.debug('ADDING {} base measurements to plt_input'.format(len(bases)))
+                self.log.debug('ADDING {} base measurements to visual_input'.format(len(bases)))
                 mlist.extend(bases)
             if plot_other:
                 # add all non mean measurements
-                self.log.debug('ADDING {} measurements to plt_input'.format(len(others)))
+                self.log.debug('ADDING {} measurements to visual_input'.format(len(others)))
                 mlist.extend(others)
 
         return deepcopy(mlist)
 
     @property
     def mids(self):
-        return [m.id for m in self.plt_input['measurement']]
+        return [m.id for m in self.visual_input['measurement']]
 
     def __call__(self, *args, **kwargs):
         self.add_standard()
@@ -369,7 +369,7 @@ class Visual(object):
     def show_legend(self):
         # if self.legend_options['show']:
         #     return True
-        if any(m.plt_props['label'] != '' for m in self.plt_input):
+        if any(m.plt_props['label'] != '' for m in self.visual_input):
             return True
         for f in self.features:
             if any(m.plt_props['label'] != '' for m in self.features[f]['feature_input']):
@@ -379,7 +379,7 @@ class Visual(object):
 
 
     @property
-    def plt_input(self):
+    def visual_input(self):
         return self._visual_input
 
     @property

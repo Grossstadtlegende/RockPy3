@@ -6,10 +6,11 @@ import inspect
 
 import numpy as np
 
-from matplotlib import pyplot as plt
-
 import RockPy3
 import RockPy3.core.utils
+
+import matplotlib.pyplot as plt
+
 
 
 # from RockPy3.core.visual import Visual
@@ -144,7 +145,8 @@ class Figure(object):
         # create new figure with appropriate number of subplots
         if self._fig:
             self._fig.close()
-        return generate_plots(n=self._n_visuals, xsize=xsize, ysize=ysize, columns=self.columns, tight_layout=self.tightlayout)
+        return generate_plots(n=self._n_visuals, xsize=xsize, ysize=ysize, columns=self.columns,
+                              tight_layout=self.tightlayout)
 
     def get_xylims(self, visuals=None):
         xlim = []
@@ -161,9 +163,6 @@ class Figure(object):
         ylim = [min([i[0] for i in ylim]), max([i[1] for i in ylim])]
         return xlim, ylim
 
-    def create_fig_ax(self):
-        self._fig, self.axes = self._create_fig(xsize=self.xsize, ysize=self.ysize)
-
     def show(self,
              set_xlim=None, set_ylim=None,
              equal_lims=False, center_lims=False,
@@ -178,8 +177,7 @@ class Figure(object):
             TypeError if no visuals have been added
         """
 
-        if not self._fig:
-            self.create_fig_ax()
+        self._fig, self.axes = self._create_fig(xsize=self.xsize, ysize=self.ysize)
 
         if not self.visuals:
             self.log.error('NO VISUALS ADDED! Please add any of the followig visuals:')
@@ -223,7 +221,6 @@ class Figure(object):
             # (left, bottom, right, top) in the normalized figure coordinate that the whole subplots area
             # (including labels) will fit into
             self._fig.set_tight_layout(tight={'rect': (0, 0, 1, 0.95)})
-
 
         if save_path:
             if save_path == 'Desktop':

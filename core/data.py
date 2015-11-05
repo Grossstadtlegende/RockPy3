@@ -6,7 +6,6 @@ import logging
 # from RockPy3.utils import general
 
 log = logging.getLogger(__name__)
-
 from copy import deepcopy
 import numpy as np
 import scipy
@@ -23,8 +22,8 @@ except ImportError:
     tabulate_available = False
     log.warning('Please install module tabulate for nicer output formatting.')
 
-#from core import ureg
-import RockPy3.core
+from RockPy3.core import ureg
+# import RockPy3.core
 
 from scipy import stats
 
@@ -178,9 +177,9 @@ class RockPyData(object):
         if units is None:
             self._units = None
         elif isinstance(units, str):  # single string
-            self._units = [core.ureg(units), ]
+            self._units = [ureg(units), ]
         elif all(isinstance(u, str) for u in units):  # list of strings
-            self._units = [core.ureg(u) for u in units]
+            self._units = [ureg(u) for u in units]
         else:
             raise RuntimeError('unknown values type for units: %s' % units.__class__)
 

@@ -16,19 +16,37 @@ def colorscheme(scheme='simple'):
               'pretty': ['k', '#7f0000', '#ed1c24', '#f18c22', '#ffde17', '#add136', '#088743', '#47c3d3', '#21409a', '#96649b', '#ee84b5']*100}
     return colors[scheme]
 
+def create_heat_color_map(value_list, reverse=False):
+    """
+    takes a list of values and creates a list of colors from blue to red (or reversed if reverse = True)
+
+    :param value_list:
+    :param reverse:
+    :return:
+    """
+    r = np.linspace(0, 255, len(value_list)).astype('int')
+    r = [hex(i)[2:-1].zfill(2) for i in r]
+    # r = [i.encode('hex') for i in r]
+    b = r[::-1]
+
+    out = ['#%2s' % r[i] + '00' + '%2s' % b[i] for i in range(len(value_list))]
+    if reverse:
+        out = out[::-1]
+    return out
+
 def create_logger(name):
     log = logging.getLogger(name=name)
     log.setLevel(logging.DEBUG)
-    formatter = logging.Formatter('%(asctime)s: %(levelname)-10s %(name)-20s %(message)s')
+    # formatter = logging.Formatter('%(asctime)s: %(levelname)-10s %(name)-20s %(message)s')
+    formatter = logging.Formatter('%(levelname)-10s %(name)-20s %(message)s')
     fh = logging.FileHandler('RPV3.log')
-    fh.setFormatter(formatter)
-    fh.setLevel(logging.NOTSET)
-    ch = logging.StreamHandler()
-    ch.setLevel(logging.INFO)
-    ch.setFormatter(formatter)
+    # fh.setFormatter(formatter)
+    # fh.setLevel(logging.INFO)
+    # ch = logging.StreamHandler()
+    # ch.setLevel(logging.INFO)
+    # ch.setFormatter(formatter)
     log.addHandler(fh)
-    log.addHandler(ch)
-    print('test')
+    # log.addHandler(ch)
     return log  # ch#, fh
 
 def convert_time(time):
@@ -321,6 +339,7 @@ class plot(object):
             ############################################################################################################
             # NORMAL FEATURES
             else:
+                kwargs['plt_props'] = {}
                 for mtype in self.mtypes:
                     if type(mtype)==str:
                         mtype = (mtype,)
@@ -333,9 +352,9 @@ class plot(object):
                             'FEATURE {} input doesnt match mtype requirements {}'.format(feature.__name__, mtype))
                     for mt_tuple in mobj:
                         try:
-                            kwargs['plt_props'] = mt_tuple[0].plt_props
+                            kwargs['plt_props'].update(mt_tuple[0].plt_props)
                         except TypeError:
-                            kwargs['plt_props'] = mt_tuple.plt_props
+                            kwargs['plt_props'].update(mt_tuple.plt_props)
 
                         # overwrite the plot properties of the measurement object if specified in the decorator
                         # e.g. for setting marker = '' in the hysteresis_data feature
@@ -344,6 +363,14 @@ class plot(object):
 
                         kwargs['plt_props'].update(visual_props)
                         kwargs['plt_props'].update(visual.features[name]['feature_props'])
+                        # print('---------------------------')
+                        # print(feature.__name__)
+                        # print('---------------------------')
+                        # print('measurement pops:', mt_tuple.plt_props)
+                        # print('overwrite_props:', self.overwrite_mobj_plt_props)
+                        # print('visual_props:', visual_props)
+                        # print('feature_props:', visual.features[name]['feature_props'])
+                        # print('resulting props:', kwargs['plt_props'])
                         feature(visual, mobj=mt_tuple, **kwargs)
 
         return wrapped_feature

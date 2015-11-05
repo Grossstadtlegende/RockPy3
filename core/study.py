@@ -280,20 +280,25 @@ class Study(object):
         # print(measurements[0].sobj)
         measurements = [self.import_file(file) for file in files]
         end = time.clock()
+        measurements = [m for m in measurements if m]
         RockPy3.logger.debug(
             'IMPORT generated {} measurements: finished in {:<3}s'.format(len(measurements), end - start))
-        measurements = [m for m in measurements if m]
         return measurements
 
     def import_file(self, fpath):
         info = RockPy3.get_info_from_fname(fpath)
         sample_info = deepcopy(info)
+        if not info['mtype'] in RockPy3.implemented_measurements:
+            return
         # remove unnecessary info
         for arg in ['series', 'idx', 'mtype', 'ftype', 'fpath']:
             sample_info.pop(arg, None)
         name = sample_info.pop('sample_name', None)
-        s = self.add_sample(name=name, **sample_info)
-        m = None#s.add_measurement(**info)
+        if not name in self._samples:
+            s = self.add_sample(name=name, **sample_info)
+        else:
+            s = self._samples[name]
+        m = s.add_measurement(**info)
         return m
 
     def info(self, tablefmt='simple', parameters=True):

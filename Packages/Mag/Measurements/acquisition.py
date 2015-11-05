@@ -1,4 +1,6 @@
 __author__ = 'volk'
+import RockPy3
+
 from copy import deepcopy
 from math import tanh, cosh
 
@@ -13,14 +15,13 @@ from lmfit import minimize, Parameters, report_fit
 import matplotlib.dates
 import datetime
 
-import RockPy3
-from RockPy3.core import measurement
+
 from RockPy3.core.measurement import calculate, result, correction
 from RockPy3.core.data import RockPyData
 from pprint import pprint
 
 
-class Acquisition(measurement.Measurement):
+class Acquisition(RockPy3.core.measurement.Measurement):
     @staticmethod
     def format_sushibar(ftype_data, sobj_name=None):
         if not sobj_name in ftype_data.raw_data:
@@ -58,7 +59,13 @@ class Acquisition(measurement.Measurement):
         """
         if self.data['af3']:
             self.log.info('FOUND AF3 measurement, subtracting AF3')
+            # print('Moment before correction')
+            # print(self.data['data']['m'])
+            # print('Moment of the AF3')
+            # print(self.data['af3']['m'])
             self.data['data']['m'] = self.data['data']['m'].v - self.data['af3']['m'].v
+            # print('Moment after correction')
+            # print(self.data['data']['m'])
 
             if recalc_mag:
                 self.data['data']['mag'] = self.data['data'].magnitude(key='m')
@@ -68,11 +75,13 @@ class Acquisition(measurement.Measurement):
     @property
     def cumulative(self):
         out = deepcopy(self.data['data'])
+        out = out.append_rows(data=[0 for i in out.column_names]).sort('variable')
         out['m'] = np.cumsum(out['m'].v, axis=0)
         out['mag'] = out.magnitude(key='m')
+        out.define_alias('variable', 'window_upper')
         return out
 
-class Arm_Acquisition(Acquisition):
+class Parm_Acquisition(Acquisition):
     def __init__(self, sobj,
                  fpath=None, ftype=None,
                  mdata=None,
@@ -82,7 +91,7 @@ class Arm_Acquisition(Acquisition):
                  ismean=False, base_measurements=None,
                  color=None, marker=None, linestyle=None,
                  ):
-        super(Arm_Acquisition, self).__init__(sobj=sobj,
+        super(Parm_Acquisition, self).__init__(sobj=sobj,
                                               fpath=fpath, ftype=ftype,
                                               mdata=mdata,
                                               series=series,
@@ -94,7 +103,7 @@ class Arm_Acquisition(Acquisition):
         self.correct_af3()
 
     def format_sushibar(ftype_data, sobj_name=None):
-        out = super(Arm_Acquisition, Arm_Acquisition).format_sushibar(ftype_data=ftype_data, sobj_name=sobj_name)
+        out = super(Parm_Acquisition, Parm_Acquisition).format_sushibar(ftype_data=ftype_data, sobj_name=sobj_name)
         for dtype in out:
             out[dtype].rename_column('par1', 'max_field')
             out[dtype].rename_column('par2', 'dc_field')
@@ -105,3 +114,9 @@ class Arm_Acquisition(Acquisition):
             out[dtype] = out[dtype].append_columns(column_names='window_mean', data=mean)
             out[dtype].define_alias('variable', 'window_mean')
         return out
+
+if __name__ == '__main__':
+    step1C = '/Users/mike/Dropbox/experimental_data/RelPint/Step1C/1c.csv'
+    S = RockPy3.Study
+    s = S.add_sample(name='IG_1291A')
+    ARM_acq = s.add_measurement(mtype='armacq', fpath=step1C, ftype='sushibar', series=[('ARM', 50, 'muT')])

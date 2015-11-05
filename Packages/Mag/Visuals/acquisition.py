@@ -14,15 +14,15 @@ class Acquisition(Visual):
         self.xlabel = 'Step'
         self.ylabel = 'Moment'
 
-    @plot(mtypes=['acquisition', 'arm_acquisition'])
+    @plot(mtypes=['acquisition', 'arm_acquisition', 'parm_acquisition'])
     def feature_acquisition_data(self, mobj, plt_props=None):
-        RockPy3.Packages.Mag.Features.acquisition.acquisition_data(self.ax, mobj, **plt_props)\
+        RockPy3.Packages.Mag.Features.acquisition.acquisition_data(self.ax, mobj, **plt_props)
 
-    @plot(mtypes=['acquisition', 'arm_acquisition'])
+    @plot(mtypes=['parm_acquisition'])
     def feature_cumulative_data(self, mobj, plt_props=None):
         RockPy3.Packages.Mag.Features.acquisition.cumsum_acquisition_data(self.ax, mobj, **plt_props)
 
-class Arm_Acquisition(Acquisition):
+class Parm_Acquisition(Acquisition):
    def init_visual(self):
         self.standard_features = ['zero_lines', 'grid', 'acquisition_data']
         self.xlabel = 'Step [mT]'

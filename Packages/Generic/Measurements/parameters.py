@@ -132,7 +132,7 @@ class Length(Parameter):
 
     def __init__(self, sobj,
                  fpath=None, ftype='generic',
-                 value=1.0, unit='m',
+                 value=None, unit='m',
                  direction=None,
                  std=None, time=None,
                  series=None,
@@ -141,6 +141,9 @@ class Length(Parameter):
                                      fpath=fpath, ftype=ftype,
                                      series=series,
                                      **options)
+        if not value:
+            return
+
         self.ftype = ftype
         self.direction = direction
 
@@ -166,35 +169,14 @@ class Diameter(Length):
     simple 1d measurement for Length
     """
 
-    def __init__(self, sobj,
-                 fpath=None, ftype='generic',
-                 diameter=1.0, length_unit='m',
-                 std=None, time=None,
-                 series=None,
-                 **options):
-        super(Diameter, self).__init__(sobj=sobj,
-                                       value=diameter, unit=length_unit,
-                                       fpath=fpath, ftype=ftype,
-                                       series=series,
-                                       **options)
+    pass
 
 
 class Height(Length):
     """
     simple 1d measurement for Length
     """
-
-    def __init__(self, sobj,
-                 fpath=None, ftype='generic',
-                 height=1.0, length_unit='m',
-                 std=None, time=None,
-                 series=None,
-                 **options):
-        super(Height, self).__init__(sobj=sobj,
-                                       value=height, unit=length_unit,
-                                       fpath=fpath, ftype=ftype,
-                                       series=series,
-                                       **options)
+    pass
 
 
 class Volume(Parameter):

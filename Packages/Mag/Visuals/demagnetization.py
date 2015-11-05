@@ -20,7 +20,7 @@ class Demagnetization(Visual):
         RockPy3.Packages.Mag.Features.demagneitzation.demagnetization_data(self.ax, mobj, **plt_props)
         pass
 
-    @plot(mtypes=['acquisition', 'arm_acquisition'])
+    @plot(mtypes=['acquisition', 'parm_acquisition'])
     def feature_cumulative_acquisition_data(self, mobj, plt_props=None):
         RockPy3.Packages.Mag.Features.acquisition.cumsum_acquisition_data(self.ax, mobj, **plt_props)
 

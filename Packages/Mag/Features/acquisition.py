@@ -12,6 +12,6 @@ def cumsum_acquisition_data(ax, mobj, dtype='mag', **plt_props):
     """
     Plots the down_field branch of a hysteresis
     """
-    ax.plot(mobj.cumulative['window_mean'].v,
+    ax.plot(mobj.cumulative['variable'].v,
             mobj.cumulative[dtype].v,
             **plt_props)

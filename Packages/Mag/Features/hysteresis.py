@@ -4,6 +4,8 @@ import RockPy3.Packages.Generic.Features.generic
 
 def hysteresis(ax, mobj, **plt_props):
     df_branch(ax, mobj, **plt_props)
+    # remove label otehrwise plottes twice
+    plt_props.pop('label', None)
     uf_branch(ax, mobj, **plt_props)
 
 

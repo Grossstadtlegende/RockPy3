@@ -299,7 +299,35 @@ class Hysteresis(measurement.Measurement):
 
         return mdata
 
+    @staticmethod
+    def format_mpms(ftype_data, sobj_name=None):
 
+        #get the index of the field column
+        field_idx = ftype_data.header.index('Field')
+        # get the differences in fieldbetween steps
+        diff_data = np.diff(ftype_data.data[:,1])
+        # assuming the measurement starts with the down field branch -> the difference between field steps is negative
+        if diff_data[0]<0:
+            start_idx = min(i+1 for i,v in enumerate(np.diff(ftype_data.data[:,1])) if v > 0)
+            df_data = ftype_data.data[:start_idx,:]
+            uf_data = ftype_data.data[start_idx-1:,:]
+        else:
+            raise NotImplementedError('implement hysteresis starting from 0 or up field')
+
+        # set data structure
+        mdata = {}
+        mdata.setdefault('virgin', None)
+        mdata.setdefault('down_field', RockPyData(column_names=[i.lower() for i in ftype_data.header],
+                                                  data=df_data, units=ftype_data.units).sort('field'))
+        mdata.setdefault('up_field', RockPyData(column_names=[i.lower() for i in ftype_data.header],
+                                                  data=uf_data, units=ftype_data.units).sort('field'))
+
+        for dtype in mdata:
+            if mdata[dtype]:
+                mdata[dtype].rename_column('long moment', 'mag')
+                mdata[dtype].rename_column('temperature', 'temp')
+        # print(mdata['down_field'])
+        return mdata
     @property
     def max_field(self):
         fields = set(self.data['down_field']['field'].v) | set(self.data['up_field']['field'].v)

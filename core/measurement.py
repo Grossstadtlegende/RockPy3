@@ -584,6 +584,7 @@ class Measurement(object):
                  initial_state=None,
                  ismean=False, base_measurements=None,
                  color=None, marker=None, linestyle=None,
+                 **options
                  ):
         """
         Constructor of the measurement class.
@@ -1589,10 +1590,10 @@ class Measurement(object):
                 if False: unit not in label
         """
         out = []
-        if stypes is True:
+        if stypes is True or stypes is None:
             stypes = self.stypes
 
-        stypes = RockPy3.core.utils._to_tuple(stypes)
+        stypes = iter(stypes)
 
         for stype in stypes:
             if self.get_series(stype=stype):
@@ -1711,18 +1712,6 @@ class Measurement(object):
             mean = ''
         self.plt_props['label'] = ' '.join([self.plt_props['label'], mean, self.sobj.name])
 
-    def label_add_sample_group_name(self):
-        """
-        adds the corresponding sample_name to the measurement label
-        """
-        self.plt_props['label'] = ' '.join([self.plt_props['label'], self.sample_group_obj.name])
-
-    def label_add_study_name(self):
-        """
-        adds the corresponding sample_name to the measurement label
-        """
-        self.plt_props['label'] = ' '.join([self.plt_props['label'], self.study_obj.name])
-
     def label_add_stype(self, stypes, add_stype=True, add_unit=True):
         """
         adds the corresponding sample_name to the measurement label
@@ -1756,12 +1745,12 @@ class Measurement(object):
             setattr(self, attr, value)
         return getattr(self, attr)
 
-    def series_to_color(self, stype):
-        # get all possible svals in the hierarchy #todo implement sg and study
+    def series_to_color(self, stype, reverse=False):
+        # get all possible svals in the hierarchy
         svals = sorted(self.sobj.mdict['stype_sval'][stype].keys())
 
         # create colormap from svals
-        color_map = RockPy3.Visualize.core.create_heat_color_map(svals)
+        color_map = RockPy3.core.utils.create_heat_color_map(value_list=svals, reverse=reverse)
 
         # get the index and set the color
         sval = self.get_series(stype=stype)[0].value
