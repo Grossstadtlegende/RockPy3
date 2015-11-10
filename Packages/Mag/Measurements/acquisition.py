@@ -25,11 +25,11 @@ class Acquisition(RockPy3.core.measurement.Measurement):
     @staticmethod
     def format_sushibar(ftype_data, sobj_name=None):
         if not sobj_name in ftype_data.raw_data:
-            RockPy3.log.error('CANT find sample name << {} >> in file'.format(sobj_name))
-            return None
+            return
+
         data = ftype_data.raw_data[sobj_name]
+        # data = np.nan_to_num(ftype_data.raw_data[sobj_name])
         header = ftype_data.header
-        for_substraction = [header.index(i) for i in ['x', 'y', 'z', 'M']]
 
         af3 = np.array([i for i in data if np.isnan(i[header.index('par2')])])
         data = np.array([i for i in data if not np.isnan(i[header.index('par2')])])
@@ -39,7 +39,6 @@ class Acquisition(RockPy3.core.measurement.Measurement):
         data.rename_column('m', 'mag')
         data.rename_column('meas. time', 'time')
         data.define_alias('m', ('x', 'y', 'z'))
-
         if af3.any():
             af3 = RockPy3.Data(data=af3, column_names=list(map(str.lower, header)))
             af3.rename_column('m', 'mag')
@@ -51,7 +50,6 @@ class Acquisition(RockPy3.core.measurement.Measurement):
         out = {'data': data,
                'af3': af3}
         return out
-
     @correction
     def correct_af3(self, recalc_mag=True):
         """
@@ -71,6 +69,13 @@ class Acquisition(RockPy3.core.measurement.Measurement):
                 self.data['data']['mag'] = self.data['data'].magnitude(key='m')
             else:
                 self.data['data']['mag'] = self.data['data']['mag'].v - self.data['af3']['mag'].v
+    @correction
+    def correct_arbitrary_data(self, xyz, mag=None, recalc_mag=True):
+        self.data['data']['m'] = self.data['data']['m'].v - xyz
+        if recalc_mag:
+            self.data['data']['mag'] = self.data['data'].magnitude('m')
+        else:
+            self.data['data']['mag'] = self.data['data']['mag'].v - mag
 
     @property
     def cumulative(self):
@@ -100,19 +105,22 @@ class Parm_Acquisition(Acquisition):
                                               ismean=ismean, base_measurements=base_measurements,
                                               color=color, marker=marker, linestyle=linestyle,
                                               )
-        self.correct_af3()
+        # self.correct_af3()
 
     def format_sushibar(ftype_data, sobj_name=None):
         out = super(Parm_Acquisition, Parm_Acquisition).format_sushibar(ftype_data=ftype_data, sobj_name=sobj_name)
+        if not out:
+            return
         for dtype in out:
-            out[dtype].rename_column('par1', 'max_field')
-            out[dtype].rename_column('par2', 'dc_field')
-            out[dtype].rename_column('par3', 'window_upper')
-            out[dtype].rename_column('par4', 'window_lower')
-            out[dtype].rename_column('par5', 'dir')
-            mean = np.mean(np.c_[out[dtype]['window_upper'].v, out[dtype]['window_lower'].v], axis=1)
-            out[dtype] = out[dtype].append_columns(column_names='window_mean', data=mean)
-            out[dtype].define_alias('variable', 'window_mean')
+            if out[dtype] is not None:
+                out[dtype].rename_column('par1', 'max_field')
+                out[dtype].rename_column('par2', 'dc_field')
+                out[dtype].rename_column('par3', 'window_upper')
+                out[dtype].rename_column('par4', 'window_lower')
+                out[dtype].rename_column('par5', 'dir')
+                mean = np.mean(np.c_[out[dtype]['window_upper'].v, out[dtype]['window_lower'].v], axis=1)
+                out[dtype] = out[dtype].append_columns(column_names='window_mean', data=mean)
+                out[dtype].define_alias('variable', 'window_mean')
         return out
 
 if __name__ == '__main__':

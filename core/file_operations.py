@@ -78,7 +78,7 @@ def load(file_name, folder=None):
         folder = default_folder
     with open(join(folder, file_name), 'rb') as f:
         # out = numpyson.loads(f.read())
-        out = Pickle.loads(f.read())
+        out = pickle.loads(f.read())
     return out
 
 
@@ -260,6 +260,9 @@ def get_info_from_fname(path=None):
         raise KeyError('%s not implemented yet' % mtype)
         return
 
+    # replace 'xml' ending with idx:
+    if index == 'xml':
+        index = 1
     out = {
         'samplegroup': samplegroup,
         'sample_name': sample_name, # not needed since 3.5 rewrite

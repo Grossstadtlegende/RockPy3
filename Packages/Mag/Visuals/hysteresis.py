@@ -16,17 +16,14 @@ class Hysteresis(Visual):
     @plot(mtypes='hysteresis', overwrite_mobj_plt_props={'marker':''})
     def feature_hysteresis_data(self, mobj, plt_props=None):
         RockPy3.Packages.Mag.Features.hysteresis.hysteresis(self.ax, mobj, **plt_props)
-        pass
 
     @plot(mtypes='hysteresis')
     def feature_hysteresis_error(self, mobj, plt_props=None):
         RockPy3.Packages.Mag.Features.hysteresis.hysteresis_error(self.ax, mobj, **plt_props)
-        pass
 
     @plot(mtypes='hysteresis')
     def feature_virgin(self, mobj, **plt_props):
         pass
-
 # class Fabian2003(base.Visual):
 #     _required = [('hysteresis', 'backfield')]
 #

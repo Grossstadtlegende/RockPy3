@@ -92,7 +92,7 @@ class CryoMag(io.ftype):
                 specimens[specimen.attrib['name']]['stepdata'].append(stepdata)
 
         self.raw_data = specimens
-
+        self.dfile = dfile
 # for initial testing
 # delete when no longer needed
 if __name__ == '__main__':

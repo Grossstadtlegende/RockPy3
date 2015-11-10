@@ -37,16 +37,16 @@ def create_heat_color_map(value_list, reverse=False):
 def create_logger(name):
     log = logging.getLogger(name=name)
     log.setLevel(logging.DEBUG)
-    # formatter = logging.Formatter('%(asctime)s: %(levelname)-10s %(name)-20s %(message)s')
-    formatter = logging.Formatter('%(levelname)-10s %(name)-20s %(message)s')
+    formatter = logging.Formatter('%(asctime)s: %(levelname)-10s %(name)-20s %(message)s')
+    # formatter = logging.Formatter('%(levelname)-10s %(name)-20s %(message)s')
     fh = logging.FileHandler('RPV3.log')
     # fh.setFormatter(formatter)
     # fh.setLevel(logging.INFO)
-    # ch = logging.StreamHandler()
-    # ch.setLevel(logging.INFO)
-    # ch.setFormatter(formatter)
+    ch = logging.StreamHandler()
+    ch.setLevel(logging.INFO)
+    ch.setFormatter(formatter)
     log.addHandler(fh)
-    # log.addHandler(ch)
+    log.addHandler(ch)
     return log  # ch#, fh
 
 def convert_time(time):
@@ -240,7 +240,6 @@ class plot(object):
                 kwargs['plt_props'].update(self.overwrite_mobj_plt_props)
                 kwargs['plt_props'].update(visual_props)
                 kwargs['plt_props'].update(visual.features[name]['feature_props'])
-                # kwargs.setdefault()
                 self.plt_single_feature(feature=feature, visual=visual, **kwargs)
                 return wrapped_feature
 
@@ -303,13 +302,11 @@ class plot(object):
 
                         # plot each individual result, append them to data
                         if plot_base:
-                            kwargs['plt_props'] = m.plt_props
-                            # print('plot_base: m:', kwargs['plt_props'])
+                            kwargs['plt_props'] = deepcopy(m.plt_props)
                             # overwrite the plot properties of the measurement object if specified in the decorator
                             # e.g. for setting marker = '' in the hysteresis_data feature
                             if self.overwrite_mobj_plt_props:
                                 kwargs['plt_props'].update(self.overwrite_mobj_plt_props)
-                                # print('plot_base: overwrite:', kwargs['plt_props'])
 
                             if input == 'visual' and visual.plot_mean:
                                 kwargs['plt_props'].update({'alpha': visual.base_alpha})
@@ -317,12 +314,18 @@ class plot(object):
                                 kwargs['plt_props'].update({'alpha', visual.feature[name]['base_alpha']})
 
                             kwargs['plt_props'].update(visual_props)
-                            # print('plot_base: visual:', kwargs['plt_props'])
                             kwargs['plt_props'].update(visual.features[name]['feature_props'])
+                            # print('---------------------------')
+                            # print(feature.__name__)
+                            # print('---------------------------')
+                            # print('plot_base: m:', kwargs['plt_props'])
+                            # print('plot_base: overwrite:', kwargs['plt_props'])
+                            # print('plot_base: visual:', kwargs['plt_props'])
                             # print('plot_base: feature:', kwargs['plt_props'])
                             feature(visual, data=d, **kwargs)
 
                     if plot_mean:
+                        # print('mean')
                         data = data.eliminate_duplicate_variable_rows(substfunc='mean').sort()
                         kwargs['plt_props'] = {}
                         kwargs['plt_props'].update(mlist[0].plt_props)
@@ -333,6 +336,14 @@ class plot(object):
                         kwargs['plt_props'].update(visual_props)
                         kwargs['plt_props'].update(visual.features[name]['feature_props'])
                         kwargs['plt_props'].update({'alpha': 1, 'zorder': 100})
+                        # print('---------------------------')
+                        # print(feature.__name__)
+                        # print('---------------------------')
+                        # print('plot_base: m:', kwargs['plt_props'])
+                        # print('plot_base: overwrite:', kwargs['plt_props'])
+                        # print('plot_base: visual:', kwargs['plt_props'])
+                        # print('plot_base: feature:', kwargs['plt_props'])
+
                         feature(visual, data=data, **kwargs)
                 return wrapped_feature
 
@@ -505,7 +516,7 @@ def kwargs_to_calculation_parameter(rpobj=None, mtype_list=None, result=None, **
         # get all mtypes, methods if not specified in kwarg
         # nothing specified
         if not mtypes and not methods:
-            mtypes = [mtype for mtype, params in RockPy3.Measurement.mtype_calculation_parameter_list().items() if
+            mtypes = [mtype for mtype, params in RockPy3.Measurement.collected_mtype_calculation_parameter().items() if
                       parameter in params]
 
             # filter only given in mtype_list
@@ -537,7 +548,7 @@ def kwargs_to_calculation_parameter(rpobj=None, mtype_list=None, result=None, **
         # 1. a measurement object
         if isinstance(rpobj, RockPy3.Measurement):
             mtypes = [mtype for mtype in mtypes if mtype == rpobj.mtype]
-            methods = [method for method in methods if method in rpobj.possible_calculation_parameter()]
+            methods = [method for method in methods if method in rpobj.mtype_possible_calculation_parameter()]
             # print(mtypes, methods, parameter)
 
         # 2. a sample object

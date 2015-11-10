@@ -4,15 +4,11 @@ import logging
 import inspect
 import itertools
 import xml.etree.ElementTree as etree
-
 from copy import deepcopy
 import numpy as np
-
 import os, pwd
 import os.path
-
 import decorator
-
 import RockPy3.core.io
 import RockPy3.core.utils
 
@@ -43,6 +39,12 @@ class Measurement(object):
                           'solid_capstyle', 'solid_joinstyle', 'transform', 'url', 'visible', 'xdata', 'ydata',
                           'zorder']
 
+    _mcp = None  # mtype calculation parameter cache for all measurements implemented as a dict(measurement:method:parameter)
+    _cmcp = None  # mtype calculation parameter cache for all measurements implemented as a dict(measurement: parameter)
+    _pcp = None  # possible calculation parameters cache for a single measurement
+    _gcp = None # all possible parameters combined for all measurements and all methods
+    _mpcp = None # all possible parameters for each method of a specific mtype as a dict(method:parameters)
+
     @classmethod
     def _mtype(cls):
         return cls.__name__.lower()
@@ -51,7 +53,7 @@ class Measurement(object):
     ''' calculation parameter methods '''
 
     @classmethod
-    def mtype_calculation_parameter_list(cls):
+    def collected_mtype_calculation_parameter(cls):
         """
         searches through all implemented calculation methods and collects the parameters used in the method.
 
@@ -61,11 +63,13 @@ class Measurement(object):
              key == mtype
              value == a sorted list of unique parameters
         """
-        gpcp = {}
-        for mname, measurement in RockPy3.implemented_measurements.items():
-            gpcp.setdefault(mname, sorted(
-                list(set([i for j in measurement.possible_calculation_parameter().values() for i in j]))))
-        return gpcp
+        if not cls._cmcp:
+            cls._cmcp = {}
+            for mname, measurement in RockPy3.implemented_measurements.items():
+                cls._cmcp.setdefault(
+                    mname,
+                    sorted(list(set([i for j in measurement.mtype_possible_calculation_parameter().values() for i in j]))))
+        return cls._cmcp
 
     @classmethod
     def mtype_calculation_parameter(cls):
@@ -76,10 +80,11 @@ class Measurement(object):
         -------
             a sorted list of unique parameters
         """
-        gpcp = {}
-        for mname, measurement in RockPy3.implemented_measurements.items():
-            gpcp.setdefault(mname, measurement.possible_calculation_parameter())
-        return gpcp
+        if not cls._mcp:
+            cls._mcp = {}
+            for mname, measurement in RockPy3.implemented_measurements.items():
+                cls._mcp.setdefault(mname, measurement.mtype_possible_calculation_parameter())
+        return cls._mcp
 
     @classmethod
     def method_calculation_parameter_list(cls):
@@ -92,12 +97,12 @@ class Measurement(object):
             key: calculation_method name
             value: list of unique parameters
         """
-        gpcp = {}
-        for mname, measurement in RockPy3.implemented_measurements.items():
-            for method, parameters in measurement.possible_calculation_parameter().items():
-                # method_name = ''.join(method.split('_')[1:])  # only method without the _calculate
-                gpcp.setdefault(method, parameters)
-        return gpcp
+        if not cls._pcp:
+            cls.pcp = {}
+            for mname, measurement in RockPy3.implemented_measurements.items():
+                for method, parameters in measurement.mtype_possible_calculation_parameter().items():
+                    cls.pcp.setdefault(method, parameters)
+        return cls.pcp
 
     @classmethod
     def global_calculation_parameter(cls):
@@ -108,14 +113,15 @@ class Measurement(object):
         -------
             a sorted list of unique parameters
         """
-        gpcp = []
-        for mname, measurement in RockPy3.implemented_measurements.items():
-            for method, parameters in measurement.possible_calculation_parameter().items():
-                gpcp.extend(parameters)
+        if not cls._gcp:
+            gpcp = []
+            for mname, measurement in RockPy3.implemented_measurements.items():
+                for method, parameters in measurement.collected_mtype_calculation_parameter().items():
+                    gpcp.extend(parameters)
         return sorted(list(set(gpcp)))
 
     @classmethod
-    def possible_calculation_parameter(cls):
+    def mtype_possible_calculation_parameter(cls):
         """
         All possible calculation methods of a measurement. It first creates a dictionary of all calculate_methods and
         their signature.
@@ -126,23 +132,24 @@ class Measurement(object):
             Therefor this dict can not be used to check for methods!
         """
 
-        cparams = {i: set(arg for arg, value in inspect.signature(getattr(cls, 'calculate_' + i)).parameters.items()
-                          if not arg in ['self', 'non_method_parameters'])
-                   for i in cls.calculate_methods()}
+        if not cls._mpcp:
+            # get all parameters from all measurements
+            cls._mpcp = {i: set(arg for arg, value in inspect.signature(getattr(cls, 'calculate_' + i)).parameters.items()
+                              if not arg in ['self', 'non_method_parameters'])
+                       for i in cls.calculate_methods()}
 
-        # methods with recipe need 'recipe' to be added to the calculation_parameters
-        for res in cls.result_methods():
-            if res not in cparams:
-                methods = cls.get_calculate_methods(res)
-                if cls.result_category(res) == 'indirect':
-                    cparams.setdefault(res, set())
-                    cparams[res].update(set(param for recipe in methods for param in cparams[recipe]))
-                if 'recipe' in cls.result_category(res):
-                    cparams.setdefault(res, set())
-                    cparams[res].update(set(param for recipe in methods for param in cparams[recipe]))
-                    cparams[res].update(['recipe'])
-
-        return cparams
+            # methods with recipe need 'recipe' to be added to the calculation_parameters
+            for res in cls.result_methods():
+                if res not in cls._mpcp:
+                    methods = cls.get_calculate_methods(res)
+                    if cls.result_category(res) == 'indirect':
+                        cls._mpcp.setdefault(res, set())
+                        cls._mpcp[res].update(set(param for recipe in methods for param in cls._mpcp[recipe]))
+                    if 'recipe' in cls.result_category(res):
+                        cls._mpcp.setdefault(res, set())
+                        cls._mpcp[res].update(set(param for recipe in methods for param in cls._mpcp[recipe]))
+                        cls._mpcp[res].update(['recipe'])
+        return cls._mpcp
 
     """
     ####################################################################################################################
@@ -433,7 +440,7 @@ class Measurement(object):
 
         if ftype in cls.measurement_formatters():
             cls.log.debug('ftype_formatter << %s >> implemented' % ftype)
-            mdata = cls.measurement_formatters()[ftype](ftype_data, sobj_name = sobj.name)
+            mdata = cls.measurement_formatters()[ftype](ftype_data, sobj_name=sobj.name)
             if not mdata:
                 return
         else:
@@ -897,7 +904,8 @@ class Measurement(object):
         """
         list of all stypes
         """
-        return self.info_dict['stype'].keys()
+        stypes = set(s.stype for s in self.series)
+        return list(stypes)
 
     @property
     def svals(self):
@@ -1421,7 +1429,8 @@ class Measurement(object):
                 default: True
         """
         # separate the calc from non calc parameters
-        calculation_parameter, options = RockPy3.core.utils.separate_calculation_parameter_from_kwargs(rpobj=self, **options)
+        calculation_parameter, options = RockPy3.core.utils.separate_calculation_parameter_from_kwargs(rpobj=self,
+                                                                                                       **options)
 
         # getting normalization factor
         if not norm_factor:  # if norm_factor specified
@@ -1591,9 +1600,9 @@ class Measurement(object):
         """
         out = []
         if stypes is True or stypes is None:
-            stypes = self.stypes
+            stypes = list(self.stypes)
 
-        stypes = iter(stypes)
+        stypes = RockPy3.core.utils.to_list(stypes)
 
         for stype in stypes:
             if self.get_series(stype=stype):
@@ -1712,11 +1721,14 @@ class Measurement(object):
             mean = ''
         self.plt_props['label'] = ' '.join([self.plt_props['label'], mean, self.sobj.name])
 
-    def label_add_stype(self, stypes, add_stype=True, add_unit=True):
+    def label_add_stype(self, stypes=None, add_stype=True, add_unit=True):
         """
         adds the corresponding sample_name to the measurement label
         """
         text = self.get_series_labels(stypes=stypes, add_stype=add_stype, add_unit=add_unit)
+        self.plt_props['label'] = ' '.join([self.plt_props['label'], text])
+
+    def label_add_text(self, text):
         self.plt_props['label'] = ' '.join([self.plt_props['label'], text])
 
     @property
@@ -1912,7 +1924,6 @@ def result(func, *args, **kwargs):
 
     # recipes are the different possible calculation paths
     recipe = parameters.get('recipe', '').upper()  # not pop because needed for calculation_parameter check
-
 
     # add called from to parameters so output will give correct result otherwise:
     # results that are calculated using calculation_method with show calculation method in output instead of

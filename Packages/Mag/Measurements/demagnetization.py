@@ -20,11 +20,34 @@ from pprint import pprint
 
 
 class Demagnetization(measurement.Measurement):
+    ####################################################################################################################
+    # FORMATTING
+    @staticmethod
+    def format_sushibar(ftype_data, sobj_name=None):
+        if not sobj_name in ftype_data.raw_data:
+            return
+        data = np.nan_to_num(ftype_data.raw_data[sobj_name])
+        header = ftype_data.header
+
+        # data = np.array([i for i in data if not np.isnan(i[header.index('par2')])])
+        # print(data)
+        # GENERATE RockPy Data object for data
+        data = RockPy3.Data(data=data, column_names=list(map(str.lower, header)))
+        data.rename_column('m', 'mag')
+        data.rename_column('meas. time', 'time')
+        data.define_alias('m', ('x', 'y', 'z'))
+        data.define_alias('variable', 'par1')
+
+        out = {'data': data,
+               }
+        return out
+
     @staticmethod
     def format_cryomag(ftype_data, sobj_name=None):
         if not sobj_name in ftype_data.raw_data:
-            RockPy3.log.error('CANT find sample name << {} >> in file'.format(sobj_name))
-            return None
+            RockPy3.logger.warning('CANT find sample name << {} >> in file'.format(sobj_name))
+            sobj_name = list(ftype_data.raw_data.keys())[0]
+            # raise ValueError('no sample named << {} >> in file'.format(sobj_name))
         raw_data = ftype_data.raw_data[sobj_name]['stepdata']
 
         header = ['step', 'D', 'I', 'M', 'X', 'Y', 'Z', 'a95', 'sM', 'time']
@@ -121,8 +144,11 @@ class Demagnetization(measurement.Measurement):
 class AfDemagnetization(Demagnetization):
     def format_cryomag(ftype_data, sobj_name=None):
         out = super(AfDemagnetization, AfDemagnetization).format_cryomag(ftype_data, sobj_name=sobj_name)
+        if not out:
+            return
         for dtype in out:
-            out[dtype].rename_column('step', 'field')
+            out[dtype].define_alias('field', 'step')
+            out[dtype].define_alias('variable', 'step')
         return out
 
 
@@ -130,5 +156,6 @@ class ThermalDemagnetization(Demagnetization):
     def format_cryomag(ftype_data, sobj_name=None):
         out = super(ThermalDemagnetization, ThermalDemagnetization).format_cryomag(ftype_data, sobj_name=sobj_name)
         for dtype in out:
-            out[dtype].rename_column('step', 'temp')
+            out[dtype].define_alias('temp', 'step')
+            out[dtype].define_alias('variable', 'step')
         return out

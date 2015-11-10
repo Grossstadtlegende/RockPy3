@@ -11,17 +11,21 @@ import numpy as np
 class ResultSeries(Visual):
     def __init__(self, visual_input=None, plt_index=None, fig=None, name=None, coord=None,
                  plot_mean=True, plot_base=True, plot_other=True, base_alpha=0.5, result=None, series=None,
+                 title=None,
                  **options):
         # has to be before the super call because the initialize need both result and series
         self.result = result
         self.series = series
         # so the calculation parameters can be checked for only this result
         options.setdefault('result', result)
+        if not title:
+            title = '{} vs. {}'.format(result, series)
+
         super(ResultSeries, self).__init__(
             visual_input=visual_input, plt_index=plt_index,
             fig=fig, name=name, coord=coord,
             plot_mean=plot_mean, plot_base=plot_base, plot_other=plot_other, base_alpha=base_alpha,
-            title='{} vs. {}'.format(result, series),
+            title=title,
             **options
         )
 

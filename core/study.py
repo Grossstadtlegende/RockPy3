@@ -5,6 +5,7 @@ import tabulate
 import RockPy3
 from RockPy3.core import utils
 import RockPy3.core.sample
+import RockPy3.core.file_operations
 import os
 from multiprocessing import Pool
 from copy import deepcopy
@@ -61,7 +62,7 @@ class Study(object):
             list of all samples
         """
 
-        return [v for k, v in self._samples.items()]
+        return sorted([v for k, v in self._samples.items()])
 
     @property
     def samplenames(self):
@@ -351,3 +352,19 @@ class Study(object):
     def calc_all(self, **parameter):
         for s in self.samplelist:
             s.calc_all(**parameter)
+
+    ####################################################################################################################
+    ''' Data Operations '''
+
+    def save(self, file_name=None, folder=None):
+        if not file_name:
+            import time
+            file_name = '_'.join([time.strftime("%Y%m%d"), 'RockPy', self.name,
+                                  '[{}]SG_[{}]S'.format(len(self._samplegroups), len(self.samples)), '.rpy'])
+        if not folder:
+            folder = RockPy3.core.file_operations.default_folder
+        RockPy3.logger.info('SAVING RockPy data to {}'.format(os.path.join(folder, file_name)))
+        RockPy3.save(self, folder=folder, file_name=file_name)
+
+    def load(self, file_name=None, folder=None):
+        return RockPy3.load(folder=folder, file_name=file_name)

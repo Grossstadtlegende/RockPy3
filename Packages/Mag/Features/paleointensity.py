@@ -7,7 +7,6 @@ def paleointensity_data_points(ax, mobj, dtype='mag', **plt_props):
     vars = sorted(list(set(mobj.data['acquisition']['variable'].v) & set(mobj.data['demagnetization']['variable'].v)))
     xdata = mobj.data['acquisition'].filter_idx([i for i,v in enumerate(mobj.data['acquisition']['variable'].v) if v in vars])
     ydata = mobj.data['demagnetization'].filter_idx([i for i,v in enumerate(mobj.data['demagnetization']['variable'].v) if v in vars])
-
     plt_props.update(dict(linestyle=''))
     ax.plot(xdata[dtype].v,
             ydata[dtype].v,

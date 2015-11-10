@@ -117,7 +117,7 @@ class Visual(object):
         self.features = {}
 
         if visual_input:
-            self.add_input(plt_input=visual_input, plot_mean=plot_mean, plot_base=plot_base, plot_other=plot_other,
+            self.add_input(visual_input=visual_input, plot_mean=plot_mean, plot_base=plot_base, plot_other=plot_other,
                            base_alpha=base_alpha, ignore_samples=ignore_samples,
                            )
 
@@ -235,7 +235,7 @@ class Visual(object):
         self.ax.set_xlabel(self.xlabel)
         self.ax.set_ylabel(self.ylabel)
 
-    def add_input(self, plt_input, plot_mean=True, plot_base=True, plot_other=True, base_alpha=0.5,
+    def add_input(self, visual_input, plot_mean=True, plot_base=True, plot_other=True, base_alpha=0.5,
                   ignore_samples=False):
         """
         Parameters
@@ -248,7 +248,7 @@ class Visual(object):
                     The base measurements are not added to the visual_input
         """
 
-        self._visual_input = self._add_input_to_plot(plt_input,
+        self._visual_input = self._add_input_to_plot(visual_input,
                                                      plot_mean=plot_mean, plot_base=plot_base, plot_other=plot_other,
                                                      base_alpha=base_alpha)
         self.plot_mean = plot_mean
@@ -455,6 +455,14 @@ class Visual(object):
             setattr(self, '_legend', dict())
         return getattr(self, '_legend')
 
+    def remove_labels(self, remove_from_features=True):
+        'removes all labels from all measurements'
+        for m in self.visual_input:
+            m.set_plt_prop('label', '')
+        if remove_from_features:
+            for f in self.features:
+                for m in self.features[f]['feature_input']:
+                    m.set_plt_prop('label', '')
     @property
     def ax(self):
         return self._RockPy_figure.axes[self._plt_index][0]

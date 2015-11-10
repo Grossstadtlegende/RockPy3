@@ -28,14 +28,12 @@ class Paleointensity(Visual):
         slope = mobj.result_slope(**self.calculation_parameter)
         # get the y-intercept result
         intercept = mobj.result_y_int(**self.calculation_parameter)
-        print(intercept)
         # get the calculation limits
         vars = [mobj.calculation_parameter['slope']['var_min'], mobj.calculation_parameter['slope']['var_max']]
 
         idx = [i for i, v in enumerate(mobj.data['acquisition']['variable'].v) if v in vars]
         x = mobj.data['acquisition'].filter_idx(idx)[mobj.calculation_parameter['slope']['component']].v
         y = intercept[0] + slope[0] * x
-        print(x,y)
         RockPy3.Packages.Generic.Features.generic.plot_x_y(ax=self.ax, xdata=x, ydata=y, **plt_props)
 
 

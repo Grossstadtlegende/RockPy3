@@ -34,6 +34,7 @@ hysteresis: hys, hysteresis
 backfield: coe, backfield
 thellier: tt
 viscosity: visc
+paleointensity: pint
 
 anisotropy: ani, aniso
 anisotropy: irmani
