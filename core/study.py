@@ -1,20 +1,36 @@
 import time
 
 import tabulate
+import xml.etree.ElementTree as etree
+from copy import deepcopy
+import os
+from multiprocessing import Pool
 
 import RockPy3
 from RockPy3.core import utils
 import RockPy3.core.sample
 import RockPy3.core.file_operations
-import os
-from multiprocessing import Pool
-from copy import deepcopy
+
+
 
 class Study(object):
     """
     comprises data of a whole study
     i.e. container for samplegroups
     """
+
+    @classmethod
+    def create_from_etree(cls, et):
+        root = et.getroot().tag
+        #print root
+        return cls()
+
+    @classmethod
+    def load_from_xml(cls, filename):
+        log.info("reading xml data from {}".format(filename))
+        et = etree.parse(filename)
+        return cls.create_from_etree(et)
+
 
     def __init__(self, name=None):
         """
@@ -368,3 +384,51 @@ class Study(object):
 
     def load(self, file_name=None, folder=None):
         return RockPy3.load(folder=folder, file_name=file_name)
+
+
+
+    def save_xml(self, folder=None, file_name=None):
+        """
+        Save study to an xml file
+        :param folder:
+        :param file_name:
+        :return:
+        """
+
+        if not file_name:
+            import time
+            file_name = '_'.join([time.strftime("%Y%m%d"), 'RockPy', self.name,
+                                  '[{}]SG_[{}]S'.format(len(self._samplegroups), len(self.samples)), '.rpy.xml'])
+        if not folder:
+            folder = RockPy.core.file_operations.default_folder
+        RockPy.logger.info('SAVING RockPy data as XML to {}'.format(os.path.join(folder, file_name)))
+
+        # create root node that contains studies
+        root = etree.Element(tag='rockpy', attrib={'rockpy_revision': RockPy.rev, 'rockpy_file_version': '0.1'})
+        # append etree from this study to the root element
+        root.append(self.etree)
+        et = etree.ElementTree(root)
+        et.write(os.path.join(folder, file_name))
+
+
+    @property
+    def etree(self):
+        """
+        Returns the content of the samplegroup as an xml.etree.ElementTree object which can be used to construct xml
+        representation
+
+        Returns
+        -------
+             etree: xml.etree.ElementTree
+        """
+
+        study_node = etree.Element('study', attrib={'name': str(self.name)})
+
+        # create list of samples
+        samples_node = etree.Element('samples')
+        for s in self.samplelist:
+            samples_node.append(s.etree)
+
+        study_node.append(samples_node)
+
+        return study_node

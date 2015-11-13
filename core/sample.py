@@ -1,6 +1,8 @@
 import logging
 import itertools
 from copy import deepcopy
+import xml.etree.ElementTree as etree
+
 import RockPy3
 import RockPy3.core.study
 import RockPy3.core.utils
@@ -948,3 +950,23 @@ class Sample(object):
             m.label = ''
         for m in self.mean_measurements:
             m.label = ''
+
+    ####################################################################################################################
+    ''' XML io'''
+
+    @property
+    def etree(self):
+        """
+        Returns the content of the sample as an xml.etree.ElementTree object which can be used to construct xml
+        representation
+
+        Returns
+        -------
+             etree: xml.etree.ElementTree
+        """
+
+        sample_node = etree.Element('sample', attrib={'name': str(self.name), 'id': str(id(self))})
+        for m in self.measurements:
+            sample_node.append(m.etree)
+
+        return sample_node

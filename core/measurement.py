@@ -1802,20 +1802,6 @@ class Measurement(object):
                     out = ';\t'.join([out, text])
             return out
 
-    @property
-    def etree(self):
-        """
-        Returns the content of the measurement as an xml.etree.ElementTree object which can be used to construct xml
-        representation
-
-        Returns
-        -------
-             etree: xml.etree.ElementTree
-        """
-
-        measurement_node = etree.Element(tag='measurement', attrib={'mtype': str(self.mtype)})
-
-        return measurement_node
 
         if not author:
             author = pwd.getpwuid(os.getuid())[0]
@@ -1882,6 +1868,24 @@ class Measurement(object):
 
         if generate_pdf:
             doc.generate_pdf(filepath=filepath, clean=clean)
+
+    ####################################################################################################################
+    ''' XML io'''
+    @property
+    def etree(self):
+        """
+        Returns the content of the measurement as an xml.etree.ElementTree object which can be used to construct xml
+        representation
+
+        Returns
+        -------
+             etree: xml.etree.ElementTree
+        """
+
+        measurement_node = etree.Element('measurement', attrib={'mtype': str(self.mtype)})
+
+        return measurement_node
+
 
 
 @decorator.decorator
