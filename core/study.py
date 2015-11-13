@@ -1,7 +1,5 @@
 import time
-
 import tabulate
-
 import RockPy3
 from RockPy3.core import utils
 import RockPy3.core.sample
@@ -9,6 +7,7 @@ import RockPy3.core.file_operations
 import os
 from multiprocessing import Pool
 from copy import deepcopy
+
 
 class Study(object):
     """
@@ -110,7 +109,7 @@ class Study(object):
 
         if not sobj:
             sobj = RockPy3.core.sample.Sample(
-                name=name,
+                name=str(name),
                 comment=comment,
                 mass=mass, mass_unit=mass_unit,
                 height=height, diameter=diameter,
@@ -163,8 +162,89 @@ class Study(object):
 
         return samples
 
-    def add_mean_sample(self):
-        pass
+    def add_mean_sample(self,
+                        gname=None,
+                        sname=None,
+                        mtype=None,
+                        series=None,
+                        stype=None, sval=None, sval_range=None,
+                        mean=False,
+                        invert=False,
+                        interpolate=True, substfunc='mean', mean_of_mean=False,
+                        reference=None, ref_dtype='mag', norm_dtypes='all', vval=None, norm_method='max',
+                        normalize_variable=False, dont_normalize=None,
+                        ignore_series=False
+                        ):
+        """
+        creates a mean sample from the input search
+        :param gname:
+        :param sname:
+        :param mtype:
+        :param series:
+        :param stype:
+        :param sval:
+        :param sval_range:
+        :param mean:
+        :param invert:
+        :param interpolate:
+        :param substfunc:
+        :param mean_of_mean:
+        :param reference:
+        :param ref_dtype:
+        :param norm_dtypes:
+        :param vval:
+        :param norm_method:
+        :param normalize_variable:
+        :param dont_normalize:
+        :param ignore_series:
+        :return:
+        """
+        # get specified measurements
+        slist = self.get_sample(
+            gname=gname, sname=sname, mtype=mtype,
+            series=series, stype=stype, sval=sval, sval_range=sval_range,
+            mean=mean, invert=invert)
+
+        samples = '_'.join(sobj.name for sobj in slist)
+
+        # create epty mean_sample
+        mean_sample = RockPy3.MeanSample(name='mean[{}]'.format(samples))
+
+        # get all measurements from all samples
+        for sample in slist:
+            # do not use mean samples otherwise strange effects
+            if not isinstance(sample, RockPy3.MeanSample):
+                # if a sample has more than one measurement you can chose to either mean them first
+                # or add them to the measurements
+                if mean_of_mean:
+                    mean_measurements = sample.add_mean_measurements(ignore_series=ignore_series,
+                                                 interpolate=interpolate, substfunc=substfunc,
+                                                 reference=reference, ref_dtype=ref_dtype, norm_dtypes=norm_dtypes,
+                                                 vval=vval,
+                                                 norm_method=norm_method,
+                                                 normalize_variable=normalize_variable, dont_normalize=dont_normalize)
+                    mean_sample.measurements.extend(mean_measurements)
+                else:
+                    mean_sample.measurements.extend(sample.measurements)
+
+        # mdict needs to be populated
+        mean_sample._populate_mdict()
+        # the measurements are now used as if they belonged to that sample
+        mean_sample.add_mean_measurements(ignore_series=ignore_series,
+                                          interpolate=interpolate, substfunc=substfunc,
+                                          reference=reference, ref_dtype=ref_dtype, norm_dtypes=norm_dtypes,
+                                          vval=vval,
+                                          norm_method=norm_method,
+                                          normalize_variable=normalize_variable, dont_normalize=dont_normalize)
+
+        mean_sample.base_measurements = mean_sample.measurements
+        mean_sample.measurements = []
+        # mdict needs to be populated
+        mean_sample._mdict = mean_sample._create_mdict()
+        mean_sample._populate_mdict(mdict_type='mean_mdict')
+        # mean_sample.mean_measurements = []
+        self.add_sample(sobj=mean_sample)
+        return mean_sample
 
     ####################################################################################################################
     ''' remove functions '''
@@ -208,24 +288,10 @@ class Study(object):
             slist = [s for s in slist if s.name in sname]
 
         slist = [s for s in slist if s.get_measurement(mtype=mtype,
-                                                       stype=stype, sval=sval,
-                                                       sval_range=sval_range, series=series)]
-        # # mtype filtering
-        # if mtype:
-        #     mtype = utils.to_list(mtype)
-        #     slist = [s for s in slist if any(mt in mtype for mt in s.mtypes)]
-        #
-        # # stype filtering
-        # if stype:
-        #     stype = utils.to_list(stype)
-        #     slist = [s for s in slist if any(mt in stype for mt in s.stypes)]
-        #
-        # # sval filtering
-        # if stype:
-        #     stype = utils.to_list(stype)
-        #     slist = [s for s in slist if any(mt in stype for mt in s.stypes)]
-
-
+                                                       stype=stype, sval=sval, sval_range=sval_range,
+                                                       series=series,
+                                                       mean=mean,
+                                                       invert=invert)]
         return slist
 
     def get_samplegroup(self, gname=None):
@@ -244,7 +310,7 @@ class Study(object):
                         mtype=None,
                         series=None,
                         stype=None, sval=None, sval_range=None,
-                        mean=False,
+                        mean=False, groupmean=False,
                         invert=False,
                         id=None,
                         ):
@@ -260,7 +326,10 @@ class Study(object):
                                                                    stype=stype, sval=sval, sval_range=sval_range,
                                                                    mean=mean,
                                                                    invert=invert)]
-        return mlist
+            if groupmean:
+                mlist = filter(lambda x: isinstance(x.sobj, RockPy3.MeanSample), mlist)
+
+        return list(set(mlist))
 
     def import_folder(self, folder):
         files = [os.path.join(folder, i) for i in os.listdir(folder)
@@ -335,16 +404,25 @@ class Study(object):
             table.append([''.join(['=' for i in range(15)]) for j in line0])
 
             # add a line for each measurement
-            for m in s.measurements:
+            for m in s.measurements+s.mean_measurements:
                 # if not isinstance(m, RockPy3.Packages.Generic.Measurements.parameters.Parameter) or parameters:
-                    if m.has_initial_state:
-                        initial = '{} [{}]'.format(m.initial_state.mtype, str(m.initial_state.idx))
+                if m.has_initial_state:
+                    initial = '{} [{}]'.format(m.initial_state.mtype, str(m.initial_state.idx))
+                else:
+                    initial = ''
+                if m.is_mean:
+                    if isinstance(m.sobj, RockPy3.MeanSample):
+                        samples = set(base.sobj.name for base in m.base_measurements)
+                        mean = ''.join(['S'+sample+'{}'.format([base.idx for base in m.base_measurements if base.sobj.name == sample]) for sample in samples])
                     else:
-                        initial = ''
-                    line = ['', s.name, '{} [{}]'.format(m.mtype, str(m.idx)),
-                            ', '.join(['{} [{}]'.format(series[0], series[1]) for series in m.stype_sval_tuples]),
-                            initial]
-                    table.append(line)
+                        mean = 'mean{}'.format([base.idx for base in m.base_measurements])
+                else:
+                    mean = ''
+
+                line = ['', s.name, '{}{} [{}]'.format(mean, m.mtype, str(m.idx)),
+                        ', '.join(['{} [{}]'.format(series[0], series[1]) for series in m.stype_sval_tuples]),
+                        initial]
+                table.append(line)
             table.append([''.join(['-' for i in range(15)]) for j in line0])
 
         return tabulate.tabulate(table, headers=header, tablefmt=tablefmt)

@@ -702,6 +702,12 @@ class Measurement(object):
                                                     self.stype_sval_tuples,
                                                     hex(id(self)))
 
+    def __hash__(self):
+        return hash(self.id)
+
+    def __eq__(self,other):
+        return self.id == other.id
+
     def __getstate__(self):
         """
         returned dict will be pickled

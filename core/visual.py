@@ -1,9 +1,7 @@
 __author__ = 'volk'
 import logging
 import inspect
-
 from copy import deepcopy
-
 import RockPy3
 import RockPy3.core
 import RockPy3.utils
@@ -78,19 +76,20 @@ class Visual(object):
     def plt_props(self):
         return self._plt_props
 
-    def separate_plt_props_from_kwargs(self, **kwargs):
+    @classmethod
+    def separate_plt_props_from_kwargs(cls, **kwargs):
 
         plt_props = {}
         txt_props = {}
         for k in list(kwargs.keys()):
-            if k in self.possible_plt_props:
+            if k in cls.possible_plt_props:
                 plt_props.setdefault(k, kwargs.pop(k))
-            if k in self.possible_text_props:
+            if k in cls.possible_text_props:
                 txt_props.setdefault(k, kwargs.pop(k))
         return plt_props, txt_props, kwargs
 
     def __init__(self, visual_input=None, plt_index=None, fig=None, name=None, coord=None,
-                 plot_mean=True, plot_base=True, plot_other=True, base_alpha=0.5, ignore_samples=False,
+                 groupmean=True, samplemean=True, base=True, other=True, base_alpha=0.5, ignore_samples=False,
                  **options):
         '''
         :param visual_input:
@@ -116,11 +115,11 @@ class Visual(object):
         self._txt_props = txt_props
         self.features = {}
 
-        if visual_input:
-            self.add_input(visual_input=visual_input, plot_mean=plot_mean, plot_base=plot_base, plot_other=plot_other,
-                           base_alpha=base_alpha, ignore_samples=ignore_samples,
-                           )
-
+        self._visual_input = RockPy3.core.utils.sort_plt_input(visual_input,
+                                                               groupmean=groupmean,
+                                                               samplemean=samplemean,
+                                                               base=base,
+                                                               other=other)
         self._RockPy_figure = fig
 
         # set the title: default is the name of the visual
@@ -133,7 +132,6 @@ class Visual(object):
         for feature in self.standard_features:
             self.add_feature(feature=feature)
 
-        self.plot_mean, self.plot_base, self.plot_other = plot_mean, plot_base, plot_other
         self.base_alpha = base_alpha
         self.ignore_samples = ignore_samples
 
@@ -153,7 +151,7 @@ class Visual(object):
         self.ylabel = 'ylabel'
 
     def add_feature(self, feature=None,
-                    feature_input=None, plot_mean=True, plot_base=True, plot_other=True, base_alpha=0.5,
+                    feature_input=None, groupmean=True, samplemean=True, base=True, other=True, base_alpha=0.5,
                     ignore_samples=False,
                     **plt_props):
         """
@@ -162,13 +160,11 @@ class Visual(object):
         """
         new_feature_name = self.add_feature_to_dict(feature=feature)
         self.set_plt_prop(feature_name=new_feature_name, **plt_props)
-        if feature_input:
-            self.features[new_feature_name]['feature_input'].extend(self._add_input_to_plot(
-                plt_input=feature_input, plot_mean=plot_mean, plot_base=plot_base, plot_other=plot_other,
-                base_alpha=base_alpha))
-        self.features[new_feature_name].setdefault('plot_base', plot_base)
-        self.features[new_feature_name].setdefault('plot_mean', plot_mean)
-        self.features[new_feature_name].setdefault('plot_other', plot_other)
+        self.features[new_feature_name]['feature_input'] = RockPy3.core.utils.sort_plt_input(feature_input,
+                                                                                             groupmean=groupmean,
+                                                                                             samplemean=samplemean,
+                                                                                             base=base,
+                                                                                             other=other)
         self.features[new_feature_name].setdefault('ignore_samples', ignore_samples)
 
     def add_feature_to_dict(self, feature=None):
@@ -235,7 +231,7 @@ class Visual(object):
         self.ax.set_xlabel(self.xlabel)
         self.ax.set_ylabel(self.ylabel)
 
-    def add_input(self, visual_input, plot_mean=True, plot_base=True, plot_other=True, base_alpha=0.5,
+    def add_input(self, visual_input, groupmean=True, samplemean=True, base=True, other=True, base_alpha=0.5,
                   ignore_samples=False):
         """
         Parameters
@@ -248,22 +244,16 @@ class Visual(object):
                     The base measurements are not added to the visual_input
         """
 
-        self._visual_input = self._add_input_to_plot(visual_input,
-                                                     plot_mean=plot_mean, plot_base=plot_base, plot_other=plot_other,
-                                                     base_alpha=base_alpha)
-        self.plot_mean = plot_mean
-        self.plot_base = plot_base
-        self.plot_other = plot_other
-        self.ignore_samples = ignore_samples
-        self.base_alpha = base_alpha
+        self._visual_input = RockPy3.core.utils.add_to_plt_input(plt_input=visual_input, to_add_to=self.visual_input,
+                                                             groupmean=groupmean, samplemean=samplemean, base=base, other=other)
 
     def normalize(self, reference='data', ref_dtype='mag', norm_dtypes='all', vval=None,
                   norm_method='max', norm_factor=None, result=None,
                   normalize_variable=False, dont_normalize=None,
                   norm_initial_state=True, **options):
-        # print('visual:', locals())
-        if self.visual_input:
-            for m in self.visual_input:
+
+        for plt_type, mlist in self.visual_input.items():
+            for m in mlist:
                 if isinstance(m, RockPy3.Parameter):
                     continue
                 m.normalize(reference=reference, ref_dtype=ref_dtype, norm_dtypes=norm_dtypes, vval=vval,
@@ -271,93 +261,13 @@ class Visual(object):
                             normalize_variable=normalize_variable, dont_normalize=dont_normalize,
                             norm_initial_state=norm_initial_state, **options)
         for f in self.features:
-            if self.features[f]['feature_input']:
-                for m in self.features[f]['feature_input']:
-                    m.normalize(reference=reference, ref_dtype=ref_dtype, norm_dtypes=norm_dtypes, vval=vval,
-                                norm_method=norm_method, norm_factor=norm_factor, result=result,
-                                normalize_variable=normalize_variable, dont_normalize=dont_normalize,
-                                norm_initial_state=norm_initial_state, **options)
-
-    def _add_input_to_plot(self, plt_input, plot_mean=True, plot_base=True, plot_other=True, base_alpha=0.5):
-        """
-        Takes the input and adds measurements according to the plot_* parameter
-
-
-        +---+---+---+-----------+-----------+------------+
-        | M | B | O | plot_mean | plot_base | plot_others|
-        +===+===+===+===========+===========+============+
-        | M | B | O | True      | True      | True       |
-        +---+---+---+-----------+-----------+------------+
-        | M |   |   | True      | False     | False      |
-        +---+---+---+-----------+-----------+------------+
-        |   | B |   | False     | True      | False      |
-        +---+---+---+-----------+-----------+------------+
-        |   |   | O | False     | False     | True       |
-        +---+---+---+-----------+-----------+------------+
-        | M | B |   | True      | True      | False      |
-        +---+---+---+-----------+-----------+------------+
-        | M |   | O | True      | False     | True       |
-        +---+---+---+-----------+-----------+------------+
-        |   | B | O | False     | True      | True       |
-        +---+---+---+-----------+-----------+------------+
-        |   |   |   | False     | False     | False      |
-        +---+---+---+-----------+-----------+------------+
-        """
-        plt_input = RockPy3.core.utils.to_list(plt_input)
-        mlist = []  # initialize
-        for item in plt_input:
-            # samples and studies may contain more than one measurement
-            if isinstance(item, (RockPy3.RockPyStudy, RockPy3.Sample)):
-                # if none is True -> no measurements are plotted
-                if not plot_mean and not plot_base and not plot_other:
-                    self.log.warning('NO measurements found to be plotted')
-                    continue
-
-                # we dont have to worry about means if they are not supposed to be plotted
-                all_measurements = item.get_measurement()
-
-                # get all mean measurements
-                means = item.get_measurement(mean=True)
-                for mean in means:
-                    mean.set_plt_prop(prop='zorder', value=100)
-
-            if isinstance(item, RockPy3.Measurement):
-                if item.is_mean:
-                    all_measurements, means = [], [item]
-                else:
-                    means, all_measurements = [], [item]
-            # get all base ids for all mean measurements
-            mean_ids = [mid for m in means for mid in m.base_ids]
-
-            # get the measurements for each mean measurement
-            bases = [m for m in all_measurements if m.id in mean_ids]
-
-            # add all measurements that are not base measurements
-            others = [m for m in all_measurements if m not in bases]
-
-            if plot_mean:
-                # add all mean measurements
-                mlist.extend(means)
-                self.log.debug('ADDING {} mean measurements to visual_input'.format(len(means)))
-
-            if plot_base:
-                if plot_mean:
-                    # set alpha of base to base_alpha only if the means are plotted too.
-                    for base in bases:
-                        base.set_plt_prop(prop='alpha', value=base_alpha)
-                # print('base', bases)
-                self.log.debug('ADDING {} base measurements to visual_input'.format(len(bases)))
-                mlist.extend(bases)
-            if plot_other:
-                # add all non mean measurements
-                self.log.debug('ADDING {} measurements to visual_input'.format(len(others)))
-                mlist.extend(others)
-
-        return deepcopy(mlist)
-
-    @property
-    def mids(self):
-        return [m.id for m in self.visual_input['measurement']]
+            for plt_type, mlist in self.features[f]['feature_input'].items():
+                for m in mlist:
+                    for m in self.features[f]['feature_input']:
+                        m.normalize(reference=reference, ref_dtype=ref_dtype, norm_dtypes=norm_dtypes, vval=vval,
+                                    norm_method=norm_method, norm_factor=norm_factor, result=result,
+                                    normalize_variable=normalize_variable, dont_normalize=dont_normalize,
+                                    norm_initial_state=norm_initial_state, **options)
 
     def __call__(self, *args, **kwargs):
         self.add_standard()
@@ -369,14 +279,15 @@ class Visual(object):
     def show_legend(self):
         # if self.legend_options['show']:
         #     return True
-        if any(m.plt_props['label'] != '' for m in self.visual_input):
+        mlist = [m for k, v in self.visual_input.items() for m in v]
+        if any(m.plt_props['label'] != '' for m in mlist):
             return True
         for f in self.features:
-            if any(m.plt_props['label'] != '' for m in self.features[f]['feature_input']):
+            mlist = [m for k, v in self.features[f]['feature_input'].items() for m in v]
+            if any(m.plt_props['label'] != '' for m in mlist):
                 return True
         else:
             return False
-
 
     @property
     def visual_input(self):
@@ -429,7 +340,7 @@ class Visual(object):
     def feature_grid(self, plt_props=None):
         self.ax.grid(**plt_props)
 
-    @plot(single=True, overwrite_mobj_plt_props={'marker':'s', 'color':'k'})
+    @plot(single=True, overwrite_mobj_plt_props={'marker': 's', 'color': 'k'})
     def feature_generic_data(self, plt_props=None):
         RockPy3.Packages.Generic.Features.generic.plot_x_y(ax=self.ax, **plt_props)
 
@@ -463,6 +374,7 @@ class Visual(object):
             for f in self.features:
                 for m in self.features[f]['feature_input']:
                     m.set_plt_prop('label', '')
+
     @property
     def ax(self):
         return self._RockPy_figure.axes[self._plt_index][0]
