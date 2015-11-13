@@ -1,10 +1,12 @@
 import logging
 import itertools
 from copy import deepcopy
+import xml.etree.ElementTree as etree
+
 import RockPy3
 import RockPy3.core.study
 import RockPy3.core.utils
-from functools import partial
+
 
 class Sample(object):
     snum = 0
@@ -359,7 +361,6 @@ class Sample(object):
         :param ignore_series:
         :return:
         """
-        mean_measurements = []
         # separate the different mtypes
         for mtype in self.mdict['mtype']:
             # all measurements with that mtype
@@ -386,14 +387,13 @@ class Sample(object):
                     self.log.warning('MEAN measurement already exists for these measurements:\n\t\t{}'.format(mlist))
                     break
 
-                mean_measurements.append(self.create_mean_measurement(mlist=mlist,
+                self.create_mean_measurement(mlist=mlist,
                                              ignore_series=ignore_series,
                                              interpolate=interpolate, substfunc=substfunc,
                                              reference=reference, ref_dtype=ref_dtype, norm_dtypes=norm_dtypes,
                                              vval=vval,
                                              norm_method=norm_method,
-                                             normalize_variable=normalize_variable, dont_normalize=dont_normalize))
-        return mean_measurements
+                                             normalize_variable=normalize_variable, dont_normalize=dont_normalize)
 
     def create_mean_measurement(self,
                                 mtype=None, stype=None, sval=None, sval_range=None, series=None, invert=False,
@@ -895,10 +895,10 @@ class Sample(object):
         :return:
         """
         if mdict_type == 'mdict':
-            [self._add_m2_mdict(m) for m in self.measurements]
+            map(self._add_m2_mdict, self.measurements)
         if mdict_type == 'mean_mdict':
             add_m2_mean_mdict = partial(self._add_m2_mdict, mdict_type='mean_mdict')
-            [add_m2_mean_mdict(m) for m in self.mean_measurements]
+            map(add_m2_mean_mdict, self.measurements)
 
     def calc_all(self, **parameter):
         for m in self.measurements:
@@ -951,6 +951,26 @@ class Sample(object):
             m.label = ''
         for m in self.mean_measurements:
             m.label = ''
+
+    ####################################################################################################################
+    ''' XML io'''
+
+    @property
+    def etree(self):
+        """
+        Returns the content of the sample as an xml.etree.ElementTree object which can be used to construct xml
+        representation
+
+        Returns
+        -------
+             etree: xml.etree.ElementTree
+        """
+
+        sample_node = etree.Element('sample', attrib={'name': str(self.name), 'id': str(id(self))})
+        for m in self.measurements:
+            sample_node.append(m.etree)
+
+        return sample_node
 
 class MeanSample(Sample):
     MeanSample = 0
