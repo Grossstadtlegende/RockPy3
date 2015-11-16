@@ -231,7 +231,7 @@ class plot(object):
             visual = parameter['self']
 
             # update the plt_props of the feature
-            kwargs.setdefault('plt_props', {})
+            kwargs['plt_props'] = {}
 
             name = kwargs.pop('name', '')
             visual_props = visual.plt_props
@@ -242,24 +242,6 @@ class plot(object):
                 kwargs['plt_props'].update(visual.features[name]['feature_props'])
                 self.plt_single_feature(feature=feature, visual=visual, **kwargs)
                 return wrapped_feature
-
-            if not visual.features[name]['feature_input']:
-                input = 'visual'
-                mlist = visual._visual_input
-            else:
-                input = 'feature'
-                mlist = visual.features[name]['feature_input']
-
-            if input == 'feature':
-                plot_mean = visual.features[name]['plot_mean']
-                plot_base = visual.features[name]['plot_base']
-                base_alpha = visual.features[name]['base_alpha']
-                ignore_samples = visual.features[name]['ignore_samples']
-            if input == 'visual':
-                plot_mean = visual.plot_mean
-                plot_base = visual.plot_base
-                base_alpha = visual.base_alpha
-                ignore_samples = visual.ignore_samples
 
             ############################################################################################################
             # RESULT FEATURES
@@ -350,39 +332,48 @@ class plot(object):
             ############################################################################################################
             # NORMAL FEATURES
             else:
-                kwargs['plt_props'] = {}
-                for mtype in self.mtypes:
-                    if type(mtype)==str:
-                        mtype = (mtype,)
-                    if len(mtype) > 1:
-                        mobj = MlistToTupleList(mlist, mtype)
-                    elif len(mtype) == 1:
-                        mobj = [m for m in mlist if m.mtype == mtype[0]]
-                    else:
-                        visual.log.error(
-                            'FEATURE {} input doesnt match mtype requirements {}'.format(feature.__name__, mtype))
-                    for mt_tuple in mobj:
-                        try:
-                            kwargs['plt_props'].update(mt_tuple[0].plt_props)
-                        except TypeError:
-                            kwargs['plt_props'].update(mt_tuple.plt_props)
+                for indict in [visual._RockPy_figure.fig_input, visual.visual_input, visual.features[name]['feature_input']]:
+                    # print(indict)
+                    for plt_type, mlist in indict.items():
+                        kwargs['plt_props'] = {}
+                        for mtype in self.mtypes:
+                            if type(mtype)==str:
+                                mtype = (mtype,)
+                            if len(mtype) > 1:
+                                mobj = MlistToTupleList(mlist, mtype)
+                            elif len(mtype) == 1:
+                                mobj = [m for m in mlist if m.mtype == mtype[0]]
+                            else:
+                                visual.log.error(
+                                    'FEATURE {} input doesnt match mtype requirements {}'.format(feature.__name__, mtype))
+                            for mt_tuple in mobj:
+                                try:
+                                    kwargs['plt_props'].update(mt_tuple[0].plt_props)
+                                except TypeError:
+                                    kwargs['plt_props'].update(mt_tuple.plt_props)
 
-                        # overwrite the plot properties of the measurement object if specified in the decorator
-                        # e.g. for setting marker = '' in the hysteresis_data feature
-                        if self.overwrite_mobj_plt_props:
-                            kwargs['plt_props'].update(self.overwrite_mobj_plt_props)
-
-                        kwargs['plt_props'].update(visual_props)
-                        kwargs['plt_props'].update(visual.features[name]['feature_props'])
-                        # print('---------------------------')
-                        # print(feature.__name__)
-                        # print('---------------------------')
-                        # print('measurement pops:', mt_tuple.plt_props)
-                        # print('overwrite_props:', self.overwrite_mobj_plt_props)
-                        # print('visual_props:', visual_props)
-                        # print('feature_props:', visual.features[name]['feature_props'])
-                        # print('resulting props:', kwargs['plt_props'])
-                        feature(visual, mobj=mt_tuple, **kwargs)
+                                # overwrite the plot properties of the measurement object if specified in the decorator
+                                # e.g. for setting marker = '' in the hysteresis_data feature
+                                if self.overwrite_mobj_plt_props:
+                                    kwargs['plt_props'].update(self.overwrite_mobj_plt_props)
+                                kwargs['plt_props'].update(visual._RockPy_figure.plt_props)
+                                kwargs['plt_props'].update(visual_props)
+                                kwargs['plt_props'].update(visual.features[name]['feature_props'])
+                                if plt_type == 'base' and (indict['samplemean'] or indict['groupmean']):
+                                    kwargs['plt_props'].setdefault('alpha', 1)
+                                    kwargs['plt_props']['alpha'] = visual._RockPy_figure.base_alpha
+                                    kwargs['plt_props']['alpha'] = visual.base_alpha
+                                    with RockPy3.ignored(KeyError):
+                                        kwargs['plt_props']['alpha'] = visual.features[name]['base_alpha']
+                                # print('---------------------------')
+                                # print(feature.__name__)
+                                # print('---------------------------')
+                                # print('measurement pops:', mt_tuple.plt_props)
+                                # print('overwrite_props:', self.overwrite_mobj_plt_props)
+                                # print('visual_props:', visual_props)
+                                # print('feature_props:', visual.features[name]['feature_props'])
+                                # print('resulting props:', kwargs['plt_props'])
+                                feature(visual, mobj=mt_tuple, **kwargs)
 
         return wrapped_feature
 
@@ -594,6 +585,84 @@ def kwargs_to_calculation_parameter(rpobj=None, mtype_list=None, result=None, **
 
     return calc_params, kwargs
 
+def sort_plt_input(plt_input, groupmean=True, samplemean=True, base= True, other=True):
+    """
+    sorts a inputlist into subcategories
+    :param plt_input:
+    :param groupmean:
+    :param samplemean:
+    :param base:
+    :param other:
+    :return:
+    """
+    out = dict(groupmean=set(), samplemean=set(), base=set(), other=set())
+
+    if not plt_input:
+        return out
+    if not any([groupmean, samplemean, base, other]):
+        raise ValueError('please specify what to plot, choose from: {}'.format(['groupmean', 'samplemean', 'base', 'other']))
+
+    # get all measurements in plt_input
+    mlist, meanlist = mlist_from_plt_input(plt_input)
+    base_ids = set(id for m in meanlist for id in m.base_ids)
+    # mlist = [m for m in mlist if not m.id in base_ids]
+    bases = set()
+    if other:
+        other = set(m for m in mlist if not m.id in base_ids)
+        out['other']=other
+    if groupmean:
+        group_means = set(m for m in meanlist if isinstance(m.sobj, RockPy3.MeanSample))
+        out['groupmean']=group_means
+        bases.update(set(base for m in group_means for base in m.base_measurements))
+
+    if samplemean:
+        sample_means = set(m for m in meanlist if type(m.sobj)== RockPy3.Sample)
+        out['samplemean']=sample_means
+        bases.update(set(base for m in sample_means for base in m.base_measurements))
+
+    if base:
+        if not samplemean and not groupmean:
+            bases = set(base for m in meanlist for base in m.base_measurements if base in mlist or base in meanlist)
+            print(bases)
+        out['base']=bases
+    return deepcopy(out)
+
+def add_to_plt_input(plt_input, to_add_to,  groupmean=True, samplemean=True, base= True, other=True):
+    plt_input = sort_plt_input(plt_input=plt_input, groupmean=groupmean, samplemean=samplemean, base=base, other=other)
+    for k,v in to_add_to.items():
+        to_add_to[k].update(plt_input[k])
+    return to_add_to
+
+def mlist_from_plt_input(plt_input):
+    """
+    takes arbitrary input and separates all measurements.
+
+    explanation:
+        sample - measurement sorted to mlist
+        sample - meanmeasurement sorted to meanlist
+        meansample - measurement sorted to meanlist
+    :param plt_input:
+    :return:
+    """
+    mlist = []
+    meanlist = []
+
+    plt_input = to_list(plt_input)
+
+    for item in plt_input:
+        if isinstance(item, RockPy3.RockPyStudy):
+            plt_input.extend(item.samplelist)
+        if isinstance(item, RockPy3.Sample):
+            mlist.extend(item.measurements)
+            meanlist.extend(item.mean_measurements)
+        if isinstance(item, RockPy3.MeanSample):
+            meanlist.extend(item.measurements)
+        if isinstance(item, RockPy3.Measurement):
+            if item.is_mean:
+                meanlist.append(item)
+            else:
+                mlist.append(item)
+    return mlist, meanlist
 
 def compare_measurement_series(m1, m2):
     """

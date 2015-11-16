@@ -3,21 +3,22 @@ __author__ = 'mike'
 import logging
 import os
 import inspect
-
 import numpy as np
-
 import RockPy3
 import RockPy3.core.utils
-
 import matplotlib.pyplot as plt
 
 
-
-# from RockPy3.core.visual import Visual
+from RockPy3.core.visual import Visual
 
 
 class Figure(object):
-    def __init__(self, title=None, figsize=(5, 5), columns=None, tightlayout=True):  # todo size of figure
+    def __init__(self, title=None, figsize=(5, 5), columns=None, tightlayout=True,
+                 fig_input=None,
+                 groupmean=True, samplemean=True, base=True, other=True,
+                 base_alpha=0.5, ignore_samples=False,
+                 **fig_props
+                 ):
         """
         Container for visuals.
 
@@ -27,6 +28,8 @@ class Figure(object):
               title text written on top of figure
 
         """
+        self.plt_props, self.txt_props, kwargs = Visual.separate_plt_props_from_kwargs(**fig_props)
+
         self.log = logging.getLogger(__name__)
         self.log.info('CREATING new figure')
         self.logged_implemented = False
@@ -39,6 +42,15 @@ class Figure(object):
         self.xsize, self.ysize = figsize
         self._fig = None
         self.title = title
+
+        self.fig_input = RockPy3.core.utils.sort_plt_input(fig_input, groupmean, samplemean, base, other)
+        self.plot_mean, self.plot_base, self.plot_other = samplemean, base, other
+        self.base_alpha = base_alpha
+        self.ignore_samples = ignore_samples
+
+    def add_input(self, fig_input, groupmean=True, samplemean=True, base=True, other=True):
+        self.fig_input = RockPy3.core.utils.add_to_plt_input(plt_input=fig_input, to_add_to=self.fig_input,
+                                                             groupmean=groupmean, samplemean=samplemean, base=base, other=other)
 
     @property
     def visuals(self):

@@ -1,12 +1,10 @@
 import logging
 import itertools
 from copy import deepcopy
-import xml.etree.ElementTree as etree
-
 import RockPy3
 import RockPy3.core.study
 import RockPy3.core.utils
-
+from functools import partial
 
 class Sample(object):
     snum = 0
@@ -136,22 +134,23 @@ class Sample(object):
     def __repr__(self):
         return '<< RockPy3.Sample.{} >>'.format(self.name)
 
-    # def __setstate__(self, d):
-    #     self.__dict__.update(d)
-    #     self._populate_mdict()
-    #
-    # def __getstate__(self):
-    #     """
-    #     returned dict will be pickled
-    #     :return:
-    #     """
-    #     pickle_me = {k: v for k, v in self.__dict__.iteritems() if k in
-    #                  ('comment', '_mean_results', 'results', 'study',
-    #                   '_samplegroups', '_coord', '_mean_mdict', '_rdict',
-    #                   '_mdict', 'raw_measurements', 'name', 'idx',
-    #                   'measurements', 'mean_measurements')
-    #                   }
-    #     return pickle_me
+    def __setstate__(self, d):
+        self.__dict__.update(d)
+        # self._populate_mdict()
+
+    def __getstate__(self):
+        """
+        returned dict will be pickled
+        :return:
+        """
+        pickle_me = {k: v for k, v in self.__dict__.iteritems() if k in
+                     ('comment', '_mean_results', 'results', 'study',
+                      '_samplegroups', '_coord', '_mean_mdict', '_rdict',
+                      '_mdict', 'raw_measurements', 'name', 'idx',
+                      'measurements', 'mean_measurements')
+                      }
+        return pickle_me
+
     ####################################################################################################################
     ''' class methods '''
 
@@ -360,6 +359,7 @@ class Sample(object):
         :param ignore_series:
         :return:
         """
+        mean_measurements = []
         # separate the different mtypes
         for mtype in self.mdict['mtype']:
             # all measurements with that mtype
@@ -384,15 +384,17 @@ class Sample(object):
 
                 if self.mean_measurement_exists(mlist):
                     self.log.warning('MEAN measurement already exists for these measurements:\n\t\t{}'.format(mlist))
+                    mean_measurements.extend(self.mean_measurement_exists(mlist))
                     break
 
-                self.create_mean_measurement(mlist=mlist,
+                mean_measurements.append(self.create_mean_measurement(mlist=mlist,
                                              ignore_series=ignore_series,
                                              interpolate=interpolate, substfunc=substfunc,
                                              reference=reference, ref_dtype=ref_dtype, norm_dtypes=norm_dtypes,
                                              vval=vval,
                                              norm_method=norm_method,
-                                             normalize_variable=normalize_variable, dont_normalize=dont_normalize)
+                                             normalize_variable=normalize_variable, dont_normalize=dont_normalize))
+        return mean_measurements
 
     def create_mean_measurement(self,
                                 mtype=None, stype=None, sval=None, sval_range=None, series=None, invert=False,
@@ -507,9 +509,14 @@ class Sample(object):
         """
         if not self.mean_measurements:
             return False
-        id_list = [m.id for m in mlist]
-        return True if any(all(id in id_list for id in mean.base_ids)
-                           for mean in self.mean_measurements) else False
+        id_list = set(m.id for m in mlist)
+        for mean in self.mean_measurements:
+            print(mlist)
+            print(mean.base_measurements)
+            print(set(mean.base_ids), id_list)
+        mean = [mean for mean in self.mean_measurements if set(mean.base_ids) == id_list]
+        print(mean)
+        return mean if mean else False
 
     def add_to_samplegroup(self, gname):
         if gname not in self._samplegroups:
@@ -894,10 +901,10 @@ class Sample(object):
         :return:
         """
         if mdict_type == 'mdict':
-            map(self._add_m2_mdict, self.measurements)
+            [self._add_m2_mdict(m) for m in self.measurements]
         if mdict_type == 'mean_mdict':
             add_m2_mean_mdict = partial(self._add_m2_mdict, mdict_type='mean_mdict')
-            map(add_m2_mean_mdict, self.measurements)
+            [add_m2_mean_mdict(m) for m in self.mean_measurements]
 
     def calc_all(self, **parameter):
         for m in self.measurements:
@@ -976,3 +983,50 @@ class Sample(object):
             sample_node.append(m.etree)
 
         return sample_node
+
+class MeanSample(Sample):
+    MeanSample = 0
+    def __init__(self, name, coord=None,
+                 results_from_mean_data=False,
+                 study = None,
+                 **options):
+        """
+        Parameters
+        ----------
+           name: str
+              name of the sample.
+           coord: str
+              coordinate system
+              can be 'core', 'geo' or 'bed'
+          results_from_mean_data: bool
+            if True: the results will be calculated from the mean data
+            if False: the results will be the mean of the results for each measurement
+        """
+        self.name = name
+        # coordinate system
+        self._coord = coord
+
+        RockPy3.logger.info('CREATING\t MEAN-sample << %s >>' % self.name)
+
+        self.base_measurements = []
+        self.measurements = []
+        self.results = None
+        self.results_from_mean_data = results_from_mean_data
+
+        ''' is sample is a mean sample from sample_goup ect... '''
+        self.mean_measurements = []
+        self._mean_results = None
+
+        # dictionaries
+        self._mdict = self._create_mdict()
+        self._mean_mdict = self._create_mdict()
+        self._rdict = self._create_mdict()
+
+        self.index = MeanSample.snum
+        self._samplegroups = []
+        self.study = RockPy3.Study
+        self.idx = MeanSample.snum
+        MeanSample.snum += 1
+
+    def __repr__(self):
+        return '<< RockPy.MeanSample.{} >>'.format(self.name)
