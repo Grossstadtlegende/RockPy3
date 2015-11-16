@@ -60,7 +60,7 @@ def getgitrevision():
         return
     rev = stdout.strip()
     logger.debug("got revision %s from git" % rev)
-    return rev
+    return str(rev)
 
 
 def storegitrevision(revision=""):

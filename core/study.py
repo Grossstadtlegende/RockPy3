@@ -398,16 +398,17 @@ class Study(object):
         if not file_name:
             import time
             file_name = '_'.join([time.strftime("%Y%m%d"), 'RockPy', self.name,
-                                  '[{}]SG_[{}]S'.format(len(self._samplegroups), len(self.samples)), '.rpy.xml'])
+                                  '[{}]SG_[{}]S'.format(len(self.groupnames), len(self.samplelist))]) + '.rpy.xml'
         if not folder:
-            folder = RockPy.core.file_operations.default_folder
-        RockPy.logger.info('SAVING RockPy data as XML to {}'.format(os.path.join(folder, file_name)))
+            folder = RockPy3.core.file_operations.default_folder
+        RockPy3.logger.info('SAVING RockPy data as XML to {}'.format(os.path.join(folder, file_name)))
 
         # create root node that contains studies
-        root = etree.Element(tag='rockpy', attrib={'rockpy_revision': RockPy.rev, 'rockpy_file_version': '0.1'})
+        root = etree.Element('rockpy', attrib={'rockpy_revision': RockPy3.rev, 'rockpy_file_version': '0.1'})
         # append etree from this study to the root element
         root.append(self.etree)
         et = etree.ElementTree(root)
+
         et.write(os.path.join(folder, file_name))
 
 

@@ -1884,6 +1884,14 @@ class Measurement(object):
 
         measurement_node = etree.Element('measurement', attrib={'mtype': str(self.mtype)})
 
+        # store data dictionary
+        for name, data in self.data.items():
+            de = etree.SubElement( measurement_node, 'data', attrib={'name': name})
+            if data is not None:
+                det = data.etree
+                det.attrib['name'] = name
+                measurement_node.append(det)
+
         return measurement_node
 
 
