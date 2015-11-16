@@ -5,6 +5,7 @@ import RockPy3
 import RockPy3.core.study
 import RockPy3.core.utils
 from functools import partial
+import xml.etree.ElementTree as etree
 
 class Sample(object):
     snum = 0
