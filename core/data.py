@@ -1522,12 +1522,12 @@ class RockPyData(object):
              etree: xml.etree.ElementTree
         """
 
-        datatable_node = etree.Element(tag='datatable', attrib={})
-        columnames_node = etree.SubElement(datatable_node, tag='columnnames', attrib={})
+        datatable_node = etree.Element('datatable', attrib={})
+        columnames_node = etree.SubElement(datatable_node, 'columnnames', attrib={})
         for cn in self.column_names:
-            etree.SubElement(columnames_node, tag='columnname').text = cn
+            etree.SubElement(columnames_node, 'columnname').text = cn
 
-        datarows_node = etree.SubElement(datatable_node, tag='datarows', attrib={})
+        datarows_node = etree.SubElement(datatable_node, 'datarows', attrib={})
 
         for rc in range(self.row_count):
             try:
@@ -1536,10 +1536,10 @@ class RockPyData(object):
                 rowname = ''
                 pass
 
-            datarow_node = etree.SubElement(datarows_node, tag='datarow', attrib={'rowname': rowname})
+            datarow_node = etree.SubElement(datarows_node, 'datarow', attrib={'rowname': rowname})
             for data in self.d[rc]:
-                datapt_node = etree.SubElement(datarow_node, tag='datapt')
-                etree.SubElement(datapt_node, tag='value').text = str(data[0])
-                etree.SubElement(datapt_node, tag='error').text = str(data[1])
+                datapt_node = etree.SubElement(datarow_node, 'datapt')
+                etree.SubElement(datapt_node, 'value').text = str(data[0])
+                etree.SubElement(datapt_node, 'error').text = str(data[1])
 
         return datatable_node

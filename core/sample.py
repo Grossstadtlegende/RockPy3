@@ -975,6 +975,12 @@ class Sample(object):
         """
 
         sample_node = etree.Element('sample', attrib={'name': str(self.name), 'id': str(id(self))})
+
+        # add list of samplegroups
+        for sg in self._samplegroups:
+            etree.SubElement(sample_node, 'samplegroup').text=sg
+
+        # add list of measurements
         for m in self.measurements:
             sample_node.append(m.etree)
 
