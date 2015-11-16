@@ -308,7 +308,10 @@ class Sample(object):
         if mobj not in self.measurements:
                     self.measurements.append(mobj)
                     self.raw_measurements.append(deepcopy(mobj))
-                    self._add_m2_mdict(mobj)
+                    if mobj.is_mean:
+                        self._add_m2_mdict(mobj, mdict_type='mean_mdict')
+                    else:
+                        self._add_m2_mdict(mobj)
 
     def add_simulation(self, mtype, idx=None, **sim_param):
         """
@@ -363,7 +366,7 @@ class Sample(object):
         # separate the different mtypes
         for mtype in self.mdict['mtype']:
             # all measurements with that mtype
-            measurements = self.mdict['mtype'][mtype]
+            measurements = self.get_measurement(mtype=mtype, mean=False)#self.mdict['mtype'][mtype]
             # use first measurement as template to check for series
             while measurements:
                 m = measurements[0]
@@ -482,14 +485,14 @@ class Sample(object):
 
         if len(mlist) == 1:
             self.log.warning('Only one measurement found returning measurement')
-            # add to self.mean_measurements if specified
-            if not create_only:
-                mlist[0].base_measurements = mlist
-                self.mean_measurements.append(mlist[0])
-                self._add_m2_mdict(mobj=mlist[0], mdict_type='mean_mdict')
-            return mlist[0]
+            # # add to self.mean_measurements if specified
+            # if not create_only:
+            #     mlist[0].base_measurements = mlist
+            #     self.mean_measurements.append(mlist[0])
+            #     self._add_m2_mdict(mobj=mlist[0], mdict_type='mean_mdict')
+            # return mlist[0]
 
-        mlist = [m for m in mlist]  # create deepcopies
+        # mlist = [m for m in mlist]  # create deepcopies
 
         # create mean measurement from a alist of measurements
         mean = RockPy3.implemented_measurements[mtype].from_measurements_create_mean(
@@ -510,12 +513,7 @@ class Sample(object):
         if not self.mean_measurements:
             return False
         id_list = set(m.id for m in mlist)
-        for mean in self.mean_measurements:
-            print(mlist)
-            print(mean.base_measurements)
-            print(set(mean.base_ids), id_list)
         mean = [mean for mean in self.mean_measurements if set(mean.base_ids) == id_list]
-        print(mean)
         return mean if mean else False
 
     def add_to_samplegroup(self, gname):
@@ -684,6 +682,7 @@ class Sample(object):
             both M1 and M2 have [temperature, 100.0, C].
 
         """#todo fix search for only series
+
         if id:
             id = RockPy3.core.utils.to_list(id)
             if not invert:
@@ -748,6 +747,8 @@ class Sample(object):
         # invert list to contain only measurements that do not meet criteria
         if invert:
             out = [i for i in mdict['measurements'] if not i in out]
+
+
         return out
 
     ####################################################################################################################
@@ -901,6 +902,7 @@ class Sample(object):
         :return:
         """
         if mdict_type == 'mdict':
+            # var = lambda x: self._add_m2_mdict(x), self.measurements
             [self._add_m2_mdict(m) for m in self.measurements]
         if mdict_type == 'mean_mdict':
             add_m2_mean_mdict = partial(self._add_m2_mdict, mdict_type='mean_mdict')

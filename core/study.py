@@ -58,7 +58,7 @@ class Study(object):
             return '<< RockPy3.Study.{} >>'.format(self.name)
 
     def __getitem__(self, item):
-        if item in self._samples:
+        if item in self.samplenames:
             return self._samples[item]
         elif item in self.groupnames:
             return self.get_sample(gname=item)

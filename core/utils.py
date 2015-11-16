@@ -258,75 +258,80 @@ class plot(object):
                                   False: the mean for each individual sample is plotted
 
                 """
-                # get rid of measurements without result and series
-                mlist = [m for m in mlist if m.has_result(visual.result) if m.get_series(stype=visual.series)]
-                if not mlist:
-                    raise IndexError(
-                        'ZERO measurements found to calculate a result from. Check for input and if the series exists')
+                for indict in [visual._RockPy_figure.fig_input, visual.visual_input, visual.features[name]['feature_input']]:
+                        for plt_type, mlist in indict.items():
 
-                # seaparate list into separate lists for each sample
-                if not ignore_samples:
-                    samples = set(m.sobj.name for m in mlist)
-                    mlists = [[m for m in mlist if m.sobj.name == sname] for sname in samples]
-                else:
-                    mlists = [mlist]
+                            # get rid of measurements without result and series
+                            mlist = [m for m in mlist if m.has_result(visual.result) if m.get_series(stype=visual.series)]
+                            if not mlist:
+                                raise IndexError(
+                                    'ZERO measurements found to calculate a result from. Check for input and if the series exists')
 
-                for mlist in mlists:
-                    data = RockPy3.Data(column_names=[visual.series, visual.result], row_names=[])
-                    # calculate the results and get the series for all measurements
-                    for m in mlist:
-                        sval = m.get_series(visual.series)[0].v
-                        res = getattr(m, 'result_' + visual.result)(**visual.calculation_parameter)
-                        d = RockPy3.Data(data=[sval, res[0]],
-                                         column_names=[visual.series, visual.result],
-                                         row_names='{}({})'.format(m.sobj.name, m.id))
-                        data = data.append_rows(data=d)
 
-                        # plot each individual result, append them to data
-                        if plot_base:
-                            kwargs['plt_props'] = deepcopy(m.plt_props)
-                            # overwrite the plot properties of the measurement object if specified in the decorator
-                            # e.g. for setting marker = '' in the hysteresis_data feature
-                            if self.overwrite_mobj_plt_props:
-                                kwargs['plt_props'].update(self.overwrite_mobj_plt_props)
+                            # feature(visual, data=d, **kwargs)
 
-                            if input == 'visual' and visual.plot_mean:
-                                kwargs['plt_props'].update({'alpha': visual.base_alpha})
-                            if input == 'feature' and visual.features[name]['plot_mean']:
-                                kwargs['plt_props'].update({'alpha', visual.feature[name]['base_alpha']})
-
-                            kwargs['plt_props'].update(visual_props)
-                            kwargs['plt_props'].update(visual.features[name]['feature_props'])
-                            # print('---------------------------')
-                            # print(feature.__name__)
-                            # print('---------------------------')
-                            # print('plot_base: m:', kwargs['plt_props'])
-                            # print('plot_base: overwrite:', kwargs['plt_props'])
-                            # print('plot_base: visual:', kwargs['plt_props'])
-                            # print('plot_base: feature:', kwargs['plt_props'])
-                            feature(visual, data=d, **kwargs)
-
-                    if plot_mean:
-                        # print('mean')
-                        data = data.eliminate_duplicate_variable_rows(substfunc='mean').sort()
-                        kwargs['plt_props'] = {}
-                        kwargs['plt_props'].update(mlist[0].plt_props)
-                        # overwrite the plot properties of the measurement object if specified in the decorator
-                        # e.g. for setting marker = '' in the hysteresis_data feature
-                        if self.overwrite_mobj_plt_props:
-                            kwargs['plt_props'].update(self.overwrite_mobj_plt_props)
-                        kwargs['plt_props'].update(visual_props)
-                        kwargs['plt_props'].update(visual.features[name]['feature_props'])
-                        kwargs['plt_props'].update({'alpha': 1, 'zorder': 100})
-                        # print('---------------------------')
-                        # print(feature.__name__)
-                        # print('---------------------------')
-                        # print('plot_base: m:', kwargs['plt_props'])
-                        # print('plot_base: overwrite:', kwargs['plt_props'])
-                        # print('plot_base: visual:', kwargs['plt_props'])
-                        # print('plot_base: feature:', kwargs['plt_props'])
-
-                        feature(visual, data=data, **kwargs)
+                    # # seaparate list into separate lists for each sample
+                    # if not ignore_samples:
+                    #     samples = set(m.sobj.name for m in mlist)
+                    #     mlists = [[m for m in mlist if m.sobj.name == sname] for sname in samples]
+                    # else:
+                    #     mlists = [mlist]
+                    #
+                    # for mlist in mlists:
+                    #     data = RockPy3.Data(column_names=[visual.series, visual.result], row_names=[])
+                    #     # calculate the results and get the series for all measurements
+                    #     for m in mlist:
+                    #         sval = m.get_series(visual.series)[0].v
+                    #         res = getattr(m, 'result_' + visual.result)(**visual.calculation_parameter)
+                    #         d = RockPy3.Data(data=[sval, res[0]],
+                    #                          column_names=[visual.series, visual.result],
+                    #                          row_names='{}({})'.format(m.sobj.name, m.id))
+                    #         data = data.append_rows(data=d)
+                    #
+                    #         # plot each individual result, append them to data
+                    #         if plot_base:
+                    #             kwargs['plt_props'] = deepcopy(m.plt_props)
+                    #             # overwrite the plot properties of the measurement object if specified in the decorator
+                    #             # e.g. for setting marker = '' in the hysteresis_data feature
+                    #             if self.overwrite_mobj_plt_props:
+                    #                 kwargs['plt_props'].update(self.overwrite_mobj_plt_props)
+                    #
+                    #             if input == 'visual' and visual.plot_mean:
+                    #                 kwargs['plt_props'].update({'alpha': visual.base_alpha})
+                    #             if input == 'feature' and visual.features[name]['plot_mean']:
+                    #                 kwargs['plt_props'].update({'alpha', visual.feature[name]['base_alpha']})
+                    #
+                    #             kwargs['plt_props'].update(visual_props)
+                    #             kwargs['plt_props'].update(visual.features[name]['feature_props'])
+                    #             # print('---------------------------')
+                    #             # print(feature.__name__)
+                    #             # print('---------------------------')
+                    #             # print('plot_base: m:', kwargs['plt_props'])
+                    #             # print('plot_base: overwrite:', kwargs['plt_props'])
+                    #             # print('plot_base: visual:', kwargs['plt_props'])
+                    #             # print('plot_base: feature:', kwargs['plt_props'])
+                    #
+                    # if plot_mean:
+                    #     # print('mean')
+                    #     data = data.eliminate_duplicate_variable_rows(substfunc='mean').sort()
+                    #     kwargs['plt_props'] = {}
+                    #     kwargs['plt_props'].update(mlist[0].plt_props)
+                    #     # overwrite the plot properties of the measurement object if specified in the decorator
+                    #     # e.g. for setting marker = '' in the hysteresis_data feature
+                    #     if self.overwrite_mobj_plt_props:
+                    #         kwargs['plt_props'].update(self.overwrite_mobj_plt_props)
+                    #     kwargs['plt_props'].update(visual_props)
+                    #     kwargs['plt_props'].update(visual.features[name]['feature_props'])
+                    #     kwargs['plt_props'].update({'alpha': 1, 'zorder': 100})
+                    #     # print('---------------------------')
+                    #     # print(feature.__name__)
+                    #     # print('---------------------------')
+                    #     # print('plot_base: m:', kwargs['plt_props'])
+                    #     # print('plot_base: overwrite:', kwargs['plt_props'])
+                    #     # print('plot_base: visual:', kwargs['plt_props'])
+                    #     # print('plot_base: feature:', kwargs['plt_props'])
+                    #
+                    #     feature(visual, data=data, **kwargs)
                 return wrapped_feature
 
             ############################################################################################################
@@ -623,7 +628,6 @@ def sort_plt_input(plt_input, groupmean=True, samplemean=True, base= True, other
     if base:
         if not samplemean and not groupmean:
             bases = set(base for m in meanlist for base in m.base_measurements if base in mlist or base in meanlist)
-            print(bases)
         out['base']=bases
     return deepcopy(out)
 

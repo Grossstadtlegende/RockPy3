@@ -477,7 +477,6 @@ class Measurement(object):
         """
         # convert to single measurement
         mlist = RockPy3.core.utils.to_list(mlist)
-
         if any(m.mtype != cls.__name__.lower() for m in mlist):
             cls.log.error('Some measurements have wrong mtype. They will be ignored')
             mlist = [m for m in mlist if m.mtype == cls.__name__.lower()]
@@ -485,24 +484,28 @@ class Measurement(object):
         # use first measurement as base
         dtypes = RockPy3.core.utils.get_common_dtypes_from_list(mlist=mlist)
 
-        mdata = {}
+        if len(mlist) == 1:
+            mdata = deepcopy(mlist[0].data)
 
-        for dtype in dtypes:  # cycle through all dtypes e.g. 'down_field', 'up_field' for hysteresis
-            mdata.setdefault(dtype)
-            dtype_list = [m.data[dtype] for m in mlist if m.data[dtype]]  # get all data for dtype in one list
-            if dtype_list:
-                if interpolate:
-                    varlist = cls._get_variable_list(rpdata_list=dtype_list)
-                    if len(varlist) > 1:
-                        dtype_list = [m.interpolate(varlist) for m in dtype_list]
+        else:
+            mdata = {}
 
-            if len(dtype_list) > 1:  # for single measurements
-                mdata[dtype] = RockPy3.condense(dtype_list, substfunc=substfunc)
-                mdata[dtype] = mdata[dtype].sort('variable')
+            for dtype in dtypes:  # cycle through all dtypes e.g. 'down_field', 'up_field' for hysteresis
+                mdata.setdefault(dtype)
+                dtype_list = [m.data[dtype] for m in mlist if m.data[dtype]]  # get all data for dtype in one list
+                if dtype_list:
+                    if interpolate:
+                        varlist = cls._get_variable_list(rpdata_list=dtype_list)
+                        if len(varlist) > 1:
+                            dtype_list = [m.interpolate(varlist) for m in dtype_list]
 
-            if recalc_mag:
-                mdata[dtype].define_alias('m', ('x', 'y', 'z'))
-                mdata[dtype]['mag'].v = mdata[dtype].magnitude('m')
+                if len(dtype_list) > 1:  # for single measurements
+                    mdata[dtype] = RockPy3.condense(dtype_list, substfunc=substfunc)
+                    mdata[dtype] = mdata[dtype].sort('variable')
+
+                if recalc_mag:
+                    mdata[dtype].define_alias('m', ('x', 'y', 'z'))
+                    mdata[dtype]['mag'].v = mdata[dtype].magnitude('m')
 
         ################################################################################################################
         # initial state
@@ -1333,7 +1336,8 @@ class Measurement(object):
                 self._add_sval_to_results(sobj)
 
             # add the measurement to the mdict of the sobj
-            self.sobj._add_series2_mdict(series=sobj, mobj=self)
+            if not self.is_mean:
+                self.sobj._add_series2_mdict(series=sobj, mobj=self)
         return series
 
     def _add_sval_to_data(self, sobj):
