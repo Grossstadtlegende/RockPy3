@@ -333,7 +333,7 @@ class plot(object):
             # NORMAL FEATURES
             else:
                 for indict in [visual._RockPy_figure.fig_input, visual.visual_input, visual.features[name]['feature_input']]:
-                    print(indict)
+                    # print(indict)
                     for plt_type, mlist in indict.items():
                         kwargs['plt_props'] = {}
                         for mtype in self.mtypes:

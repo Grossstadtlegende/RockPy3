@@ -1,12 +1,10 @@
 import logging
 import itertools
 from copy import deepcopy
-import xml.etree.ElementTree as etree
-
 import RockPy3
 import RockPy3.core.study
 import RockPy3.core.utils
-
+from functools import partial
 
 class Sample(object):
     snum = 0
@@ -361,6 +359,7 @@ class Sample(object):
         :param ignore_series:
         :return:
         """
+        mean_measurements = []
         # separate the different mtypes
         for mtype in self.mdict['mtype']:
             # all measurements with that mtype
@@ -385,15 +384,17 @@ class Sample(object):
 
                 if self.mean_measurement_exists(mlist):
                     self.log.warning('MEAN measurement already exists for these measurements:\n\t\t{}'.format(mlist))
+                    mean_measurements.extend(self.mean_measurement_exists(mlist))
                     break
 
-                self.create_mean_measurement(mlist=mlist,
+                mean_measurements.append(self.create_mean_measurement(mlist=mlist,
                                              ignore_series=ignore_series,
                                              interpolate=interpolate, substfunc=substfunc,
                                              reference=reference, ref_dtype=ref_dtype, norm_dtypes=norm_dtypes,
                                              vval=vval,
                                              norm_method=norm_method,
-                                             normalize_variable=normalize_variable, dont_normalize=dont_normalize)
+                                             normalize_variable=normalize_variable, dont_normalize=dont_normalize))
+        return mean_measurements
 
     def create_mean_measurement(self,
                                 mtype=None, stype=None, sval=None, sval_range=None, series=None, invert=False,
@@ -508,9 +509,14 @@ class Sample(object):
         """
         if not self.mean_measurements:
             return False
-        id_list = [m.id for m in mlist]
-        return True if any(all(id in id_list for id in mean.base_ids)
-                           for mean in self.mean_measurements) else False
+        id_list = set(m.id for m in mlist)
+        for mean in self.mean_measurements:
+            print(mlist)
+            print(mean.base_measurements)
+            print(set(mean.base_ids), id_list)
+        mean = [mean for mean in self.mean_measurements if set(mean.base_ids) == id_list]
+        print(mean)
+        return mean if mean else False
 
     def add_to_samplegroup(self, gname):
         if gname not in self._samplegroups:
@@ -895,10 +901,10 @@ class Sample(object):
         :return:
         """
         if mdict_type == 'mdict':
-            map(self._add_m2_mdict, self.measurements)
+            [self._add_m2_mdict(m) for m in self.measurements]
         if mdict_type == 'mean_mdict':
             add_m2_mean_mdict = partial(self._add_m2_mdict, mdict_type='mean_mdict')
-            map(add_m2_mean_mdict, self.measurements)
+            [add_m2_mean_mdict(m) for m in self.mean_measurements]
 
     def calc_all(self, **parameter):
         for m in self.measurements:
