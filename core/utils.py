@@ -258,17 +258,25 @@ class plot(object):
                                   False: the mean for each individual sample is plotted
 
                 """
-                for indict in [visual._RockPy_figure.fig_input, visual.visual_input, visual.features[name]['feature_input']]:
-                        for plt_type, mlist in indict.items():
+                for i, indict in enumerate([visual._RockPy_figure.fig_input, visual.visual_input, visual.features[name]['feature_input']]):
+                    type = [('figure', visual._RockPy_figure), ('visual', visual), ('feature', visual.features[name])][i]
+                    for plt_type, mlist in indict.items():
+                        if not mlist:
+                            break
 
-                            # get rid of measurements without result and series
-                            mlist = [m for m in mlist if m.has_result(visual.result) if m.get_series(stype=visual.series)]
-                            if not mlist:
-                                raise IndexError(
-                                    'ZERO measurements found to calculate a result from. Check for input and if the series exists')
-
-
-                            # feature(visual, data=d, **kwargs)
+                        # get rid of measurements without result and series
+                        mlist = [m for m in mlist if m.has_result(visual.result) if m.get_series(stype=visual.series)]
+                        print(type[1].ignore_samples)
+                        # # seaparate list into separate lists for each sample
+                        # if not ignore_samples:
+                        #     samples = set(m.sobj.name for m in mlist)
+                        #     mlists = [[m for m in mlist if m.sobj.name == sname] for sname in samples]
+                        # else:
+                        #     mlists = [mlist]
+                        #
+                        # for mlist in mlists:
+                        #     data = RockPy3.Data(column_names=[visual.series, visual.result], row_names=[])
+                        #     # feature(visual, data=d, **kwargs)
 
                     # # seaparate list into separate lists for each sample
                     # if not ignore_samples:
