@@ -518,6 +518,7 @@ class Sample(object):
         return mean if mean else False
 
     def add_to_samplegroup(self, gname):
+        gname = str(gname)
         if gname not in self._samplegroups:
             self.log.debug('ADDING {} to samplegroup {}'.format(self.name, gname))
             self._samplegroups.append(gname)
@@ -983,6 +984,9 @@ class Sample(object):
 
         # add list of measurements
         for m in self.measurements:
+            sample_node.append(m.etree)
+
+        for m in self.mean_measurements:
             sample_node.append(m.etree)
 
         return sample_node

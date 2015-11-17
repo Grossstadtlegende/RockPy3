@@ -1522,12 +1522,24 @@ class RockPyData(object):
              etree: xml.etree.ElementTree
         """
 
-        datatable_node = etree.Element('datatable', attrib={})
+        datatable_node = etree.Element('rockpydata', attrib={})
+
+        # store column names
         columnames_node = etree.SubElement(datatable_node, 'columnnames', attrib={})
         for cn in self.column_names:
             etree.SubElement(columnames_node, 'columnname').text = cn
 
+
+        # store _column_dict to preserve aliases
+        column_dict_node = etree.SubElement(datatable_node, 'column_dict', attrib={})
+        for name, colindices in self._column_dict.items():
+            column_dict_entry_node = etree.SubElement(column_dict_node, 'column_dict_entry', attrib={name: name})
+            for idx in colindices:
+                etree.SubElement(column_dict_entry_node, 'cidx', attrib={}).text = str(idx)
+
+        # store all rows
         datarows_node = etree.SubElement(datatable_node, 'datarows', attrib={})
+
 
         for rc in range(self.row_count):
             try:
