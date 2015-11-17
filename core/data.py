@@ -188,11 +188,27 @@ class RockPyData(object):
 
         if datarows_node is not None:
             for datarow_node in datarows_node:
-                d.append_rows(data=data, rownames=datarow_node.attrib[cls.ROWNAME])
+                rd = []
+                for datapt_node in datarow_node:
+                    rd.append( [float(datapt_node.find(cls.VALUE).text), float(datapt_node.find(cls.ERROR).text)])
+                rn = datarow_node.attrib[cls.ROWNAME]
+                if rn == "":
+                    rn = None
+                d = d.append_rows(data=[rd], row_names=rn)
 
 
         # restore column_dict
         column_dict_node = et_element.find(cls.COLUMN_DICT)
+
+        cdict = {}
+        for column_dict_entry in column_dict_node:
+            clist = []
+            for cidx in column_dict_entry:
+                clist.append( int(cidx.text))
+
+            cdict[column_dict_entry.attrib['name']] = tuple(clist)
+
+        d._column_dict = cdict
 
         return d
 
@@ -468,8 +484,8 @@ class RockPyData(object):
 
         # if alias 'variable' was redefined, automatically update 'dep_var' alias to all other columns
         if alias_name == 'variable':
-            self._column_dict['dep_var'] = [i for i in range(self.column_count) if
-                                            i not in self._keyseq2colseq('variable')]
+            self._column_dict['dep_var'] = tuple([i for i in range(self.column_count) if
+                                            i not in self._keyseq2colseq('variable')])
 
     def append_columns(self, column_names, data=None):
         """
@@ -624,12 +640,12 @@ class RockPyData(object):
         row_names = _to_tuple(row_names)
 
         if row_names[0] is not None and data.shape[0] != len(row_names):
-            raise RuntimeError('number of rows in data does not match number row names given')
-
-
+            raise RuntimeError('number of rows ({}) in data does not match number row names ({}) given'.format(data.shape[0], len(row_names)))
 
         # todo check if row names are unique
         if row_names[0] is not None:
+            if self_copy.row_names is None and self_copy.row_count == 0:
+                self_copy._row_names = []
             self_copy.row_names.extend(row_names)  # add one or more row names
 
         if self_copy._data is None:
