@@ -85,6 +85,23 @@ class RockPyData(object):
        alias: only used for alias
     """
 
+    # declare xml tags
+    ROCKPYDATA = 'rockpydata'
+    COLUMNNAMES = 'columnnames'
+    COLUMNNAME = 'columnname'
+    COLUMN_DICT = 'column_dict'
+    COLUMN_DICT_ENTRY = 'column_dict_entry'
+    CIDX = 'cidx'
+    DATAROWS = 'datarows'
+    DATAROW = 'datarow'
+    DATAPT = 'datapt'
+    VALUE = 'value'
+    ERROR = 'error'
+
+    # declare xml attributes
+    ROWNAME = 'rowname'
+
+
     @staticmethod
     def _convert_to_2D(input, column=False):
         """
@@ -146,11 +163,36 @@ class RockPyData(object):
         return data
 
     @classmethod
-    def create_from_etree(cls, etree):
+    def from_etree(cls, et_element):
         """
             create and return an instance of this class with data read from an xml etree instance
         """
-        d = cls()
+        if et_element.tag != cls.ROCKPYDATA:
+            RockPy3.logger.error('XML Import: Need {} node to construct object.'.format(cls.ROCKPYDATA))
+            return None
+
+        columnnames_node = et_element.find(cls.COLUMNNAMES)
+        if columnnames_node is None or len(columnnames_node) == 0:
+            RockPy3.logger.error('XML Import: No column names found.')
+            return None
+
+        columnnames = []
+        for columnname_node in columnnames_node:
+            columnnames.append(columnname_node.text)
+
+        # create empty rockpydata instance
+        d = cls(columnnames)
+
+        # readin data rows
+        datarows_node = et_element.find(cls.DATAROWS)
+
+        if datarows_node is not None:
+            for datarow_node in datarows_node:
+                d.append_rows(data=data, rownames=datarow_node.attrib[cls.ROWNAME])
+
+
+        # restore column_dict
+        column_dict_node = et_element.find(cls.COLUMN_DICT)
 
         return d
 
@@ -1522,23 +1564,23 @@ class RockPyData(object):
              etree: xml.etree.ElementTree
         """
 
-        datatable_node = etree.Element('rockpydata', attrib={})
+        datatable_node = etree.Element(type(self).ROCKPYDATA, attrib={})
 
         # store column names
-        columnames_node = etree.SubElement(datatable_node, 'columnnames', attrib={})
+        columnames_node = etree.SubElement(datatable_node, type(self).COLUMNNAMES, attrib={})
         for cn in self.column_names:
-            etree.SubElement(columnames_node, 'columnname').text = cn
+            etree.SubElement(columnames_node, type(self).COLUMNNAME).text = cn
 
 
         # store _column_dict to preserve aliases
-        column_dict_node = etree.SubElement(datatable_node, 'column_dict', attrib={})
+        column_dict_node = etree.SubElement(datatable_node, type(self).COLUMN_DICT, attrib={})
         for name, colindices in self._column_dict.items():
-            column_dict_entry_node = etree.SubElement(column_dict_node, 'column_dict_entry', attrib={name: name})
+            column_dict_entry_node = etree.SubElement(column_dict_node, type(self).COLUMN_DICT_ENTRY, attrib={'name': name})
             for idx in colindices:
-                etree.SubElement(column_dict_entry_node, 'cidx', attrib={}).text = str(idx)
+                etree.SubElement(column_dict_entry_node, type(self).CIDX, attrib={}).text = str(idx)
 
         # store all rows
-        datarows_node = etree.SubElement(datatable_node, 'datarows', attrib={})
+        datarows_node = etree.SubElement(datatable_node, type(self).DATAROWS, attrib={})
 
 
         for rc in range(self.row_count):
@@ -1548,10 +1590,10 @@ class RockPyData(object):
                 rowname = ''
                 pass
 
-            datarow_node = etree.SubElement(datarows_node, 'datarow', attrib={'rowname': rowname})
+            datarow_node = etree.SubElement(datarows_node, type(self).DATAROW, attrib={'rowname': rowname})
             for data in self.d[rc]:
-                datapt_node = etree.SubElement(datarow_node, 'datapt')
-                etree.SubElement(datapt_node, 'value').text = str(data[0])
-                etree.SubElement(datapt_node, 'error').text = str(data[1])
+                datapt_node = etree.SubElement(datarow_node, type(self).DATAPT)
+                etree.SubElement(datapt_node, type(self).VALUE).text = str(data[0])
+                etree.SubElement(datapt_node, type(self).ERROR).text = str(data[1])
 
         return datatable_node
