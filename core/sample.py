@@ -986,6 +986,9 @@ class Sample(object):
         for m in self.measurements:
             sample_node.append(m.etree)
 
+        for m in self.mean_measurements:
+            sample_node.append(m.etree)
+
         return sample_node
 
 class MeanSample(Sample):

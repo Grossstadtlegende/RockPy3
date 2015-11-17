@@ -1535,7 +1535,7 @@ class RockPyData(object):
         for name, colindices in self._column_dict.items():
             column_dict_entry_node = etree.SubElement(column_dict_node, 'column_dict_entry', attrib={name: name})
             for idx in colindices:
-                etree.SubElement(column_dict_entry_node, 'column_index', attrib={}).text = str(idx)
+                etree.SubElement(column_dict_entry_node, 'cidx', attrib={}).text = str(idx)
 
         # store all rows
         datarows_node = etree.SubElement(datatable_node, 'datarows', attrib={})
