@@ -162,55 +162,7 @@ class RockPyData(object):
 
         return data
 
-    @classmethod
-    def from_etree(cls, et_element):
-        """
-            create and return an instance of this class with data read from an xml etree instance
-        """
-        if et_element.tag != cls.ROCKPYDATA:
-            log.error('XML Import: Need {} node to construct object.'.format(cls.ROCKPYDATA))
-            return None
 
-        columnnames_node = et_element.find(cls.COLUMNNAMES)
-        if columnnames_node is None or len(columnnames_node) == 0:
-            log.error('XML Import: No column names found.')
-            return None
-
-        columnnames = []
-        for columnname_node in columnnames_node:
-            columnnames.append(columnname_node.text)
-
-        # create empty rockpydata instance
-        d = cls(columnnames)
-
-        # readin data rows
-        datarows_node = et_element.find(cls.DATAROWS)
-
-        if datarows_node is not None:
-            for datarow_node in datarows_node:
-                rd = []
-                for datapt_node in datarow_node:
-                    rd.append( [float(datapt_node.find(cls.VALUE).text), float(datapt_node.find(cls.ERROR).text)])
-                rn = datarow_node.attrib[cls.ROWNAME]
-                if rn == "":
-                    rn = None
-                d = d.append_rows(data=[rd], row_names=rn)
-
-
-        # restore column_dict
-        column_dict_node = et_element.find(cls.COLUMN_DICT)
-
-        cdict = {}
-        for column_dict_entry in column_dict_node:
-            clist = []
-            for cidx in column_dict_entry:
-                clist.append( int(cidx.text))
-
-            cdict[column_dict_entry.attrib['name']] = tuple(clist)
-
-        d._column_dict = cdict
-
-        return d
 
     def __init__(self, column_names, row_names=None, units=None, data=None):
         """
@@ -1613,3 +1565,53 @@ class RockPyData(object):
                 etree.SubElement(datapt_node, type(self).ERROR).text = str(data[1])
 
         return datatable_node
+
+    @classmethod
+    def from_etree(cls, et_element):
+        """
+            create and return an instance of this class with data read from an xml etree instance
+        """
+        if et_element.tag != cls.ROCKPYDATA:
+            log.error('XML Import: Need {} node to construct object.'.format(cls.ROCKPYDATA))
+            return None
+
+        columnnames_node = et_element.find(cls.COLUMNNAMES)
+        if columnnames_node is None or len(columnnames_node) == 0:
+            log.error('XML Import: No column names found.')
+            return None
+
+        columnnames = []
+        for columnname_node in columnnames_node:
+            columnnames.append(columnname_node.text)
+
+        # create empty rockpydata instance
+        d = cls(columnnames)
+
+        # readin data rows
+        datarows_node = et_element.find(cls.DATAROWS)
+
+        if datarows_node is not None:
+            for datarow_node in datarows_node:
+                rd = []
+                for datapt_node in datarow_node:
+                    rd.append( [float(datapt_node.find(cls.VALUE).text), float(datapt_node.find(cls.ERROR).text)])
+                rn = datarow_node.attrib[cls.ROWNAME]
+                if rn == "":
+                    rn = None
+                d = d.append_rows(data=[rd], row_names=rn)
+
+
+        # restore column_dict
+        column_dict_node = et_element.find(cls.COLUMN_DICT)
+
+        cdict = {}
+        for column_dict_entry in column_dict_node:
+            clist = []
+            for cidx in column_dict_entry:
+                clist.append( int(cidx.text))
+
+            cdict[column_dict_entry.attrib['name']] = tuple(clist)
+
+        d._column_dict = cdict
+
+        return d

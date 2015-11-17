@@ -16,28 +16,6 @@ class Sample(object):
     SAMPLEGROUP = 'samplegroup'
     NAME = 'name'
 
-
-    @classmethod
-    def from_etree(cls, et_element):
-        if et_element.tag != cls.SAMPLE:
-            log.error('XML Import: Need {} node to construct object.'.format(cls.SAMPLE))
-            return None
-
-        # create sample
-        s = cls(name=et_element.attrib['name'])
-
-        # add sample to samplegroups
-        for sg in et_element.findall(cls.SAMPLEGROUP):
-            s.add_to_samplegroup(sg)
-
-        # TODO: add measurements
-
-        # TODO: add mean measurements
-
-
-        # return sample
-        return s
-
     @property
     def log(self):
         return RockPy3.core.utils.set_get_attr(self, '_log',
@@ -1018,6 +996,36 @@ class Sample(object):
             sample_node.append(m.etree)
 
         return sample_node
+
+
+    @classmethod
+    def from_etree(cls, et_element):
+        if et_element.tag != cls.SAMPLE:
+            log.error('XML Import: Need {} node to construct object.'.format(cls.SAMPLE))
+            return None
+
+        # create sample
+        s = cls(name=et_element.attrib['name'])
+
+        # add sample to samplegroups
+        for sg in et_element.findall(cls.SAMPLEGROUP):
+            s.add_to_samplegroup(sg)
+
+        # TODO: add measurements
+        for m in et_element.findall(RockPy3.core.measurement.Measurement.MEASUREMENT):
+            #s.add_measurement(mtype=m.attrib['mtype'], )
+            mobj = RockPy3.core.measurement.from_etree( m)
+
+            #if mobj.is_mean:
+            #    s._add_mobj(mobj)
+            #else
+            #    s._add_mean_mobj(mobj)
+
+
+
+
+        # return sample
+        return s
 
 class MeanSample(Sample):
     MeanSample = 0
