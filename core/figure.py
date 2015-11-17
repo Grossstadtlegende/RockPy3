@@ -44,6 +44,9 @@ class Figure(object):
         self.title = title
 
         self.fig_input = RockPy3.core.utils.sort_plt_input(fig_input, groupmean, samplemean, base, other)
+        mlist, mean_list = RockPy3.core.utils.mlist_from_plt_input(fig_input)
+        self.calculation_parameter, kwargs = RockPy3.core.utils.separate_calculation_parameter_from_kwargs(mlist=mlist.extend(mean_list), **kwargs)
+        print(self.calculation_parameter)
         self.plot_mean, self.plot_base, self.plot_other = samplemean, base, other
         self.base_alpha = base_alpha
         self.ignore_samples = ignore_samples
