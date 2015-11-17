@@ -168,12 +168,12 @@ class RockPyData(object):
             create and return an instance of this class with data read from an xml etree instance
         """
         if et_element.tag != cls.ROCKPYDATA:
-            RockPy3.logger.error('XML Import: Need {} node to construct object.'.format(cls.ROCKPYDATA))
+            log.error('XML Import: Need {} node to construct object.'.format(cls.ROCKPYDATA))
             return None
 
         columnnames_node = et_element.find(cls.COLUMNNAMES)
         if columnnames_node is None or len(columnnames_node) == 0:
-            RockPy3.logger.error('XML Import: No column names found.')
+            log.error('XML Import: No column names found.')
             return None
 
         columnnames = []
