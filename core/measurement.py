@@ -1892,15 +1892,23 @@ class Measurement(object):
              etree: xml.etree.ElementTree
         """
 
-        measurement_node = etree.Element('measurement', attrib={'mtype': str(self.mtype)})
+        measurement_node = etree.Element('measurement', attrib={'mtype': str(self.mtype), 'is_mean': str(self.is_mean)})
 
-        # store data dictionary
-        for name, data in self.data.items():
-            de = etree.SubElement( measurement_node, 'data', attrib={'name': name})
+        # store _data dictionary
+        de = etree.SubElement( measurement_node, 'data')
+        for name, data in self._data.items():
             if data is not None:
                 det = data.etree
                 det.attrib['name'] = name
-                measurement_node.append(det)
+                de.append(det)
+
+        # store _raw_data dictionary
+        de = etree.SubElement( measurement_node, 'raw_data', attrib={'name': name})
+        for name, data in self._raw_data.items():
+            if data is not None:
+                det = data.etree
+                det.attrib['name'] = name
+                de.append(det)
 
         return measurement_node
 
