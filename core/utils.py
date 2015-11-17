@@ -11,10 +11,13 @@ import datetime
 import decorator
 from pprint import pprint
 
+
 def colorscheme(scheme='simple'):
     colors = {'simple': ['r', 'g', 'b', 'c', 'm', 'y', 'k'] * 100,
-              'pretty': ['k', '#7f0000', '#ed1c24', '#f18c22', '#ffde17', '#add136', '#088743', '#47c3d3', '#21409a', '#96649b', '#ee84b5']*100}
+              'pretty': ['k', '#7f0000', '#ed1c24', '#f18c22', '#ffde17', '#add136', '#088743', '#47c3d3', '#21409a',
+                         '#96649b', '#ee84b5'] * 100}
     return colors[scheme]
+
 
 def create_heat_color_map(value_list, reverse=False):
     """
@@ -34,24 +37,27 @@ def create_heat_color_map(value_list, reverse=False):
         out = out[::-1]
     return out
 
+
 def create_logger(name):
     log = logging.getLogger(name=name)
-    log.setLevel(logging.DEBUG)
+    log.setLevel(logging.ERROR)
     formatter = logging.Formatter('%(asctime)s: %(levelname)-10s %(name)-20s %(message)s')
     # formatter = logging.Formatter('%(levelname)-10s %(name)-20s %(message)s')
     fh = logging.FileHandler('RPV3.log')
     # fh.setFormatter(formatter)
     # fh.setLevel(logging.INFO)
     ch = logging.StreamHandler()
-    ch.setLevel(logging.INFO)
+    ch.setLevel(logging.DEBUG)
     ch.setFormatter(formatter)
     log.addHandler(fh)
     log.addHandler(ch)
     return log  # ch#, fh
 
+
 def convert_time(time):
     return matplotlib.dates.date2num(
-                datetime.datetime.strptime(time.replace('.500000', ''), "%Y-%m-%d %H:%M:%S"))
+        datetime.datetime.strptime(time.replace('.500000', ''), "%Y-%m-%d %H:%M:%S"))
+
 
 def to_list(oneormoreitems):
     """
@@ -258,99 +264,102 @@ class plot(object):
                                   False: the mean for each individual sample is plotted
 
                 """
+                ignore_samples = {'figure': visual._RockPy_figure.ignore_samples,
+                        'visual': visual.ignore_samples,
+                        'feature': visual.features[name]['ignore_samples']}
+                base = {'figure': visual._RockPy_figure.base,
+                        'visual': visual.base,
+                        'feature': visual.features[name]['base']}
+                
                 for i, indict in enumerate([visual._RockPy_figure.fig_input, visual.visual_input, visual.features[name]['feature_input']]):
-                    type = [('figure', visual._RockPy_figure), ('visual', visual), ('feature', visual.features[name])][i]
+                    types = ['figure', 'visual', 'feature']
                     for plt_type, mlist in indict.items():
                         if not mlist:
                             break
-
+                        print(types[i], ignore_samples[types[i]])
                         # get rid of measurements without result and series
                         mlist = [m for m in mlist if m.has_result(visual.result) if m.get_series(stype=visual.series)]
-                        print(type[1].ignore_samples)
-                        # # seaparate list into separate lists for each sample
-                        # if not ignore_samples:
-                        #     samples = set(m.sobj.name for m in mlist)
-                        #     mlists = [[m for m in mlist if m.sobj.name == sname] for sname in samples]
-                        # else:
-                        #     mlists = [mlist]
-                        #
-                        # for mlist in mlists:
-                        #     data = RockPy3.Data(column_names=[visual.series, visual.result], row_names=[])
-                        #     # feature(visual, data=d, **kwargs)
 
-                    # # seaparate list into separate lists for each sample
-                    # if not ignore_samples:
-                    #     samples = set(m.sobj.name for m in mlist)
-                    #     mlists = [[m for m in mlist if m.sobj.name == sname] for sname in samples]
-                    # else:
-                    #     mlists = [mlist]
-                    #
-                    # for mlist in mlists:
-                    #     data = RockPy3.Data(column_names=[visual.series, visual.result], row_names=[])
-                    #     # calculate the results and get the series for all measurements
-                    #     for m in mlist:
-                    #         sval = m.get_series(visual.series)[0].v
-                    #         res = getattr(m, 'result_' + visual.result)(**visual.calculation_parameter)
-                    #         d = RockPy3.Data(data=[sval, res[0]],
-                    #                          column_names=[visual.series, visual.result],
-                    #                          row_names='{}({})'.format(m.sobj.name, m.id))
-                    #         data = data.append_rows(data=d)
-                    #
-                    #         # plot each individual result, append them to data
-                    #         if plot_base:
-                    #             kwargs['plt_props'] = deepcopy(m.plt_props)
-                    #             # overwrite the plot properties of the measurement object if specified in the decorator
-                    #             # e.g. for setting marker = '' in the hysteresis_data feature
-                    #             if self.overwrite_mobj_plt_props:
-                    #                 kwargs['plt_props'].update(self.overwrite_mobj_plt_props)
-                    #
-                    #             if input == 'visual' and visual.plot_mean:
-                    #                 kwargs['plt_props'].update({'alpha': visual.base_alpha})
-                    #             if input == 'feature' and visual.features[name]['plot_mean']:
-                    #                 kwargs['plt_props'].update({'alpha', visual.feature[name]['base_alpha']})
-                    #
-                    #             kwargs['plt_props'].update(visual_props)
-                    #             kwargs['plt_props'].update(visual.features[name]['feature_props'])
-                    #             # print('---------------------------')
-                    #             # print(feature.__name__)
-                    #             # print('---------------------------')
-                    #             # print('plot_base: m:', kwargs['plt_props'])
-                    #             # print('plot_base: overwrite:', kwargs['plt_props'])
-                    #             # print('plot_base: visual:', kwargs['plt_props'])
-                    #             # print('plot_base: feature:', kwargs['plt_props'])
-                    #
-                    # if plot_mean:
-                    #     # print('mean')
-                    #     data = data.eliminate_duplicate_variable_rows(substfunc='mean').sort()
-                    #     kwargs['plt_props'] = {}
-                    #     kwargs['plt_props'].update(mlist[0].plt_props)
-                    #     # overwrite the plot properties of the measurement object if specified in the decorator
-                    #     # e.g. for setting marker = '' in the hysteresis_data feature
-                    #     if self.overwrite_mobj_plt_props:
-                    #         kwargs['plt_props'].update(self.overwrite_mobj_plt_props)
-                    #     kwargs['plt_props'].update(visual_props)
-                    #     kwargs['plt_props'].update(visual.features[name]['feature_props'])
-                    #     kwargs['plt_props'].update({'alpha': 1, 'zorder': 100})
-                    #     # print('---------------------------')
-                    #     # print(feature.__name__)
-                    #     # print('---------------------------')
-                    #     # print('plot_base: m:', kwargs['plt_props'])
-                    #     # print('plot_base: overwrite:', kwargs['plt_props'])
-                    #     # print('plot_base: visual:', kwargs['plt_props'])
-                    #     # print('plot_base: feature:', kwargs['plt_props'])
-                    #
-                    #     feature(visual, data=data, **kwargs)
+                        # seaparate list into separate lists for each sample
+                        # if ignore samples, all measurements will be used
+                        if not ignore_samples[types[i]]:
+                            samples = set(m.sobj.name for m in mlist)
+                            mlists = [[m for m in mlist if m.sobj.name == sname] for sname in samples]
+                        else:
+                            mlists = [mlist]
+
+                        for mlist in mlists:
+                            data = RockPy3.Data(column_names=[visual.series, visual.result], row_names=[])
+
+                        for mlist in mlists:
+                            data = RockPy3.Data(column_names=[visual.series, visual.result], row_names=[])
+                            # calculate the results and get the series for all measurements
+                            for m in mlist:
+                                # get the sval of the specified series
+                                sval = m.get_series(visual.series)[0].v
+                                # calculate the result using the calculation parameters
+                                res = getattr(m, 'result_' + visual.result)(**visual.calculation_parameter)
+                                d = RockPy3.Data(data=[sval, res[0]],
+                                                 column_names=[visual.series, visual.result],
+                                                 row_names='{}({})'.format(m.sobj.name, m.id))
+                                data = data.append_rows(data=d)
+                        
+                                # plot each individual result, append them to data
+                                if plot_base:
+                                    kwargs['plt_props'] = deepcopy(m.plt_props)
+                                    # overwrite the plot properties of the measurement object if specified in the decorator
+                                    # e.g. for setting marker = '' in the hysteresis_data feature
+                                    if self.overwrite_mobj_plt_props:
+                                        kwargs['plt_props'].update(self.overwrite_mobj_plt_props)
+                        #
+                        #             if input == 'visual' and visual.plot_mean:
+                        #                 kwargs['plt_props'].update({'alpha': visual.base_alpha})
+                        #             if input == 'feature' and visual.features[name]['plot_mean']:
+                        #                 kwargs['plt_props'].update({'alpha', visual.feature[name]['base_alpha']})
+                        #
+                        #             kwargs['plt_props'].update(visual_props)
+                        #             kwargs['plt_props'].update(visual.features[name]['feature_props'])
+                        #             # print('---------------------------')
+                        #             # print(feature.__name__)
+                        #             # print('---------------------------')
+                        #             # print('plot_base: m:', kwargs['plt_props'])
+                        #             # print('plot_base: overwrite:', kwargs['plt_props'])
+                        #             # print('plot_base: visual:', kwargs['plt_props'])
+                        #             # print('plot_base: feature:', kwargs['plt_props'])
+                        #
+                        # if plot_mean:
+                        #     # print('mean')
+                        #     data = data.eliminate_duplicate_variable_rows(substfunc='mean').sort()
+                        #     kwargs['plt_props'] = {}
+                        #     kwargs['plt_props'].update(mlist[0].plt_props)
+                        #     # overwrite the plot properties of the measurement object if specified in the decorator
+                        #     # e.g. for setting marker = '' in the hysteresis_data feature
+                        #     if self.overwrite_mobj_plt_props:
+                        #         kwargs['plt_props'].update(self.overwrite_mobj_plt_props)
+                        #     kwargs['plt_props'].update(visual_props)
+                        #     kwargs['plt_props'].update(visual.features[name]['feature_props'])
+                        #     kwargs['plt_props'].update({'alpha': 1, 'zorder': 100})
+                        #     # print('---------------------------')
+                        #     # print(feature.__name__)
+                        #     # print('---------------------------')
+                        #     # print('plot_base: m:', kwargs['plt_props'])
+                        #     # print('plot_base: overwrite:', kwargs['plt_props'])
+                        #     # print('plot_base: visual:', kwargs['plt_props'])
+                        #     # print('plot_base: feature:', kwargs['plt_props'])
+                        #
+                        #     feature(visual, data=data, **kwargs)
                 return wrapped_feature
 
             ############################################################################################################
             # NORMAL FEATURES
             else:
-                for indict in [visual._RockPy_figure.fig_input, visual.visual_input, visual.features[name]['feature_input']]:
+                for indict in [visual._RockPy_figure.fig_input, visual.visual_input,
+                               visual.features[name]['feature_input']]:
                     # print(indict)
                     for plt_type, mlist in indict.items():
                         kwargs['plt_props'] = {}
                         for mtype in self.mtypes:
-                            if type(mtype)==str:
+                            if type(mtype) == str:
                                 mtype = (mtype,)
                             if len(mtype) > 1:
                                 mobj = MlistToTupleList(mlist, mtype)
@@ -358,7 +367,8 @@ class plot(object):
                                 mobj = [m for m in mlist if m.mtype == mtype[0]]
                             else:
                                 visual.log.error(
-                                    'FEATURE {} input doesnt match mtype requirements {}'.format(feature.__name__, mtype))
+                                    'FEATURE {} input doesnt match mtype requirements {}'.format(feature.__name__,
+                                                                                                 mtype))
                             for mt_tuple in mobj:
                                 try:
                                     kwargs['plt_props'].update(mt_tuple[0].plt_props)
@@ -565,7 +575,6 @@ def kwargs_to_calculation_parameter(rpobj=None, mtype_list=None, result=None, **
         if result:
             methods = [result]
 
-
         # if isinstance(rpobj, RockPy3.Visualize.base.Visual):
         #     mtypes = [mtype for mtype in mtypes if mtype in rpobj.__class__._required]
 
@@ -598,7 +607,8 @@ def kwargs_to_calculation_parameter(rpobj=None, mtype_list=None, result=None, **
 
     return calc_params, kwargs
 
-def sort_plt_input(plt_input, groupmean=True, samplemean=True, base= True, other=True):
+
+def sort_plt_input(plt_input, groupmean=True, samplemean=True, base=True, other=True):
     """
     sorts a inputlist into subcategories
     :param plt_input:
@@ -613,37 +623,44 @@ def sort_plt_input(plt_input, groupmean=True, samplemean=True, base= True, other
     if not plt_input:
         return out
     if not any([groupmean, samplemean, base, other]):
-        raise ValueError('please specify what to plot, choose from: {}'.format(['groupmean', 'samplemean', 'base', 'other']))
+        raise ValueError(
+            'please specify what to plot, choose from: {}'.format(['groupmean', 'samplemean', 'base', 'other']))
 
     # get all measurements in plt_input
     mlist, meanlist = mlist_from_plt_input(plt_input)
     base_ids = set(id for m in meanlist for id in m.base_ids)
     # mlist = [m for m in mlist if not m.id in base_ids]
     bases = set()
+    if not any([mlist, meanlist]):
+        RockPy3.logger.warning('No input selected groupmean, samplemean, base and other will only work for the speecific input of figure visual or feature.')
     if other:
         other = set(m for m in mlist if not m.id in base_ids)
-        out['other']=other
+        out['other'] = other
+
     if groupmean:
         group_means = set(m for m in meanlist if isinstance(m.sobj, RockPy3.MeanSample))
-        out['groupmean']=group_means
+        out['groupmean'] = group_means
         bases.update(set(base for m in group_means for base in m.base_measurements))
 
     if samplemean:
-        sample_means = set(m for m in meanlist if type(m.sobj)== RockPy3.Sample)
-        out['samplemean']=sample_means
+        sample_means = set(m for m in meanlist if type(m.sobj) == RockPy3.Sample)
+        out['samplemean'] = sample_means
         bases.update(set(base for m in sample_means for base in m.base_measurements))
 
     if base:
         if not samplemean and not groupmean:
             bases = set(base for m in meanlist for base in m.base_measurements if base in mlist or base in meanlist)
-        out['base']=bases
+        out['base'] = bases
+
     return deepcopy(out)
 
-def add_to_plt_input(plt_input, to_add_to,  groupmean=True, samplemean=True, base= True, other=True):
+
+def add_to_plt_input(plt_input, to_add_to, groupmean=True, samplemean=True, base=True, other=True):
     plt_input = sort_plt_input(plt_input=plt_input, groupmean=groupmean, samplemean=samplemean, base=base, other=other)
-    for k,v in to_add_to.items():
+    for k, v in to_add_to.items():
         to_add_to[k].update(plt_input[k])
     return to_add_to
+
 
 def mlist_from_plt_input(plt_input):
     """
@@ -675,6 +692,7 @@ def mlist_from_plt_input(plt_input):
             else:
                 mlist.append(item)
     return mlist, meanlist
+
 
 def compare_measurement_series(m1, m2):
     """

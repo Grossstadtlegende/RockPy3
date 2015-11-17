@@ -100,9 +100,9 @@ class Visual(object):
         :param coord: coordinate system to use ('core', 'geo', 'bed'), use RockPy3.coord otherwise
         :return:
         '''
+        plt_props, txt_props, options = self.separate_plt_props_from_kwargs(**options)
         calc_params, no_calc_params = RockPy3.core.utils.separate_calculation_parameter_from_kwargs(rpobj=None,
                                                                                                     **options)
-        plt_props, txt_props, no_calc_params = self.separate_plt_props_from_kwargs(**no_calc_params)
 
         self.log = logging.getLogger('RockPy3.VISUALIZE.' + self.get_subclass_name())
         self.log.info('CREATING new Visual')
@@ -127,6 +127,13 @@ class Visual(object):
 
         self.linedict = {}
         self._calculation_parameter = calc_params
+
+        ### calculation parameter DEBUG
+        self.log.debug('Using calculation_parameters:')
+
+        for k, v in calc_params.items():
+            self.log.debug('{:30}: {}'.format(k,v))
+
         self.init_visual()
 
         for feature in self.standard_features:
