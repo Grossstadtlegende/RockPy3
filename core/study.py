@@ -4,13 +4,10 @@ import xml.etree.ElementTree as etree
 from copy import deepcopy
 import os
 from multiprocessing import Pool
-
 import RockPy3
 from RockPy3.core import utils
 import RockPy3.core.sample
 import RockPy3.core.file_operations
-
-
 
 
 class Study(object):
@@ -22,7 +19,7 @@ class Study(object):
     @classmethod
     def create_from_etree(cls, et):
         root = et.getroot().tag
-        #print root
+        # print root
         return cls()
 
     @classmethod
@@ -30,7 +27,6 @@ class Study(object):
         log.info("reading xml data from {}".format(filename))
         et = etree.parse(filename)
         return cls.create_from_etree(et)
-
 
     def __init__(self, name=None):
         """
@@ -97,7 +93,11 @@ class Study(object):
 
     @property
     def groupnames(self):
-        return sorted(list(set(i for j in self.samplelist for i in j._samplegroups)))
+        return sorted(set(i for j in self.samplelist for i in j._samplegroups))
+
+    @property
+    def samplegroups(self):
+        return self.groupnames
 
     @property
     def n_samples(self):
@@ -235,11 +235,13 @@ class Study(object):
                 # or add them to the measurements
                 if mean_of_mean:
                     mean_measurements = sample.add_mean_measurements(ignore_series=ignore_series,
-                                                 interpolate=interpolate, substfunc=substfunc,
-                                                 reference=reference, ref_dtype=ref_dtype, norm_dtypes=norm_dtypes,
-                                                 vval=vval,
-                                                 norm_method=norm_method,
-                                                 normalize_variable=normalize_variable, dont_normalize=dont_normalize)
+                                                                     interpolate=interpolate, substfunc=substfunc,
+                                                                     reference=reference, ref_dtype=ref_dtype,
+                                                                     norm_dtypes=norm_dtypes,
+                                                                     vval=vval,
+                                                                     norm_method=norm_method,
+                                                                     normalize_variable=normalize_variable,
+                                                                     dont_normalize=dont_normalize)
                     mean_sample.measurements.extend(mean_measurements)
                 else:
                     mean_sample.measurements.extend(sample.measurements)
@@ -421,7 +423,7 @@ class Study(object):
             table.append([''.join(['=' for i in range(15)]) for j in line0])
 
             # add a line for each measurement
-            for m in s.measurements+s.mean_measurements:
+            for m in s.measurements + s.mean_measurements:
                 # if not isinstance(m, RockPy3.Packages.Generic.Measurements.parameters.Parameter) or parameters:
                 if m.has_initial_state:
                     initial = '{} [{}]'.format(m.initial_state.mtype, str(m.initial_state.idx))
@@ -430,7 +432,9 @@ class Study(object):
                 if m.is_mean:
                     if isinstance(m.sobj, RockPy3.MeanSample):
                         samples = set(base.sobj.name for base in m.base_measurements)
-                        mean = ''.join(['S'+sample+'{}'.format([base.idx for base in m.base_measurements if base.sobj.name == sample]) for sample in samples])
+                        mean = ''.join(['S' + sample + '{}'.format(
+                            [base.idx for base in m.base_measurements if base.sobj.name == sample]) for sample in
+                                        samples])
                     else:
                         mean = 'mean{}'.format([base.idx for base in m.base_measurements])
                 else:
@@ -449,6 +453,29 @@ class Study(object):
             s.calc_all(**parameter)
 
     ####################################################################################################################
+    ''' label operations '''
+
+    def label_add_sname(self):
+        for s in self.samplelist:
+            s.label_add_sname()
+
+    def label_add_series(self, stypes=None, add_stype=True, add_sval=True, add_unit=True,
+                         gname=None,
+                         sname=None,
+                         mtype=None,
+                         series=None,
+                         stype=None, sval=None, sval_range=None,
+                         mean=False, groupmean=False,
+                         invert=False,
+                         id=None,
+                         ):
+        for m in self.get_measurement(gname=gname, sname=sname, mtype=mtype, series=series,
+                                      stype=stype, sval=sval, sval_range=sval_range,
+                                      mean=mean, groupmean=groupmean,
+                                      invert=invert, id=id):
+            m.label_add_stype(stypes=stypes, add_stype=add_stype, add_sval=add_sval, add_unit=add_unit)
+
+    ####################################################################################################################
     ''' Data Operations '''
 
     def save(self, file_name=None, folder=None):
@@ -463,8 +490,6 @@ class Study(object):
 
     def load(self, file_name=None, folder=None):
         return RockPy3.load(folder=folder, file_name=file_name)
-
-
 
     def save_xml(self, folder=None, file_name=None):
         """
@@ -489,7 +514,6 @@ class Study(object):
         et = etree.ElementTree(root)
 
         et.write(os.path.join(folder, file_name))
-
 
     @property
     def etree(self):

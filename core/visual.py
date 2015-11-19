@@ -55,13 +55,6 @@ class Visual(object):
     def get_subclass_name(cls):
         return cls.__name__
 
-    @property
-    def calculation_parameter(self):
-        if not self._calculation_parameter:
-            return dict()
-        else:
-            return self._calculation_parameter
-
     @classmethod
     def implemented_features(cls):
         out = {i.replace('feature_', ''): getattr(cls, i) for i in dir(cls) if i.startswith('feature_') if
@@ -89,7 +82,10 @@ class Visual(object):
         return plt_props, txt_props, kwargs
 
     def __init__(self, visual_input=None, plt_index=None, fig=None, name=None, coord=None,
-                 groupmean=True, samplemean=True, base=True, other=True, base_alpha=0.5, ignore_samples=False,
+                 plot_groupmean=None, plot_samplemean=None, plot_samplebase=None, plot_groupbase=None,
+                 plot_other=None,
+                 base_alpha=None, ignore_samples=None, result_from_means=None,
+                 xlabel=None, ylabel=None,
                  **options):
         '''
         :param visual_input:
@@ -100,10 +96,10 @@ class Visual(object):
         :param coord: coordinate system to use ('core', 'geo', 'bed'), use RockPy3.coord otherwise
         :return:
         '''
+
         plt_props, txt_props, options = self.separate_plt_props_from_kwargs(**options)
         calc_params, no_calc_params = RockPy3.core.utils.separate_calculation_parameter_from_kwargs(rpobj=None,
                                                                                                     **options)
-
         self.log = logging.getLogger('RockPy3.VISUALIZE.' + self.get_subclass_name())
         self.log.info('CREATING new Visual')
 
@@ -115,36 +111,40 @@ class Visual(object):
         self._txt_props = txt_props
         self.features = {}
 
-        self._visual_input = RockPy3.core.utils.sort_plt_input(visual_input,
-                                                               groupmean=groupmean,
-                                                               samplemean=samplemean,
-                                                               base=base,
-                                                               other=other)
+        self._visual_input = RockPy3.core.utils.sort_plt_input(visual_input)
         self._RockPy_figure = fig
 
         # set the title: default is the name of the visual
         self.title = no_calc_params.pop('title', self.get_subclass_name())
 
         self.linedict = {}
-        self._calculation_parameter = calc_params
+        self.calculation_parameter = calc_params
 
         ### calculation parameter DEBUG
         self.log.debug('Using calculation_parameters:')
 
         for k, v in calc_params.items():
-            self.log.debug('{:30}: {}'.format(k,v))
+            self.log.debug('{:30}: {}'.format(k, v))
 
         self.init_visual()
+
+        if xlabel:
+            self.xlabel = xlabel
+        if ylabel:
+            self.ylabel = ylabel
 
         for feature in self.standard_features:
             self.add_feature(feature=feature)
 
+        # inputsection
+        self.plot_groupmean, self.plot_samplemean, self.plot_groupbase, self.plot_samplebase, self.plot_other = plot_groupmean, plot_samplemean, plot_groupbase, plot_samplebase, plot_other
+        self.result_from_means = result_from_means
         self.base_alpha = base_alpha
         self.ignore_samples = ignore_samples
 
     def __getattr__(self, item):
         try:
-            return self._calculation_parameter[item]
+            return self.calculation_parameter[item]
         except (TypeError, KeyError):
             return object.__getattribute__(self, item)
 
@@ -157,22 +157,28 @@ class Visual(object):
         self.xlabel = 'xlabel'
         self.ylabel = 'ylabel'
 
-    def add_feature(self, feature=None,
-                    feature_input=None, groupmean=True, samplemean=True, base=True, other=True, base_alpha=0.5,
-                    ignore_samples=False,
+    def add_feature(self, feature=None, feature_input=None,
+                    plot_groupmean=None, plot_samplemean=None, plot_samplebase=None, plot_groupbase=None,
+                    plot_other=None, base_alpha=None,
+                    ignore_samples=False, result_from_means=None,
                     **plt_props):
         """
         Adds a feature to the visual. Each feature may have multiple instances, and can but does not have to have a
         separate input from the visual input.
         """
+        calculation_parameter, plt_props = RockPy3.core.utils.separate_calculation_parameter_from_kwargs(**plt_props)
+
         new_feature_name = self.add_feature_to_dict(feature=feature)
         self.set_plt_prop(feature_name=new_feature_name, **plt_props)
-        self.features[new_feature_name]['feature_input'] = RockPy3.core.utils.sort_plt_input(feature_input,
-                                                                                             groupmean=groupmean,
-                                                                                             samplemean=samplemean,
-                                                                                             base=base,
-                                                                                             other=other)
-        self.features[new_feature_name].setdefault('ignore_samples', ignore_samples)
+        self.features[new_feature_name]['feature_input'] = RockPy3.core.utils.sort_plt_input(feature_input)
+        for k, v in (('base_alpha', base_alpha), ('ignore_samples', ignore_samples),
+                     ('calculation_parameter', calculation_parameter),
+                     ('plot_groupmean', plot_groupmean), ('plot_samplemean', plot_samplemean),
+                     ('plot_groupbase', plot_groupbase), ('plot_samplebase', plot_samplebase),
+                     ('plot_other', plot_other),
+                     ('result_from_means', result_from_means),
+                     ):
+            self.features[new_feature_name].setdefault(k, v)
 
     def add_feature_to_dict(self, feature=None):
         """
@@ -252,7 +258,8 @@ class Visual(object):
         """
 
         self._visual_input = RockPy3.core.utils.add_to_plt_input(plt_input=visual_input, to_add_to=self.visual_input,
-                                                             groupmean=groupmean, samplemean=samplemean, base=base, other=other)
+                                                                 groupmean=groupmean, samplemean=samplemean, base=base,
+                                                                 other=other)
 
     def normalize(self, reference='data', ref_dtype='mag', norm_dtypes='all', vval=None,
                   norm_method='max', norm_factor=None, result=None,
@@ -375,12 +382,14 @@ class Visual(object):
 
     def remove_labels(self, remove_from_features=True):
         'removes all labels from all measurements'
-        for m in self.visual_input:
-            m.set_plt_prop('label', '')
+        for in_type in self.visual_input:
+            for m in self.visual_input[in_type]:
+                m.set_plt_prop('label', '')
         if remove_from_features:
             for f in self.features:
-                for m in self.features[f]['feature_input']:
-                    m.set_plt_prop('label', '')
+                for in_type in ('groupmean', 'samplemean', 'groupbase', 'samplebase', 'other'):
+                    for m in self.features[f]['feature_input'][in_type]:
+                        m.set_plt_prop('label', '')
 
     @property
     def ax(self):
@@ -474,6 +483,56 @@ class Visual(object):
         self.ax.xaxis.major.formatter._useMathText = True
         self.ax.yaxis.major.formatter._useMathText = True
 
+# class GenericData(Visual):
+#
+#     def __init__(self, xdata, ydata, plt_index=None, fig=None, name=None,
+#                  xlabel=None, ylabel=None,
+#                  **options):
+#
+#         plt_props, txt_props, options = self.separate_plt_props_from_kwargs(**options)
+#
+#         self.log = logging.getLogger('RockPy3.VISUALIZE.' + self.get_subclass_name())
+#         self.log.info('CREATING new Visual')
+#
+#         self._plt_index = plt_index
+#         self._visual_input = []
+#
+#         # low hierarchy properties are overwritten by measurement props
+#         self._plt_props = plt_props
+#         self._txt_props = txt_props
+#         self.features = {}
+#
+#         self._RockPy_figure = fig
+#
+#         # set the title: default is the name of the visual
+#         self.title = options.pop('title', self.get_subclass_name())
+#
+#         self.linedict = {}
+#
+#         ### calculation parameter DEBUG
+#         self.log.debug('Using calculation_parameters:')
+#         self.init_visual()
+#
+#         if xlabel:
+#             self.xlabel = xlabel
+#         if ylabel:
+#             self.ylabel = ylabel
+#
+#         for feature in self.standard_features:
+#             self.add_feature(feature=feature)
+#
+#     def __call__(self)
+#         self.add_standard()
+#         for feature in self.features:
+#             self.features[feature]['method'](name=feature)
+#
+#         if self.show_legend():
+#             self.ax.legend(**self.legend_options)
+#
+#     def init_visual(self):
+#         self.standard_features = ['generic_data']
+#         self.xlabel = ''
+#         self.ylabel = ''
 
 def set_colorscheme(scheme):
     RockPy3.colorscheme = RockPy3.core.utils.colorscheme(scheme)

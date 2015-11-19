@@ -10,12 +10,16 @@ import numpy as np
 
 class ResultSeries(Visual):
     def __init__(self, visual_input=None, plt_index=None, fig=None, name=None, coord=None,
-                 plot_mean=True, plot_base=True, plot_other=True, base_alpha=0.5, result=None, series=None,
+                 plot_groupmean=None, plot_samplemean=None, plot_samplebase=None, plot_groupbase=None,
+                 plot_other=None, base_alpha=None,
+                 result=None, series=None,
                  title=None,
                  **options):
+
         # has to be before the super call because the initialize need both result and series
         self.result = result
         self.series = series
+
         # so the calculation parameters can be checked for only this result
         options.setdefault('result', result)
         if not title:
@@ -24,13 +28,15 @@ class ResultSeries(Visual):
         super(ResultSeries, self).__init__(
             visual_input=visual_input, plt_index=plt_index,
             fig=fig, name=name, coord=coord,
-            plot_mean=plot_mean, plot_base=plot_base, plot_other=plot_other, base_alpha=base_alpha,
+            plot_groupmean=plot_groupmean, plot_groupbase=plot_groupbase,
+            plot_samplemean=plot_samplemean, plot_samplebase=plot_samplebase,
+            plot_other=plot_other, base_alpha=base_alpha,
             title=title,
             **options
         )
 
     def init_visual(self):
-        self.standard_features = ['result_series_data', 'result_series_errorbars']
+        self.standard_features = ['result_series_data']#, 'result_series_errorbars']
         self.xlabel = self.series
         self.ylabel = self.result
 
@@ -39,7 +45,7 @@ class ResultSeries(Visual):
         self.log.debug('PLOTTING WITH: {}'.format(plt_props))
         self.ax.plot(data[self.series].v, data[self.result].v, **plt_props)
 
-    @plot(result_feature=True, overwrite_mobj_plt_props={'alpha':1., 'marker':'', 'linestyle':''})
+    @plot(result_feature=True, overwrite_mobj_plt_props={'alpha': 1., 'marker': '', 'linestyle': ''})
     def feature_result_series_errorbars(self, data, plt_props=None):
 
         if all(np.isnan(i) for i in data[self.result].e):
@@ -62,6 +68,7 @@ class ResultSeries(Visual):
                              y1=data[self.result].v + data[self.result].e,
                              y2=data[self.result].v - data[self.result].e,
                              **plt_props)
+
     @plot(result_feature=True)
     def feature_result_series_errorfill_2sigma(self, data, plt_props=None):
         if all(np.isnan(i) for i in data[self.result].e):
@@ -72,6 +79,6 @@ class ResultSeries(Visual):
 
         plt_props.update(dict(alpha=0.05))
         self.ax.fill_between(x=data[self.series].v,
-                             y1=data[self.result].v + 2*data[self.result].e,
-                             y2=data[self.result].v - 2*data[self.result].e,
+                             y1=data[self.result].v + 2 * data[self.result].e,
+                             y2=data[self.result].v - 2 * data[self.result].e,
                              **plt_props)

@@ -50,6 +50,16 @@ class Acquisition(RockPy3.core.measurement.Measurement):
         out = {'data': data,
                'af3': af3}
         return out
+
+    @staticmethod
+    def format_jr6(ftype_data, sobj_name=None):
+        data = RockPy3.Data(data=ftype_data.data, column_names=ftype_data.header)
+        data.define_alias('m', ('x', 'y', 'z'))
+        data = data.append_columns(column_names='mag', data=data.magnitude(key='m'))
+        data = data.sort()
+        out = {'data':data}
+        return out
+
     @correction
     def correct_af3(self, recalc_mag=True):
         """

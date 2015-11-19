@@ -7,16 +7,15 @@ import numpy as np
 import RockPy3
 import RockPy3.core.utils
 import matplotlib.pyplot as plt
-
-
 from RockPy3.core.visual import Visual
 
 
 class Figure(object):
     def __init__(self, title=None, figsize=(5, 5), columns=None, tightlayout=True,
                  fig_input=None,
-                 groupmean=True, samplemean=True, base=True, other=True,
-                 base_alpha=0.5, ignore_samples=False,
+                 plot_groupmean=None, plot_samplemean=None, plot_samplebase=None, plot_groupbase=None,
+                 plot_other=None,
+                 base_alpha=None, ignore_samples=None, result_from_means=None,
                  **fig_props
                  ):
         """
@@ -43,17 +42,21 @@ class Figure(object):
         self._fig = None
         self.title = title
 
-        self.fig_input = RockPy3.core.utils.sort_plt_input(fig_input, groupmean, samplemean, base, other)
+        self.fig_input = RockPy3.core.utils.sort_plt_input(fig_input)
+
         mlist, mean_list = RockPy3.core.utils.mlist_from_plt_input(fig_input)
-        self.calculation_parameter, kwargs = RockPy3.core.utils.separate_calculation_parameter_from_kwargs(mlist=mlist.extend(mean_list), **kwargs)
-        print(self.calculation_parameter)
-        self.plot_mean, self.plot_base, self.plot_other = samplemean, base, other
+        self.calculation_parameter, kwargs = RockPy3.core.utils.separate_calculation_parameter_from_kwargs(
+            mlist=mlist.extend(mean_list), **kwargs)
+
+        self.plot_groupmean, self.plot_samplemean, self.plot_groupbase, self.plot_samplebase, self.plot_other = plot_groupmean, plot_samplemean, plot_groupbase, plot_samplebase, plot_other
+        self.result_from_means = result_from_means
         self.base_alpha = base_alpha
         self.ignore_samples = ignore_samples
 
     def add_input(self, fig_input, groupmean=True, samplemean=True, base=True, other=True):
         self.fig_input = RockPy3.core.utils.add_to_plt_input(plt_input=fig_input, to_add_to=self.fig_input,
-                                                             groupmean=groupmean, samplemean=samplemean, base=base, other=other)
+                                                             groupmean=groupmean, samplemean=samplemean, base=base,
+                                                             other=other)
 
     @property
     def visuals(self):
@@ -80,7 +83,9 @@ class Figure(object):
             raise KeyError('%s can not be found' % item)
 
     def add_visual(self, visual, name=None, visual_input=None,
-                   plot_mean=True, plot_base=True, plot_other=True, base_alpha=0.5,
+                   plot_groupmean=None, plot_samplemean=None, plot_samplebase=None, plot_groupbase=None,
+                   plot_other=None, base_alpha=None, result_from_means=None,
+                   xlabel=None, ylabel=None,
                    **visual_opt):
         """
         adds a visual to the plot. This creates a new subplot.
@@ -108,7 +113,10 @@ class Figure(object):
                 # create instance of visual by dynamically calling from implemented_visuals dictionary
                 visual_obj = RockPy3.implemented_visuals[visual](
                     visual_input=visual_input, plt_index=n, fig=self, name=name,
-                    plot_mean=plot_mean, plot_base=plot_base, plot_other=plot_other, base_alpha=base_alpha,
+                    plot_groupmean=plot_groupmean, plot_groupbase=plot_groupbase,
+                    plot_samplemean=plot_samplemean, plot_samplebase=plot_samplebase,
+                    plot_other=plot_other, base_alpha=base_alpha, result_from_means=result_from_means,
+                    xlabel=xlabel, ylabel=ylabel,
                     **visual_opt)
                 self._visuals.append([name, visual, visual_obj])
                 self._n_visuals += 1
@@ -183,6 +191,7 @@ class Figure(object):
              equal_lims=False, center_lims=False,
              save_path=None,
              pad=0.4, w_pad=0.5, h_pad=1.0,
+             file_name=None,
              **options):
         """
         calls all visuals
@@ -203,8 +212,12 @@ class Figure(object):
         # actual plotting of the visuals
         self.plt_all()
 
+        for name, type, visual in self._visuals:
+            xlim = visual.ax.get_xlim()
+            ylim = visual.ax.get_ylim()
+            visual.ax.set_xlim([xlim[0]-xlim[1]*0.05, xlim[1]+xlim[1]*0.05])
+
         if set_xlim == 'equal' or set_ylim == 'equal' or equal_lims:
-            xlim, ylim = self.get_xylims()
             if center_lims:
                 xl = max(np.abs(xlim))
                 yl = max(np.abs(ylim))
@@ -239,8 +252,9 @@ class Figure(object):
 
         if save_path:
             if save_path == 'Desktop':
-                file_name = os.path.basename(inspect.stack()[-1][1])
-                file_name += options.get('append', '')
+                if not file_name:
+                    file_name = os.path.basename(inspect.stack()[-1][1])
+                    file_name += options.get('append', '')
                 save_path = os.path.join(os.path.expanduser('~'), 'Desktop', file_name + '.pdf')
             plt.savefig(save_path)
         else:

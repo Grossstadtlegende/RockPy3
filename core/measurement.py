@@ -711,6 +711,36 @@ class Measurement(object):
     def __eq__(self,other):
         return self.id == other.id
 
+    def __add__(self, other):
+        first = deepcopy(self)
+
+        for dtype in first.data:
+            vars1 = set(first.data[dtype]['variable'].v)
+            vars2 = set(other.data[dtype]['variable'].v)
+            diff = vars1 ^ vars2
+            if diff:
+                vars = vars1 | vars2
+                first.data[dtype] = first.data[dtype].interpolate(new_variables = vars)
+                other.data[dtype] = other.data[dtype].interpolate(new_variables = vars)
+            first.data[dtype] = first.data[dtype].eliminate_duplicate_variable_rows()+other.data[dtype].eliminate_duplicate_variable_rows()
+            first.data[dtype] = first.data[dtype].sort()
+        return self.sobj.add_measurement(mtype=first.mtype, mdata=first.data)
+
+    def __sub__(self, other):
+        first = deepcopy(self)
+
+        for dtype in first.data:
+            vars1 = set(first.data[dtype]['variable'].v)
+            vars2 = set(other.data[dtype]['variable'].v)
+            diff = vars1 ^ vars2
+            if diff:
+                vars = vars1 | vars2
+                first.data[dtype] = first.data[dtype].interpolate(new_variables = vars)
+                other.data[dtype] = other.data[dtype].interpolate(new_variables = vars)
+            first.data[dtype] = first.data[dtype].eliminate_duplicate_variable_rows()-other.data[dtype].eliminate_duplicate_variable_rows()
+            first.data[dtype] = first.data[dtype].sort()
+        return self.sobj.add_measurement(mtype=first.mtype, mdata=first.data)
+
     def __getstate__(self):
         """
         returned dict will be pickled
@@ -1270,7 +1300,7 @@ class Measurement(object):
         s = self.get_series(stype=stype)
         return s[0].value if s else None
 
-    def add_series(self, stype=None, sval=None, unit=None, series_obj=None, series=None):
+    def add_series(self, stype=None, sval=0, unit='', series_obj=None, series=None):
         """
         adds a series to measurement.series, then adds is to the data and results datastructure
 
@@ -1589,7 +1619,7 @@ class Measurement(object):
                                                     # unit = t.unit      # todo add units
                                                     )
 
-    def get_series_labels(self, stypes=True, add_stype=True, add_unit=True):
+    def get_series_labels(self, stypes=True, add_stype=True, add_sval=True, add_unit=True):
         """
         takes a list of stypes or stypes = True and returns a string with stype_sval_sunit; for each stype
 
@@ -1615,12 +1645,13 @@ class Measurement(object):
         stypes = RockPy3.core.utils.to_list(stypes)
 
         for stype in stypes:
-            if self.get_series(stype=stype):
-                stype = self.get_series(stype=stype)[0]
+            stype = self.get_series(stype=stype)[0]
+            if stype:
                 aux = []
                 if add_stype:
                     aux.append(stype.stype)
-                aux.append(str(np.round(stype.value, 2)))
+                if add_sval:
+                    aux.append(str(np.round(stype.value, 2)))
                 if add_unit:
                     aux.append(stype.unit)
                 stype_label = ' '.join(aux)
@@ -1721,7 +1752,7 @@ class Measurement(object):
 
     '''' PLOTTING '''''
 
-    def label_add_sample_name(self):
+    def label_add_sname(self):
         """
         adds the corresponding sample_name to the measurement label
         """
@@ -1731,11 +1762,11 @@ class Measurement(object):
             mean = ''
         self.plt_props['label'] = ' '.join([self.plt_props['label'], mean, self.sobj.name])
 
-    def label_add_stype(self, stypes=None, add_stype=True, add_unit=True):
+    def label_add_stype(self, stypes=None, add_stype=True, add_sval=True, add_unit=True):
         """
         adds the corresponding sample_name to the measurement label
         """
-        text = self.get_series_labels(stypes=stypes, add_stype=add_stype, add_unit=add_unit)
+        text = self.get_series_labels(stypes=stypes, add_stype=add_stype, add_sval=add_sval, add_unit=add_unit)
         self.plt_props['label'] = ' '.join([self.plt_props['label'], text])
 
     def label_add_text(self, text):
@@ -1950,7 +1981,7 @@ def result(func, *args, **kwargs):
     self = parameters.pop('self')
 
     parameters.setdefault('result', result_name)
-    calculation_parameters, p = RockPy3.core.utils.separate_calculation_parameter_from_kwargs(rpobj=self, **parameters)
+    # calculation_parameters, p = RockPy3.core.utils.separate_calculation_parameter_from_kwargs(rpobj=self, **parameters)
 
     # calculation method has to be popped from dictionary, otherwise it is stored in calculation parameters
     # when the calculation_method is called
@@ -1984,7 +2015,8 @@ def result(func, *args, **kwargs):
     # otherwise we can call the calculation_method with the same name
     else:
         calc_name = 'calculate_' + result_name
-    # we need to add any possible methods #todo rename from method
+
+    # we need to add any possible recipes
     if recipe:
         calc_name += '_' + str(recipe)
 

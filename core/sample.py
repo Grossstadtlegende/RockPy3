@@ -368,6 +368,7 @@ class Sample(object):
         for mtype in self.mdict['mtype']:
             # all measurements with that mtype
             measurements = self.get_measurement(mtype=mtype, mean=False)#self.mdict['mtype'][mtype]
+
             # use first measurement as template to check for series
             while measurements:
                 m = measurements[0]
@@ -389,7 +390,7 @@ class Sample(object):
                 if self.mean_measurement_exists(mlist):
                     self.log.warning('MEAN measurement already exists for these measurements:\n\t\t{}'.format(mlist))
                     mean_measurements.extend(self.mean_measurement_exists(mlist))
-                    break
+                    continue
 
                 mean_measurements.append(self.create_mean_measurement(mlist=mlist,
                                              ignore_series=ignore_series,
@@ -573,6 +574,14 @@ class Sample(object):
         else:
             return True
 
+    def in_samplegroup(self, gnames):
+        """
+        tests whether a sample is in ALL samplegroups specified
+        """
+        gnames = RockPy3.core.utils.to_list(gnames)
+        if all(gname in self._samplegroups for gname in gnames):
+            return True
+
     """
     ####################################################################################################################
     PICKL
@@ -739,7 +748,7 @@ class Sample(object):
                         out.extend(measurements)
         else:
             # searching for specific series, all mtypes specified that fit the series description will be returned
-            serie = RockPy3.utils.general.tuple2list_of_tuples(series)
+            serie = RockPy3.core.utils.tuple2list_of_tuples(series)
             for mt in mtype:  # cycle through mtypes
                 aux = []
                 for s in serie:
@@ -941,9 +950,9 @@ class Sample(object):
     ####################################################################################################################
     ''' LABES PART'''
 
-    def label_add_sample_name(self):
+    def label_add_sname(self):
         for m in self.measurements:
-            m.label_add_sample_name()
+            m.label_add_sname()
 
     def label_add_series(self, stypes=None, add_stype=True, add_unit=True):
         self.label_add_stype(stypes=stypes, add_stype=add_stype, add_unit=add_unit)
