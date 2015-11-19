@@ -45,6 +45,18 @@ class Measurement(object):
     _gcp = None # all possible parameters combined for all measurements and all methods
     _mpcp = None # all possible parameters for each method of a specific mtype as a dict(method:parameters)
 
+
+    # xml tags
+    MEASUREMENT = 'measurement'
+    DATA = 'data'
+    RAW_DATA = 'raw_data'
+    BASE_MEASUREMENTS = 'base_measurements'
+    BID = 'bid'
+
+    # xml attributes
+    NAME = 'name'
+
+
     @classmethod
     def _mtype(cls):
         return cls.__name__.lower()
@@ -593,7 +605,7 @@ class Measurement(object):
                  idx=None,
                  initial_state=None,
                  ismean=False, base_measurements=None,
-                 color=None, marker=None, linestyle=None,
+                 color=None, marker=None, linestyle=None, id=None
                  **options
                  ):
         """
@@ -625,7 +637,11 @@ class Measurement(object):
                 RockPy3.Measurement obj
 
         """
-        self.id = id(self)
+        if id is None:
+            self.id = id(self)
+        else:
+            self.id = int(id)
+
         self.sobj = sobj
         self._plt_props = {'label': ''}
 
@@ -1923,33 +1939,61 @@ class Measurement(object):
              etree: xml.etree.ElementTree
         """
 
-        measurement_node = etree.Element('measurement', attrib={'id': str(self.id), 'mtype': str(self.mtype), 'is_mean': str(self.is_mean)})
+        measurement_node = etree.Element(type(self).MEASUREMENT, attrib={'id': str(self.id), 'mtype': str(self.mtype), 'is_mean': str(self.is_mean)})
 
         # store _data dictionary
-        de = etree.SubElement( measurement_node, 'data')
         for name, data in self._data.items():
+            de = etree.SubElement( measurement_node, type(self).DATA, attrib={type(self).NAME: name})
             if data is not None:
-                det = data.etree
-                det.attrib['name'] = name
-                de.append(det)
+                de.append(data.etree)
 
         # store _raw_data dictionary
-        de = etree.SubElement( measurement_node, 'raw_data', attrib={'name': name})
         for name, data in self._raw_data.items():
+            de = etree.SubElement( measurement_node, type(self).RAW_DATA, attrib={type(self).NAME: name})
             if data is not None:
                 det = data.etree
-                det.attrib['name'] = name
                 de.append(det)
 
         if self.is_mean:
             # store ids of base measurements
-            base_measurements_node = etree.SubElement(measurement_node, 'base_measurements', attrib={})
+            base_measurements_node = etree.SubElement(measurement_node, type(self).BASE_MEASUREMENTS, attrib={})
             for id in self.base_ids:
-                etree.SubElement(base_measurements_node, 'bid', attrib={}).text = str(id)
+                etree.SubElement(base_measurements_node, type(self).BID, attrib={}).text = str(id)
 
 
         return measurement_node
 
+
+    @classmethod
+    def from_etree(cls, et_element):
+        if et_element.tag != cls.MEASUREMENT:
+            log.error('XML Import: Need {} node to construct object.'.format(cls.MEASUREMENT))
+            return None
+
+
+        # readin data
+        mdata = {}
+        for data in et_element.findall( cls.DATA):
+            mdata[data.attrib[cls.NAME]] = None
+
+        # readin rawdata
+        raw_data = {}
+        for data in et_element.findall( cls.RAW_DATA):
+            raw_data[data.attrib[cls.NAME]] = None
+
+        is_mean = (et_element.attrib['is_mean'].upper == 'TRUE')
+        if is_mean:
+            # TODO: readin base measurements
+            pass
+
+        m = cls(sobj=None, id=et_element.attrib['id'], mtype=et_element.attrib['mtype'], ismean=is_mean)
+
+        return m
+
+
+###################################################################
+# decorators
+###################################################################
 
 
 @decorator.decorator
