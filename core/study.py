@@ -3,12 +3,17 @@ import tabulate
 import xml.etree.ElementTree as etree
 from copy import deepcopy
 import os
+from os.path import join
 from multiprocessing import Pool
+import logging
+
 import RockPy3
 from RockPy3.core import utils
 import RockPy3.core.sample
 import RockPy3.core.file_operations
 
+
+log = logging.getLogger(__name__)
 
 class Study(object):
     """
@@ -16,17 +21,12 @@ class Study(object):
     i.e. container for samplegroups
     """
 
-    @classmethod
-    def create_from_etree(cls, et):
-        root = et.getroot().tag
-        # print root
-        return cls()
+    # XML tags
+    ROCKPY = 'rockpy'
+    STUDY = 'study'
+    SAMPLES = 'samples'
+    NAME = 'nane'
 
-    @classmethod
-    def load_from_xml(cls, filename):
-        log.info("reading xml data from {}".format(filename))
-        et = etree.parse(filename)
-        return cls.create_from_etree(et)
 
     def __init__(self, name=None):
         """
@@ -491,7 +491,14 @@ class Study(object):
     def load(self, file_name=None, folder=None):
         return RockPy3.load(folder=folder, file_name=file_name)
 
-    def save_xml(self, folder=None, file_name=None):
+
+
+    ################################
+    # XML io
+    ################################
+
+
+    def save_xml(self, file_name=None, folder=None):
         """
         Save study to an xml file
         :param folder:
@@ -505,10 +512,10 @@ class Study(object):
                                   '[{}]SG_[{}]S'.format(len(self.groupnames), len(self.samplelist))]) + '.rpy.xml'
         if not folder:
             folder = RockPy3.core.file_operations.default_folder
-        RockPy3.logger.info('SAVING RockPy data as XML to {}'.format(os.path.join(folder, file_name)))
+        log.info('SAVING RockPy data as XML to {}'.format(os.path.join(folder, file_name)))
 
         # create root node that contains studies
-        root = etree.Element('rockpy', attrib={'rockpy_revision': RockPy3.rev, 'rockpy_file_version': '0.1'})
+        root = etree.Element(Study.ROCKPY, attrib={'rockpy_revision': RockPy3.rev, 'rockpy_file_version': '0.1'})
         # append etree from this study to the root element
         root.append(self.etree)
         et = etree.ElementTree(root)
@@ -526,13 +533,47 @@ class Study(object):
              etree: xml.etree.ElementTree
         """
 
-        study_node = etree.Element('study', attrib={'name': str(self.name)})
+        study_node = etree.Element(Study.STUDY, attrib={Study.NAME: str(self.name)})
 
         # create list of samples
-        samples_node = etree.Element('samples')
         for s in self.samplelist:
-            samples_node.append(s.etree)
-
-        study_node.append(samples_node)
+            study_node.append(s.etree)
 
         return study_node
+
+
+
+    @classmethod
+    def from_etree(cls, et):
+        if et.tag != Study.ROCKPY:
+            log.ERROR("root tag must be {}".format(Study.ROCKPY))
+            return None
+
+        # #find first study - ignoring others
+        s = et.find(Study.STUDY)
+        if s is None:
+            log.ERROR("no study found.")
+            return None
+
+        name = s.attrib[Study.NAME]
+        log.info("reading study {}".format(name))
+
+        study = cls(name=name)
+
+        #readin the samples
+        for sample_node in s.findall(RockPy3.core.sample.Sample.SAMPLE):
+            study.add_sample(sobj=RockPy3.core.sample.Sample.from_etree(sample_node))
+
+        return study
+
+    @classmethod
+    def load_from_xml(cls, file_name, folder=None):
+        if not folder:
+            folder = RockPy3.core.file_operations.default_folder
+
+        log.info("reading xml data from {}".format(join(folder, file_name)))
+
+        tree = etree.parse(join(folder, file_name))
+        root = tree.getroot()
+
+        return cls.from_etree(root)
