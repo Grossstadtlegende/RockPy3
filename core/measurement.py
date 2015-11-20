@@ -381,7 +381,9 @@ class Measurement(object):
 
         :return:
         """
-        return self.sobj.study
+        if self.sobj:
+            return self.sobj.study
+        return None
 
     ####################################################################################################################
     # plotting / legend properties
@@ -605,7 +607,7 @@ class Measurement(object):
                  idx=None,
                  initial_state=None,
                  ismean=False, base_measurements=None,
-                 color=None, marker=None, linestyle=None, id=None,
+                 color=None, marker=None, linestyle=None, mid=None,
                  **options
                  ):
         """
@@ -637,10 +639,10 @@ class Measurement(object):
                 RockPy3.Measurement obj
 
         """
-        if id is None:
+        if mid is None:
             self.id = id(self)
         else:
-            self.id = int(id)
+            self.id = int(mid)
 
         self.sobj = sobj
         self._plt_props = {'label': ''}
@@ -683,7 +685,8 @@ class Measurement(object):
         if series:
             self.add_series(series=series)
         else:
-            self.study._series.setdefault('none', []).append(self)
+            if self.study:
+                self.study._series.setdefault('none', []).append(self)
 
         if not idx:
             idx = len(self.sobj.measurements)
@@ -1965,7 +1968,13 @@ class Measurement(object):
 
 
     @classmethod
-    def from_etree(cls, et_element):
+    def from_etree(cls, et_element, sobj):
+        """
+
+        :param et_element: ElementTree.Element containing the xml data
+        :param sobj: sample object to which this measurement will belong
+        :return:
+        """
         if et_element.tag != cls.MEASUREMENT:
             log.error('XML Import: Need {} node to construct object.'.format(cls.MEASUREMENT))
             return None
@@ -1986,7 +1995,7 @@ class Measurement(object):
             # TODO: readin base measurements
             pass
 
-        m = cls(sobj=None, id=et_element.attrib['id'], mtype=et_element.attrib['mtype'], ismean=is_mean)
+        m = cls(sobj=sobj, id=et_element.attrib['id'], mtype=et_element.attrib['mtype'], ismean=is_mean)
 
         return m
 

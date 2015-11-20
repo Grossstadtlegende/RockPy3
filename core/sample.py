@@ -1020,10 +1020,10 @@ class Sample(object):
         for sg in et_element.findall(cls.SAMPLEGROUP):
             s.add_to_samplegroup(sg)
 
-        # TODO: add measurements
+        # add measurements
         for m in et_element.findall(RockPy3.core.measurement.Measurement.MEASUREMENT):
             #s.add_measurement(mtype=m.attrib['mtype'], )
-            mobj = RockPy3.core.measurement.from_etree( m)
+            mobj = RockPy3.core.measurement.Measurement.from_etree(m, s)
 
             #if mobj.is_mean:
             #    s._add_mobj(mobj)
