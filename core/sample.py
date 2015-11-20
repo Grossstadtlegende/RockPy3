@@ -1022,7 +1022,7 @@ class Sample(object):
 
         # add sample to samplegroups
         for sg in et_element.findall(cls.SAMPLEGROUP):
-            s.add_to_samplegroup(sg)
+            s.add_to_samplegroup(sg.text)
 
         # add measurements
         for m in et_element.findall(RockPy3.core.measurement.Measurement.MEASUREMENT):

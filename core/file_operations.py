@@ -102,9 +102,6 @@ def load_xml(file_name, folder=None):
     RockPy3.Study = RockPy3.core.study.Study.load_from_xml(file_name, folder)
 
 
-
-
-
 def get_fname_from_info(samplegroup='', sample_name='',
                         mtype='', ftype='',
                         mass='', mass_unit='',
