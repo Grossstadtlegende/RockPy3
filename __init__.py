@@ -28,6 +28,7 @@ from RockPy3.core.data import condense
 
 from RockPy3.core.file_operations import save, load, abbrev_to_classname
 from RockPy3.core.file_operations import get_fname_from_info, get_info_from_fname, import_folder
+from RockPy3.core.file_operations import load_xml, save_xml
 
 ### utility imports
 from RockPy3.utils.general import check_coordinate_system

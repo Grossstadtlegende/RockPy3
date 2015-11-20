@@ -82,6 +82,29 @@ def load(file_name, folder=None):
     return out
 
 
+def save_xml(file_name=None, folder=None):
+    """
+    save master study to xml file
+    :param file_name:
+    :param folder:
+    :return:
+    """
+    RockPy3.Study.save_xml(file_name, folder)
+
+
+def load_xml(file_name, folder=None):
+    """
+    load master study from file
+    :param file_name:
+    :param folder:
+    :return:
+    """
+    RockPy3.Study = RockPy3.core.study.Study.load_from_xml(file_name, folder)
+
+
+
+
+
 def get_fname_from_info(samplegroup='', sample_name='',
                         mtype='', ftype='',
                         mass='', mass_unit='',
