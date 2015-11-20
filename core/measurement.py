@@ -605,7 +605,7 @@ class Measurement(object):
                  idx=None,
                  initial_state=None,
                  ismean=False, base_measurements=None,
-                 color=None, marker=None, linestyle=None, id=None
+                 color=None, marker=None, linestyle=None, id=None,
                  **options
                  ):
         """
