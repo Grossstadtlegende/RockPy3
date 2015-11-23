@@ -1028,14 +1028,7 @@ class Sample(object):
         for m in et_element.findall(RockPy3.core.measurement.Measurement.MEASUREMENT):
             mobj = RockPy3.core.measurement.Measurement.from_etree(m, s)
 
-            if mobj.is_mean:
-                s._add_mobj(mobj)
-            # TODO: how to add mean measurements?
-            # else:
-            #    s._add_mean_mobj(mobj)
-
-
-
+            s.add_measurement(mobj=mobj)
 
         # return sample
         return s
