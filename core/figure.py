@@ -167,7 +167,7 @@ class Figure(object):
         """
         # create new figure with appropriate number of subplots
         if self._fig:
-            self._fig.close()
+            plt.close(self._fig)
         return generate_plots(n=self._n_visuals, xsize=xsize, ysize=ysize, columns=self.columns,
                               tight_layout=self.tightlayout)
 
@@ -212,10 +212,16 @@ class Figure(object):
         # actual plotting of the visuals
         self.plt_all()
 
+
         for name, type, visual in self._visuals:
-            xlim = visual.ax.get_xlim()
-            ylim = visual.ax.get_ylim()
-            visual.ax.set_xlim([xlim[0]-xlim[1]*0.05, xlim[1]+xlim[1]*0.05])
+            if visual.xlims:
+                visual.ax.set_xlim(visual.xlims)
+            if visual.ylims:
+                visual.ax.set_ylim(visual.ylims)
+            else:
+                xlim = visual.ax.get_xlim()
+                ylim = visual.ax.get_ylim()
+                visual.ax.set_xlim([xlim[0]-xlim[1]*0.05, xlim[1]+xlim[1]*0.05])
 
         if set_xlim == 'equal' or set_ylim == 'equal' or equal_lims:
             if center_lims:
@@ -230,6 +236,9 @@ class Figure(object):
                     visual.ax.set_xlim(xlim)
                 if set_ylim == 'equal' or equal_lims:
                     visual.ax.set_ylim(ylim)
+
+        for name, type, visual in self._visuals:
+            visual.ax.legend(**visual.legend_options)
 
         # check if two entries and each is float or int
         if set_xlim:

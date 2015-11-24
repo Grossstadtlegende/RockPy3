@@ -6,7 +6,6 @@ from math import tanh, cosh
 import numpy as np
 import numpy.random
 import scipy as sp
-import matplotlib.pyplot as plt
 from scipy import stats
 from scipy.optimize import curve_fit
 from scipy.interpolate import UnivariateSpline
@@ -17,6 +16,7 @@ from RockPy3.core import measurement
 from RockPy3.core.measurement import calculate, result, correction
 from RockPy3.core.data import RockPyData
 
+import matplotlib.pyplot as plt
 
 class Hysteresis(measurement.Measurement):
     """
@@ -248,7 +248,8 @@ class Hysteresis(measurement.Measurement):
             self._data = deepcopy(self._raw_data)
         return self._data
 
-    # ## formatting functions
+    ####################################################################################################################
+    """ formatting functions """
     # have to return mdata matching the measurement type
     @staticmethod
     def format_vsm(ftype_data, sobj_name=None):
@@ -1027,6 +1028,8 @@ class Hysteresis(measurement.Measurement):
             uncorrected_data = deepcopy(self.data)
 
         for dtype in self.data:
+            if not self.data[dtype]:
+                continue
             correction = hf_sus * self.data[dtype]['field'].v
             self.data[dtype]['mag'] = self.data[dtype]['mag'].v - correction
 
@@ -1443,3 +1446,18 @@ class Hysteresis(measurement.Measurement):
             f.writelines(line_three + '\n')
             f.writelines(line_four + '\n')
             f.writelines(data)
+
+if __name__ == '__main__':
+    Study = RockPy3.RockPyStudy()
+    s = Study.add_sample(name='S1')
+    hys = s.add_simulation(mtype='hys', ms=1)
+    # print(hys.data['down_field'])
+    hys.correct_paramag()
+    # for dtype in hys.data:
+    #     print(dtype)
+    #     print(hys.data[dtype])
+    fig = RockPy3.Figure(fig_input=Study)
+    v = fig.add_visual(visual='hysteresis')
+    # v = fig.add_visual(visual='hysteresis', visual_input=hys)
+    fig.show()
+#

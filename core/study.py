@@ -387,7 +387,9 @@ class Study(object):
             s = self.add_sample(name=name, **sample_info)
         else:
             s = self._samples[name]
-        m = s.add_measurement(**info)
+        # print(info)
+        m = s.add_measurement(fpath=info['fpath'], series=info['series'])
+        # print(m.data)
         return m
 
     def info(self, tablefmt='simple', parameters=True):
@@ -474,6 +476,11 @@ class Study(object):
                                       mean=mean, groupmean=groupmean,
                                       invert=invert, id=id):
             m.label_add_stype(stypes=stypes, add_stype=add_stype, add_sval=add_sval, add_unit=add_unit)
+
+    def color_from_sample(self):
+        for i, s in enumerate(self.samplelist):
+            color = RockPy3.colorscheme[i]
+            s.set_plt_prop('color', color)
 
     ####################################################################################################################
     ''' Data Operations '''

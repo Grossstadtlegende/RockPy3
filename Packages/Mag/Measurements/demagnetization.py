@@ -5,7 +5,6 @@ from math import tanh, cosh
 import numpy as np
 import numpy.random
 import scipy as sp
-import matplotlib.pyplot as plt
 from scipy import stats
 from scipy.optimize import curve_fit
 from scipy.interpolate import UnivariateSpline
@@ -17,6 +16,7 @@ from RockPy3.core import measurement
 from RockPy3.core.measurement import calculate, result, correction
 from RockPy3.core.data import RockPyData
 from pprint import pprint
+import matplotlib.pyplot as plt
 
 
 class Demagnetization(measurement.Measurement):

@@ -40,7 +40,7 @@ def create_heat_color_map(value_list, reverse=False):
 
 def create_logger(name):
     log = logging.getLogger(name=name)
-    log.setLevel(logging.DEBUG)
+    log.setLevel(logging.ERROR)
     formatter = logging.Formatter('%(asctime)s: %(levelname)-10s %(name)-20s %(message)s')
     # formatter = logging.Formatter('%(levelname)-10s %(name)-20s %(message)s')
     fh = logging.FileHandler('RPV3.log')
@@ -380,7 +380,14 @@ class plot(object):
                                 feature(visual, data=d, **kwargs)
                         else:
                             data[plt_type].append(sdata)
-                    # pprint(data)
+
+                        if plt_type == 'other' and plt_info['plot_samplemean']:
+                            for i, sdata in enumerate(data['other']):
+                                kwargs['plt_props'] = deepcopy(mlists[i][0].plt_props)
+                                self.update_plt_props(kwargs, visual=visual, name=name)
+                                sdata = sdata.eliminate_duplicate_variable_rows(substfunc='mean').sort()
+                                feature(visual, data=sdata, **kwargs)
+
                     if 'mean' in plt_type:
                         mean_data = []
                         # if result_from_means: the results will be calculated from the data  of any mean measurement
@@ -388,7 +395,6 @@ class plot(object):
                         if not plt_info['result_from_means']:
                             base = plt_type.replace('mean', 'base')
                             for sdata in data[base]:
-                                print(sdata)
                                 sdata = sdata.eliminate_duplicate_variable_rows(substfunc='mean').sort()
                                 mean_data.append(sdata)
                         else:
@@ -800,12 +806,30 @@ def MlistToTupleList(mlist, mtypes):
             for m_mtype_n in mdict[mtype]:
                 if not m_mtype1.sobj == m_mtype_n.sobj:
                     break
-                if RockPy3.utils.general.compare_measurement_series(m_mtype1, m_mtype_n):
+                if compare_measurement_series(m_mtype1, m_mtype_n):
                     aux.append(m_mtype_n)
                     break
         out.append(tuple(aux))
     return out
 
+def compare_measurement_series(m1, m2):
+    """
+    returns True if both series have exactly the same series.
+    Parameter
+    ---------
+        m1: RockPy.Measeurement
+        m2: RockPy.Measeurement
+    Note
+    ----
+        ignores multiples of the same series
+    """
+    s1 = m1.series
+    s2 = m2.series
+
+    if all(s in s2 for s in s1) and all(s in s1 for s in s2):
+        return True
+    else:
+        return False
 
 def get_full_argspec_old(func, args, kwargs=None):
     """

@@ -97,4 +97,4 @@ class CryoMag(io.ftype):
 # delete when no longer needed
 if __name__ == '__main__':
     c = CryoMag( dfile= '/Users/mike/Dropbox/experimental_data/RelPint/Step1B/IG_1291A.cmag.xml')
-    print(c.raw_data)
+    # print(c.raw_data)

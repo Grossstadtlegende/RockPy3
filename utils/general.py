@@ -1,4 +1,6 @@
 __author__ = 'mike'
+import RockPy3
+
 import logging
 import time
 
@@ -7,7 +9,6 @@ import matplotlib.pyplot as plt
 
 from math import degrees, radians
 from math import sin, cos, tan, asin, atan2
-import RockPy3
 
 
 def get_date_str():

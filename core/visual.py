@@ -85,7 +85,7 @@ class Visual(object):
                  plot_groupmean=None, plot_samplemean=None, plot_samplebase=None, plot_groupbase=None,
                  plot_other=None,
                  base_alpha=None, ignore_samples=None, result_from_means=None,
-                 xlabel=None, ylabel=None,
+                 xlabel=None, ylabel=None, xlims=None, ylims=None,
                  **options):
         '''
         :param visual_input:
@@ -141,6 +141,9 @@ class Visual(object):
         self.result_from_means = result_from_means
         self.base_alpha = base_alpha
         self.ignore_samples = ignore_samples
+
+        self.xlims = xlims
+        self.ylims = ylims
 
     def __getattr__(self, item):
         try:
