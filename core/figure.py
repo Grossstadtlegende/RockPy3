@@ -212,7 +212,6 @@ class Figure(object):
         # actual plotting of the visuals
         self.plt_all()
 
-
         for name, type, visual in self._visuals:
             if visual.xlims:
                 visual.ax.set_xlim(visual.xlims)
@@ -221,9 +220,12 @@ class Figure(object):
             else:
                 xlim = visual.ax.get_xlim()
                 ylim = visual.ax.get_ylim()
-                visual.ax.set_xlim([xlim[0]-xlim[1]*0.05, xlim[1]+xlim[1]*0.05])
+            #     visual.ax.set_xlim([xlim[0]-xlim[1]*0.05, xlim[1]+xlim[1]*0.05])
 
         if set_xlim == 'equal' or set_ylim == 'equal' or equal_lims:
+            if equal_lims:
+                xlim, ylim = self.get_xylims()
+
             if center_lims:
                 xl = max(np.abs(xlim))
                 yl = max(np.abs(ylim))

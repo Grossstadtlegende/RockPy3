@@ -269,6 +269,9 @@ class Visual(object):
                   normalize_variable=False, dont_normalize=None,
                   norm_initial_state=True, **options):
 
+        # deepcopy the input, in case its a copy from fig_input
+        self._visual_input = deepcopy(self.visual_input)
+
         for plt_type, mlist in self.visual_input.items():
             for m in mlist:
                 if isinstance(m, RockPy3.Parameter):
@@ -308,6 +311,8 @@ class Visual(object):
 
     @property
     def visual_input(self):
+        if not any(self._visual_input[plt_type] for plt_type in self._visual_input):
+            self._visual_input = self._RockPy_figure.fig_input
         return self._visual_input
 
     @property

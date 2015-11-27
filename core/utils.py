@@ -239,8 +239,8 @@ class plot(object):
         types = ('figure', 'visual', 'feature')
         plt_input = {'in_type': None}
 
-        for idx, indict in enumerate(
-                [visual._RockPy_figure.fig_input, visual.visual_input, visual.features[name]['feature_input']]):
+        for idx, indict in enumerate([visual.visual_input, visual.features[name]['feature_input']]):
+                # [visual._RockPy_figure.fig_input, visual.visual_input, visual.features[name]['feature_input']]):
             if any(indict[i] for i in ('groupmean', 'samplemean', 'samplebase', 'groupbase', 'other')):
                 plt_input.update(indict)
                 plt_input.update({'in_type': types[idx]})

@@ -649,6 +649,9 @@ class Measurement(object):
 
         self.log = logging.getLogger('RockPy3.MEASURMENT.' + self.get_subclass_name())
 
+        if mdata is None:
+            mdata = {}
+
         # the data that is used for calculations and corrections
         self._data = mdata
 

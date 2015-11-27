@@ -6,14 +6,13 @@ import os
 from os.path import join
 from multiprocessing import Pool
 import logging
-
 import RockPy3
 from RockPy3.core import utils
 import RockPy3.core.sample
 import RockPy3.core.file_operations
 
-
 log = logging.getLogger(__name__)
+
 
 class Study(object):
     """
@@ -26,7 +25,6 @@ class Study(object):
     STUDY = 'study'
     SAMPLES = 'samples'
     NAME = 'nane'
-
 
     def __init__(self, name=None):
         """
@@ -85,7 +83,7 @@ class Study(object):
         -------
             list of all samplenames
         """
-        return [k for k, v in self._samples.items()]
+        return sorted([k for k, v in self._samples.items()])
 
     @property
     def ngroups(self):
@@ -278,6 +276,22 @@ class Study(object):
         for s in samples:
             s.remove_from_samplegroup(gname=gname)
 
+    def remove_sample(self,
+                      gname=None,
+                      sname=None,
+                      mtype=None,
+                      series=None,
+                      stype=None, sval=None, sval_range=None,
+                      mean=False,
+                      invert=False,
+                      ):
+
+        samples = self.get_sample(gname=gname, sname=sname, mtype=mtype, series=series,
+                                  stype=stype, sval=sval, sval_range=sval_range, mean=mean, invert=invert)
+
+        for s in samples:
+            self._samples.pop(s.name, None)
+
     ####################################################################################################################
     ''' get functions '''
 
@@ -306,7 +320,8 @@ class Study(object):
             sname = utils.to_list(sname)
             slist = [s for s in slist if s.name in sname]
 
-        slist = [s for s in slist if s.get_measurement(mtype=mtype,
+        if any(i for i in [mtype, series, stype, sval, sval_range, mean, invert]):
+            slist = [s for s in slist if s.get_measurement(mtype=mtype,
                                                        stype=stype, sval=sval, sval_range=sval_range,
                                                        series=series,
                                                        mean=mean,
@@ -375,22 +390,29 @@ class Study(object):
         return measurements
 
     def import_file(self, fpath):
-        info = RockPy3.get_info_from_fname(fpath)
-        sample_info = deepcopy(info)
-        if not info['mtype'] in RockPy3.implemented_measurements:
+        """
+        Import function for a single file.
+        :param fpath:
+        :return:
+            if file not readable it returns None
+        """
+        try:
+            info = RockPy3.get_info_from_fname(fpath)
+            sample_info = deepcopy(info)
+            if not info['mtype'] in RockPy3.implemented_measurements:
+                return
+            # remove unnecessary info
+            for arg in ['series', 'idx', 'mtype', 'ftype', 'fpath']:
+                sample_info.pop(arg, None)
+            name = sample_info.pop('sample_name', None)
+            if not name in self._samples:
+                s = self.add_sample(name=name, **sample_info)
+            else:
+                s = self._samples[name]
+            m = s.add_measurement(fpath=info['fpath'], series=info['series'])
+            return m
+        except ValueError:
             return
-        # remove unnecessary info
-        for arg in ['series', 'idx', 'mtype', 'ftype', 'fpath']:
-            sample_info.pop(arg, None)
-        name = sample_info.pop('sample_name', None)
-        if not name in self._samples:
-            s = self.add_sample(name=name, **sample_info)
-        else:
-            s = self._samples[name]
-        # print(info)
-        m = s.add_measurement(fpath=info['fpath'], series=info['series'])
-        # print(m.data)
-        return m
 
     def info(self, tablefmt='simple', parameters=True):
         formats = ['plain', 'simple', 'grid', 'fancy_grid', 'pipe', 'orgtbl', 'rst', 'mediawiki', 'html', 'latex',
@@ -498,8 +520,6 @@ class Study(object):
     def load(self, file_name=None, folder=None):
         return RockPy3.load(folder=folder, file_name=file_name)
 
-
-
     ################################
     # XML io
     ################################
@@ -548,8 +568,6 @@ class Study(object):
 
         return study_node
 
-
-
     @classmethod
     def from_etree(cls, et):
         if et.tag != Study.ROCKPY:
@@ -567,7 +585,7 @@ class Study(object):
 
         study = cls(name=name)
 
-        #readin the samples
+        # readin the samples
         for sample_node in s.findall(RockPy3.core.sample.Sample.SAMPLE):
             study.add_sample(sobj=RockPy3.core.sample.Sample.from_etree(sample_node))
 

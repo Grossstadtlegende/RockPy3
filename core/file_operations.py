@@ -207,7 +207,6 @@ def get_info_from_fname(path=None):
         KeyError if ftype or mtype not in RockPy3.mtype_ftype_abbreviations_inversed
 
     """
-
     # change add_measurement accordingly
     folder = os.path.split(path)[0]
     fname = os.path.split(path)[1]
