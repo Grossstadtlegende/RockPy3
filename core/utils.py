@@ -831,29 +831,6 @@ def compare_measurement_series(m1, m2):
     else:
         return False
 
-def get_full_argspec_old(func, args, kwargs=None):
-    """
-    gets the full argspec from a function including the default values.
-
-    Raises
-    ------
-        TypeError if the wrong number of args is gives for a number of arg_names
-    """
-    if not kwargs:
-        kwargs = {}
-    arg_names, varargs, varkw, defaults = inspect.getargspec(func=func)
-
-    if defaults:
-        args += (defaults)
-
-    try:
-        # parameters = {arg_names.pop(0): func}
-        parameters = {arg: args[i] for i, arg in enumerate(arg_names)}
-        parameters.update(kwargs)
-    except IndexError:
-        raise TypeError('{} takes exactly {} argument ({} given)'.format(func.__name__, len(arg_names), len(args)))
-    return parameters
-
 
 def separate_mtype_method_parameter(kwarg):
     """
@@ -934,3 +911,26 @@ def tuple2list_of_tuples(item):
         aux.append(item)
         item = aux
     return item
+
+def range_to_tuple(range):
+    seperators = ('<', '=', '>')
+
+    out = []
+    if any(s in range for s in seperators):
+        if range.startswith('<'):
+            pass
+    else:
+        return float(range)
+
+if __name__ == '__main__':
+    print(range_to_tuple('<1'))
+    print(range_to_tuple('<=1'))
+    print(range_to_tuple('>1'))
+    print(range_to_tuple('>=1'))
+    print(range_to_tuple('1'))
+    print(range_to_tuple('=1'))
+    print(range_to_tuple('1-5'))
+    print(range_to_tuple('>1<5'))
+    print(range_to_tuple('>1<=5'))
+    print(range_to_tuple('>=1<5'))
+    print(range_to_tuple('>=1<=5'))

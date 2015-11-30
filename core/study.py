@@ -10,6 +10,7 @@ import RockPy3
 from RockPy3.core import utils
 import RockPy3.core.sample
 import RockPy3.core.file_operations
+import numpy as np
 
 log = logging.getLogger(__name__)
 
@@ -100,6 +101,26 @@ class Study(object):
     @property
     def n_samples(self):
         return len(self._samples)
+
+    @property
+    def stypes(self):
+        stypes = set(stype for s in self.samplelist for stype in s.stypes)
+        return stypes
+
+    @property
+    def stype_svals(self):
+        """
+        searches through all samples and creates a dictionary with all stype:[svals] of that type
+        :return:
+        """
+        stype_sval_dict = {stype: set() for stype in self.stypes}
+        for stype in stype_sval_dict:
+            for s in self.samplelist:
+                if stype in s.mdict['stype_sval']:
+                    stype_sval_dict[stype].update(s.mdict['stype_sval'][stype].keys())
+            else:
+                stype_sval_dict[stype] = sorted(stype_sval_dict[stype])
+        return stype_sval_dict
 
     ####################################################################################################################
     ''' add functions '''
@@ -322,10 +343,10 @@ class Study(object):
 
         if any(i for i in [mtype, series, stype, sval, sval_range, mean, invert]):
             slist = [s for s in slist if s.get_measurement(mtype=mtype,
-                                                       stype=stype, sval=sval, sval_range=sval_range,
-                                                       series=series,
-                                                       mean=mean,
-                                                       invert=invert)]
+                                                           stype=stype, sval=sval, sval_range=sval_range,
+                                                           series=series,
+                                                           mean=mean,
+                                                           invert=invert)]
         return slist
 
     def get_samplegroup(self, gname=None):
@@ -504,6 +525,59 @@ class Study(object):
             color = RockPy3.colorscheme[i]
             s.set_plt_prop('color', color)
 
+    def set_color(self, color, stypes=None, add_stype=True, add_sval=True, add_unit=True,
+                  gname=None,
+                  sname=None,
+                  mtype=None,
+                  series=None,
+                  stype=None, sval=None, sval_range=None,
+                  mean=False, groupmean=False,
+                  invert=False,
+                  id=None,
+                  ):
+
+        for m in self.get_measurement(gname=gname, sname=sname, mtype=mtype, series=series,
+                                      stype=stype, sval=sval, sval_range=sval_range,
+                                      mean=mean, groupmean=groupmean,
+                                      invert=invert, id=id):
+            print(m)
+            print(m.plt_props)
+            m.set_plt_prop('color', color)
+            print(m.plt_props)
+
+    def color_from_series(self, stype):
+        """
+        assigns a color to each measurement, according to the value of their series
+        :param stype:
+        :return:
+        """
+
+        # get svals
+        svals = self.stype_svals[stype]
+        # create heatmap
+        color_map = self.create_heat_color_map(svals)
+
+        # set the color for each sval
+        for i, sv in enumerate(svals):
+            self.set_color(stype=stype, sval=sv, color=color_map[i])
+
+    @staticmethod
+    def create_heat_color_map(value_list, reverse=False):
+        """
+        takes a list of values and creates a list of colors from blue to red (or reversed if reverse = True)
+
+        :param value_list:
+        :param reverse:
+        :return:
+        """
+        red = np.linspace(0, 255, len(value_list)).astype('int')
+        blue = red[::-1]
+        rgb = [(r, 0, blue[i]) for i, r in enumerate(red)]
+        out = ['#%02x%02x%02x' % val for val in rgb]
+        if reverse:
+            out = out[::-1]
+        return out
+
     ####################################################################################################################
     ''' Data Operations '''
 
@@ -602,3 +676,16 @@ class Study(object):
         root = tree.getroot()
 
         return cls.from_etree(root)
+
+
+if __name__ == '__main__':
+    S = RockPy3.Study
+    S.import_folder('/Users/mike/Dropbox/experimental_data/FeNiX/FeNi20J')
+    print(S.info())
+    # S.color_from_series(stype='mtime')
+    fig = RockPy3.Figure(fig_input=S)
+    # # v = fig.add_visual(visual='hysteresis')
+    # # v = fig.add_visual(visual='hysteresis')
+    # # v.normalize('mass')
+    v = fig.add_visual(visual='day')
+    fig.show()

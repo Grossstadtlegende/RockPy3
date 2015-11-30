@@ -1079,3 +1079,10 @@ class MeanSample(Sample):
 
     def __repr__(self):
         return '<< RockPy.MeanSample.{} >>'.format(self.name)
+
+
+if __name__ == '__main__':
+    S = RockPy3.Study
+    s = S.add_sample(name='test')
+    s.add_simulation(mtype='hysteresis')
+    print(s.get_measurement())
