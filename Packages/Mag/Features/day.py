@@ -4,7 +4,6 @@ import numpy as np
 
 
 def day_data(ax, mobj, **plt_props):
-    print(mobj)
     if not len(mobj) == 2:
         return
     ms = mobj[0].result_ms()

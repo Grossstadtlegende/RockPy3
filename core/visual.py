@@ -86,6 +86,7 @@ class Visual(object):
                  plot_other=None,
                  base_alpha=None, ignore_samples=None, result_from_means=None,
                  xlabel=None, ylabel=None, xlims=None, ylims=None,
+                 xscale=None, yscale=None,
                  **options):
         '''
         :param visual_input:
@@ -144,6 +145,10 @@ class Visual(object):
 
         self.xlims = xlims
         self.ylims = ylims
+
+        # scales
+        self.xscale = xscale
+        self.yscale = yscale
 
     def __getattr__(self, item):
         try:
@@ -360,22 +365,23 @@ class Visual(object):
 
     @plot(single=True)
     def feature_grid(self, plt_props=None):
+        plt_props['color'] = 'k'
+        plt_props['linestyle'] = '--'
         self.ax.grid(**plt_props)
 
-    @plot(single=True, overwrite_mobj_plt_props={'marker': 's', 'color': 'k'})
+    @plot(single=True)
     def feature_generic_data(self, plt_props=None):
         RockPy3.Packages.Generic.Features.generic.plot_x_y(ax=self.ax, **plt_props)
 
     @plot(single=True)
     def feature_generic_text(self, plt_props=None):
-        # print(plt_props)
-        # print(self.ax.text(x=plt_props.get('x', 0), y=plt_props.get('y', 0), s=plt_props.get('s', '')))
-
         RockPy3.Packages.Generic.Features.generic.text_x_y(ax=self.ax, **plt_props)
 
     @plot(single=True)
     def feature_zero_lines(self, plt_props=None):
-        plt_props.setdefault('color', 'k')
+        plt_props['color'] = 'k'
+        plt_props['marker'] = ''
+        plt_props['linestyle'] = '-'
         self.ax.axhline(0, **plt_props)
         self.ax.axvline(0, **plt_props)
 
@@ -461,30 +467,6 @@ class Visual(object):
 
             else:
                 self.log.warning('PROPERTY << {} >> not in Line2D properties nor text properties'.format(p))
-
-    def set_xscale(self, value):
-        """
-        'linear': LinearScale,
-        'log':    LogScale,
-        'symlog': SymmetricalLogScale
-
-        Parameter
-        ---------
-           scale:
-        """
-        self.ax.set_xscale(value=value)
-
-    def set_yscale(self, value):
-        """
-        'linear': LinearScale,
-        'log':    LogScale,
-        'symlog': SymmetricalLogScale
-
-        Parameter
-        ---------
-           scale:
-        """
-        self.ax.set_yscale(value=value)
 
     def set_ticklabel_format(self, axis='y', style='sci', scilimits=(-2, 2)):
         self.ax.ticklabel_format(axis=axis, style=style, scilimits=scilimits)

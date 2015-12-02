@@ -9,7 +9,7 @@ import inspect
 
 class Backfield(Visual):
     def init_visual(self):
-        self.standard_features = ['zero_lines', 'grid', 'backfield_data']
+        self.standard_features = ['zero_lines', 'backfield_data']
         # self.standard_plt_props = {'zero_lines': {'color': 'k'}}
         self.xlabel = 'Field'
         self.ylabel = 'Moment'

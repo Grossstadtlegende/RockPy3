@@ -308,6 +308,7 @@ class plot(object):
             # if fig_input and visual_input -> fig_input is overwritten by visual_input etc.
             plt_info = self.get_plt_infos(feature=feature, visual=visual, name=name)
             RockPy3.logger.info('Input from:')
+
             for k, v in sorted(plt_info.items()):
                 RockPy3.logger.info('            {}:{}'.format(k, v))
 
@@ -319,7 +320,6 @@ class plot(object):
                 result feature uses either visual of feature plot_mean, plot_base and ignore_samples flags
                 if ignore_samples True: the mean of all samples_is calculated
                                   False: the mean for each individual sample is plotted
-
                 """
                 # cycle through possible inputs
                 data = {}
@@ -386,6 +386,8 @@ class plot(object):
                                 kwargs['plt_props'] = deepcopy(mlists[i][0].plt_props)
                                 self.update_plt_props(kwargs, visual=visual, name=name)
                                 sdata = sdata.eliminate_duplicate_variable_rows(substfunc='mean').sort()
+                                # print(name)
+                                # print(sdata)
                                 feature(visual, data=sdata, **kwargs)
 
                     if 'mean' in plt_type:
@@ -432,6 +434,7 @@ class plot(object):
                             mtype = (mtype,)
                         if len(mtype) > 1:
                             mobj = MlistToTupleList(mlist, mtype)
+                            # print(mobj)
                         elif len(mtype) == 1:
                             mobj = [m for m in mlist if m.mtype == mtype[0]]
                         else:
@@ -450,7 +453,7 @@ class plot(object):
 
                             # change the alpha to base_alpha if group or sample base should be plotted and the means
                             if (plt_type == 'samplebase' or plt_type == 'groupbase') and (
-                                plt_info['plot_samplemean'] or plt_info['plot_groupmean']):
+                                        plt_info['plot_samplemean'] or plt_info['plot_groupmean']):
                                 kwargs['plt_props']['alpha'] = plt_info['base_alpha']
                             if plt_type == 'groupmean':
                                 kwargs['plt_props']['zorder'] = 100
@@ -713,7 +716,7 @@ def sort_plt_input(plt_input):
 
 
 def add_to_plt_input(plt_input, to_add_to, groupmean=True, samplemean=True, base=True, other=True):
-    plt_input = sort_plt_input(plt_input=plt_input, groupmean=groupmean, samplemean=samplemean, base=base, other=other)
+    plt_input = sort_plt_input(plt_input=plt_input)
     for k, v in to_add_to.items():
         to_add_to[k].update(plt_input[k])
     return to_add_to
@@ -796,7 +799,6 @@ def MlistToTupleList(mlist, mtypes):
     """
     # create the dictionary
     mdict = {mtype: [m for m in mlist if m.mtype == mtype] for mtype in mtypes}
-    # print mdict
     out = []
 
     for m_mtype1 in mdict[mtypes[0]]:
@@ -805,10 +807,10 @@ def MlistToTupleList(mlist, mtypes):
         for mtype in mtypes[1:]:
             for m_mtype_n in mdict[mtype]:
                 if not m_mtype1.sobj == m_mtype_n.sobj:
-                    break
+                    continue
                 if compare_measurement_series(m_mtype1, m_mtype_n):
                     aux.append(m_mtype_n)
-                    break
+                    continue
         out.append(tuple(aux))
     return out
 
@@ -923,14 +925,20 @@ def range_to_tuple(range):
         return float(range)
 
 if __name__ == '__main__':
-    print(range_to_tuple('<1'))
-    print(range_to_tuple('<=1'))
-    print(range_to_tuple('>1'))
-    print(range_to_tuple('>=1'))
-    print(range_to_tuple('1'))
-    print(range_to_tuple('=1'))
-    print(range_to_tuple('1-5'))
-    print(range_to_tuple('>1<5'))
-    print(range_to_tuple('>1<=5'))
-    print(range_to_tuple('>=1<5'))
-    print(range_to_tuple('>=1<=5'))
+    Study = RockPy3.RockPyStudy()
+    # sample
+    s2 = Study.add_sample(name='S2')
+    # noise ranging from 0-5%
+    for noise in range(5):
+        # 4 measurements for each noise
+        for n in range(4):
+            h1 = s2.add_simulation(mtype='hysteresis', noise = noise, marker='o')
+            # we add a series for the noise
+            h1.add_series('noise', noise, '%')
+
+    fig = RockPy3.Figure(fig_input=Study)
+    v = fig.add_visual(visual='hysteresis')
+    v = fig.add_visual(visual='resultseries',result='ms', series='noise')
+    v = fig.add_visual(visual='resultseries',result='bc', series='noise')
+    v.add_feature('result_series_errorbars')
+    fig.show()

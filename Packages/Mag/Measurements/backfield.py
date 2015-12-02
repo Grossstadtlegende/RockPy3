@@ -29,19 +29,15 @@ class Backfield(measurement.Measurement):
 
     Possible data structure::
 
-       self.remanence: the remanence measurement after the field was applied (normal measurement mode for e.g. VFTB or VSM)
-       self.induced: the induced moment measurement while the field is applied (only VSM)
+       self.data: the remanence measurement after the field was applied (normal measurement mode for e.g. VFTB or VSM)
 
-    Notes
-    -----
-    - VSM- files with irm acquisition will add a new irm_acquisition measurement to the sample
 
     """
     _standard_parameter = {}
 
     @staticmethod
     def empty_mdata():
-        return dict(remanence=None, induced=None)
+        return dict(data=None)
 
     @classmethod
     def from_simulation(cls, sobj, idx=None,
@@ -90,17 +86,23 @@ class Backfield(measurement.Measurement):
         formats the output from vftb to measurement.data
         :return:
         '''
+        idx = 0
         data = ftype_data.get_data()
         header = ftype_data.header
 
-        mdata = {'remanence': None, 'induced': None}
-        mdata['remanence'] = RockPyData(column_names=header, data=data[1])
-        mdata['remanence'].define_alias('mag', 'remanence')
+        # from pprint import pprint
+        # pprint(ftype_data.info_header)
 
-        try:
-            mdata['induced'] = RockPyData(column_names=header, data=data[0])
-        except:
-            RockPy3.logger.error('CANT find induced magnetization column')
+        # check if vsm file actually contains a dcd measurement
+        if not ftype_data.info_header['include dcd?']:
+            return
+        else:
+            if ftype_data.info_header['include irm?']:
+                idx +=1
+
+        mdata = {}
+        mdata['data'] = RockPyData(column_names=header, data=data[idx])
+        mdata['data'].define_alias('mag', 'remanence')
 
         return mdata
 
@@ -114,12 +116,12 @@ class Backfield(measurement.Measurement):
         :param parameter:
         :return:
         """
-        start = self.data['remanence']['mag'].v[0]
-        end = self.data['remanence']['mag'].v[-1]
+        start = self.data['data']['mag'].v[0]
+        end = self.data['data']['mag'].v[-1]
         self.results['mrs'] = [[[np.nanmean([abs(start), abs(end)]), np.nanstd([abs(start), abs(end)])]]]
 
     @result
-    def result_mrs(self, recalc=False):
+    def result_mrs(self, recalc=False, **non_method_parameters):
         pass
 
     ####################################################################################################################
@@ -144,10 +146,10 @@ class Backfield(measurement.Measurement):
         result = []
 
         # get magneization limits for a calculation using the 2 points closest to 0 fro each direction
-        moment = sorted(abs(self.data['remanence']['mag'].v))[no_points - 1]
+        moment = sorted(abs(self.data['data']['mag'].v))[no_points - 1]
 
         # filter data for fields higher than field_limit
-        data = self.data['remanence'].filter(abs(self.data['remanence']['mag'].v) <= moment)
+        data = self.data['data'].filter(abs(self.data['data']['mag'].v) <= moment)
 
         # calculate bcr
         slope, intercept, r_value, p_value, std_err = stats.linregress(data['field'].v, data['mag'].v)
@@ -187,7 +189,7 @@ class Backfield(measurement.Measurement):
         result = []
 
         # get limits for a calculation using the no_points points closest to 0 fro each direction
-        limit = sorted(abs(self.data['remanence']['mag'].v))[no_points - 1]
+        limit = sorted(abs(self.data['data']['mag'].v))[no_points - 1]
         # the field_limit has to be set higher than the lowest field
         # if not the field_limit will be chosen to be 2 points for uf and df separately
         if no_points < 2:
@@ -196,7 +198,7 @@ class Backfield(measurement.Measurement):
             self.calculation_parameter['bcr']['no_points'] = 2
 
         # filter data for fields higher than field_limit
-        data = self.data['remanence'].filter(abs(self.data['remanence']['mag'].v) <= limit)  # .sort('field')
+        data = self.data['data'].filter(abs(self.data['data']['mag'].v) <= limit)  # .sort('field')
         x = np.linspace(data['field'].v[0], data['field'].v[-1])
 
         spl = UnivariateSpline(data['field'].v, data['mag'].v)
@@ -232,15 +234,15 @@ class Backfield(measurement.Measurement):
     #     :return: result
     #     '''
     #
-    #     if self.data['remanence']['field'].v.all() < 0.300:
+    #     if self.data['data']['field'].v.all() < 0.300:
     #         self.results['s300'] = np.nan
     #         return
     #
     #     # get field limits for a calculation using the 2 points closest to 0 fro each direction
-    #     idx = np.argmin(np.fabs(self.data['remanence']['field'].v+0.3))+1
+    #     idx = np.argmin(np.fabs(self.data['data']['field'].v+0.3))+1
     #
     #     # filter data for fields higher than field_limit
-    #     data = self.data['remanence'].filter_idx(range(idx-no_points/2, idx+no_points/2))
+    #     data = self.data['data'].filter_idx(range(idx-no_points/2, idx+no_points/2))
     #     slope, intercept, r_value, p_value, std_err = stats.linregress(data['field'].v, data['mag'].v)
     #     result = abs(slope*-0.3+intercept)
     #
@@ -268,15 +270,15 @@ class Backfield(measurement.Measurement):
     #     :return: result
     #     '''
     #
-    #     if self.data['remanence']['field'].v.all() < 0.300:
+    #     if self.data['data']['field'].v.all() < 0.300:
     #         self.results['s300'] = np.nan
     #         return
     #
     #     # get field limits for a calculation using the 2 points closest to 0 fro each direction
-    #     idx = np.argmin(np.fabs(self.data['remanence']['field'].v+0.3))+1
+    #     idx = np.argmin(np.fabs(self.data['data']['field'].v+0.3))+1
     #
     #     # filter data for fields higher than field_limit
-    #     data = self.data['remanence'].filter_idx(range(idx-no_points/2, idx+no_points/2))
+    #     data = self.data['data'].filter_idx(range(idx-no_points/2, idx+no_points/2))
     #
     #     x = np.linspace(data['field'].v[0], data['field'].v[-1])
     #     spl = UnivariateSpline(data['field'].v, data['mag'].v)
@@ -300,27 +302,6 @@ class Backfield(measurement.Measurement):
     # @result
     # def result_s300(self, recipe='LINEAR', recalc=False, **non_calculation_parameter):
     #     pass
-
-    ####################################################################################################################
-    ''' Ms '''
-
-    @calculate
-    def calculate_ms(self, **non_method_parameters):
-        """
-                Magnetic Moment at last measurement point
-                :param parameter:
-                :return:
-                """
-
-        if not self.data['induced']:
-            return
-
-        ms = self.data['induced']['mag'].v[-1]
-        self.results['ms'] = [[[abs(ms), np.nan]]]
-
-    @result
-    def result_ms(self, recalc=False):
-        pass
 
     ####################################################################################################################
 
@@ -355,8 +336,8 @@ def test():
     file = '/Users/mike/Dropbox/experimental_data/COE/FeNiX/FeNiX_FeNi20-G-a-001-M02_COE_VSM#15[mg]_[]_[]#milling time_1_hrs;Ni_20_perc#STD003.001'
     s = RockPy3.Sample(name='test_sample')
     coe = s.add_simulation(mtype='backfield', bmax=1, noise=1)
-    # print(coe.data['remanence'])
-    plt.plot(coe.data['remanence']['field'].v, coe.data['remanence']['mag'].v)
+    # print(coe.data['data'])
+    plt.plot(coe.data['data']['field'].v, coe.data['data']['mag'].v)
     plt.show()
     # coe = s.add_measurement(fpath=file, ftype='vsm', mtype='backfield')
     # print(coe.result_s300(recipe='LINEAR', no_points=4, check=True))
@@ -364,4 +345,10 @@ def test():
 
 
 if __name__ == '__main__':
-    test()
+    S = RockPy3.Study
+    s = S.add_sample(name='test')
+    m = s.add_measurement(fpath='/Users/mike/Dropbox/experimental_data/FeNiX/FeNi20J/FeNi_FeNi20-Jz000-G03_COE_VSM#50,3[mg]_[]_[]#mtime_000_min;GC_03_No;rpm_400_##.001')
+
+    fig = RockPy3.Figure(fig_input=S)
+    v = fig.add_visual('resultseries', result='bc', series='mtime', xscale='log')
+    fig.show()

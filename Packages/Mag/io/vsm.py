@@ -25,6 +25,8 @@ class Vsm(io.ftype):
         self.info_header_raw = [self.raw_data.pop(0) for i in range(0, self.segment_start_idx)][1:]
         self.info_header = self.get_measurement_infos()
 
+        self.calibration_factor = self.info_header['calibration factor']
+
         # remove all data points from raw data
         self.data_idx = min(i for i, v in enumerate(self.raw_data) if v.startswith('+') or v.startswith('-'))
         self._data = [self.raw_data.pop(self.data_idx) for i in range(self.data_idx, len(self.raw_data) - 1)]
@@ -116,8 +118,19 @@ class Vsm(io.ftype):
                 else:
                     splitter = 31
                 if line[splitter + 1:].rstrip():
-                    return (line[:splitter].rstrip().lower(), self.convert2float_or_str(line[splitter + 1:].rstrip()))
+                    out = (line[:splitter].rstrip().lower(), self.convert2float_or_str(line[splitter + 1:].strip()))
+
+                    if out[1] == 'Yes':
+                        return (line[:splitter].rstrip().lower(), True)
+                    if out[1] == 'No':
+                        return (line[:splitter].rstrip().lower(), False)
+                    else:
+                        return out
+
 
         data = self.info_header_raw
         data = [i for i in map(separate, data) if i and i[1]]
         return dict(data)
+
+    def check_calibration_factor(self):
+        pass

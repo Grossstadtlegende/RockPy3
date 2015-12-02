@@ -435,7 +435,7 @@ class Study(object):
         except ValueError:
             return
 
-    def info(self, tablefmt='simple', parameters=True):
+    def info(self, sample_info = True, tablefmt='simple', parameters=True):
         formats = ['plain', 'simple', 'grid', 'fancy_grid', 'pipe', 'orgtbl', 'rst', 'mediawiki', 'html', 'latex',
                    'latex_booktabs']
 
@@ -443,6 +443,31 @@ class Study(object):
             RockPy3.logger.info('NO SUCH FORMAT')
             tablefmt = 'simple'
 
+
+        table = [['{} samples'.format(len(self.samplelist)), ','.join(self.samplenames), '           ']]
+        table.append([''.join(['--' for i in str(j)]) for j in table[0]])
+
+        mtypes = set(mt for s in self.samplelist for mt in s.mtypes)
+        for mtype in mtypes:
+            measurements = self.get_measurement(mtype=mtype)
+            stypes = sorted(list(set([s.stype for m in measurements for s in m.series])))
+            table.append(['{} measurements'.format(len(measurements)), mtype])
+            table.append(['', '{} series:'.format(len(stypes))])
+            for stype in stypes:
+                measurements = self.get_measurement(mtype=mtype, stype=stype)
+                values = [s.value for m in measurements for s in m.series if s.stype == stype]
+                svals = sorted(list(set(values)))
+                svals = ['{}[{}]'.format(sval, values.count(sval)) for sval in svals]
+                table.append(['', '{}: {}'.format(stype, ', '.join(svals))])
+
+        table.append([''.join(['--' for i in str(j)]) for j in table[0]])
+
+        print(tabulate.tabulate(table, headers=[self.name, '', '', ''], tablefmt=tablefmt))
+
+        if not sample_info:
+            return
+
+        print()
         header = ['Sample Name', 'Sample Group', 'Measurements', 'series', 'Initial State']
         table = []
 
@@ -491,7 +516,7 @@ class Study(object):
                 table.append(line)
             table.append([''.join(['-' for i in range(15)]) for j in line0])
 
-        return tabulate.tabulate(table, headers=header, tablefmt=tablefmt)
+        print(tabulate.tabulate(table, headers=header, tablefmt=tablefmt))
 
     def calc_all(self, **parameter):
         for s in self.samplelist:
@@ -540,10 +565,7 @@ class Study(object):
                                       stype=stype, sval=sval, sval_range=sval_range,
                                       mean=mean, groupmean=groupmean,
                                       invert=invert, id=id):
-            print(m)
-            print(m.plt_props)
             m.set_plt_prop('color', color)
-            print(m.plt_props)
 
     def color_from_series(self, stype):
         """
@@ -681,11 +703,17 @@ class Study(object):
 if __name__ == '__main__':
     S = RockPy3.Study
     S.import_folder('/Users/mike/Dropbox/experimental_data/FeNiX/FeNi20J')
-    print(S.info())
+    S.info()
+    # print(S.stype_svals['mtime'])
+    # S.set_color(stype='mtime', sval=0, color='k')
+    # S.set_color(stype='mtime', sval=1, color='m')
+    # S.set_color(stype='mtime', sval=2, color='y')
+    # S.set_color(stype='mtime', sval=4, color='y')
     # S.color_from_series(stype='mtime')
-    fig = RockPy3.Figure(fig_input=S)
-    # # v = fig.add_visual(visual='hysteresis')
-    # # v = fig.add_visual(visual='hysteresis')
-    # # v.normalize('mass')
-    v = fig.add_visual(visual='day')
-    fig.show()
+    # fig = RockPy3.Figure(fig_input=S)
+    # v = fig.add_visual('resultseries', result='bc', series='mtime')
+    # v = fig.add_visual(visual='hysteresis')
+    # v = fig.add_visual(visual='hysteresis')
+    # v.normalize('mass')
+    # v = fig.add_visual(visual='day', marker='o')
+    # fig.show()

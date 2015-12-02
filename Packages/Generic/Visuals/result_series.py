@@ -36,7 +36,7 @@ class ResultSeries(Visual):
         )
 
     def init_visual(self):
-        self.standard_features = ['result_series_data']#, 'result_series_errorbars']
+        self.standard_features = ['result_series_data', 'result_series_errorbars']
         self.xlabel = self.series
         self.ylabel = self.result
 

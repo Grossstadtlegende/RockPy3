@@ -357,7 +357,6 @@ class Hysteresis(measurement.Measurement):
         """
         # initialize result
         result = []
-
         # get magneization limits for a calculation using the 2 points closest to 0 fro each direction
         df_moment = sorted(abs(self.data['down_field']['mag'].v))[no_points - 1]
         uf_moment = sorted(abs(self.data['up_field']['mag'].v))[no_points - 1]
@@ -374,8 +373,8 @@ class Hysteresis(measurement.Measurement):
             if check:
                 x = dir['field'].v
                 y_new = slope * x + intercept
-                plt.plot(dir['field'].v, dir['mag'].v, '.', color=Hysteresis.colors[i])
-                plt.plot(x, y_new, color=Hysteresis.colors[i])
+                plt.plot(dir['field'].v, dir['mag'].v, '.', color=RockPy3.colorscheme[i])
+                plt.plot(x, y_new, color=RockPy3.colorscheme[i])
 
         # check plot
         if check:
@@ -402,7 +401,6 @@ class Hysteresis(measurement.Measurement):
         """
         # initialize result
         result = []
-
         # get limits for a calculation using the no_points points closest to 0 fro each direction
         df_limit = sorted(abs(self.data['down_field']['field'].v))[no_points - 1]
         uf_limit = sorted(abs(self.data['up_field']['field'].v))[no_points - 1]
@@ -426,8 +424,8 @@ class Hysteresis(measurement.Measurement):
             result.append(abs(x[idx]))
 
             if check:
-                plt.plot(dir['field'].v, dir['mag'].v, '.', color=Hysteresis.colors[i])
-                plt.plot(x, y_new, color=Hysteresis.colors[i])
+                plt.plot(dir['field'].v, dir['mag'].v, '.', color=RockPy3.colorscheme[i])
+                plt.plot(x, y_new, color=RockPy3.colorscheme[i])
 
         if check:
             plt.plot([-np.nanmean(result), np.nanmean(result)], [0, 0], 'xk')
@@ -674,96 +672,96 @@ class Hysteresis(measurement.Measurement):
         """
         pass
 
-    ####################################################################################################################
-    ''' Brh'''
-
-    @calculate
-    def calculate_brh(self, **parameter):
-        pass  # todo implement
-
-    @result
-    def result_brh(self, recalc=False, **options):
-        """
-        By definition, Brh is the median destructive field of the vertical hysteresis difference:
-
-        .. math::
-
-           M_{rh}(B) = \\frac{M^+(B)-M^-(B)}{2}
-
-        """
-        self.calc_result(dict(), recalc)
-        return self.results['brh']
-
-    ####################################################################################################################
-    ''' E_delta_t'''
-
-    @calculate
-    def calculate_e_delta_t(self, **parameter):
-        """
-        Method calculates the :math:`E^{\Delta}_t` value for the hysteresis.
-        It uses scipy.integrate.simps for calculation of the area under the down_field branch for positive fields and
-        later subtracts the area under the Msi curve.
-
-        The energy is:
-
-        .. math::
-
-           E^{\delta}_t = 2 \int_0^{B_{max}} (M^+(B) - M_{si}(B)) dB
-
-        """
-        # if not self.msi_exists:
-        #     self.log.error(
-        #         '%s\tMsi branch does not exist or not properly saturated. Please check datafile' % self.sobj.name)
-        #     self.results['e_delta_t'] = np.nan
-        #     return np.nan
-        #
-        # # getting data for positive down field branch
-        # df_pos_fields = [v for v in self.data['down_field']['field'].v if v >= 0] + [0.0]  # need to add 0 to fields
-        # df_pos = self.data['down_field'].interpolate(df_pos_fields)  # interpolate value for 0
-        # df_pos_area = abs(sp.integrate.simps(y=df_pos['mag'].v, x=df_pos['field'].v))  # calculate area under downfield
-        #
-        # msi_area = abs(sp.integrate.simps(y=self.data['virgin']['mag'].v,
-        #                                   x=self.data['virgin']['field'].v))  # calulate area under virgin
-        #
-        # self.results['e_delta_t'] = abs(2 * (df_pos_area - msi_area))
-        # self.calculation_parameter['e_delta_t'].update(parameter)
-        # return self.results['e_delta_t'].v[0]
-        pass
-
-    @result
-    def result_e_delta_t(self, recalc=False, **options):
-        self.calc_result(dict(), recalc)
-        return self.results['e_delta_t']
-
-    ####################################################################################################################
-    ''' E_hys'''
-
-    @calculate
-    def calculate_e_hys(self, **parameter):
-        '''
-        Method calculates the :math:`E^{Hys}` value for the hysteresis.
-        It uses scipy.integrate.simps for calculation of the area under the down_field branch and
-        later subtracts the area under the up-field branch.
-
-        The energy is:
-
-        .. math::
-
-           E^{Hys} = \int_{-B_{max}}^{B_{max}} (M^+(B) - M^-(B)) dB
-
-        '''
-
-        df_area = sp.integrate.simps(y=self.data['down_field']['mag'].v,
-                                     x=self.data['down_field']['field'].v)  # calulate area under down_field
-        uf_area = sp.integrate.simps(y=self.data['up_field']['mag'].v,
-                                     x=self.data['up_field']['field'].v)  # calulate area under up_field
-
-        self.results['e_hys'] = abs(df_area - uf_area)
-
-    @result
-    def result_e_hys(self, recalc=False, **options):
-        self.calc_result(dict(), recalc)
-        return self.results['e_hys']
+    # ####################################################################################################################
+    # ''' Brh'''
+    #
+    # @calculate
+    # def calculate_brh(self, **parameter):
+    #     pass  # todo implement
+    #
+    # @result
+    # def result_brh(self, recalc=False, **options):
+    #     """
+    #     By definition, Brh is the median destructive field of the vertical hysteresis difference:
+    #
+    #     .. math::
+    #
+    #        M_{rh}(B) = \\frac{M^+(B)-M^-(B)}{2}
+    #
+    #     """
+    #     self.calc_result(dict(), recalc)
+    #     return self.results['brh']
+    #
+    # ####################################################################################################################
+    # ''' E_delta_t'''
+    #
+    # @calculate
+    # def calculate_e_delta_t(self, **parameter):
+    #     """
+    #     Method calculates the :math:`E^{\Delta}_t` value for the hysteresis.
+    #     It uses scipy.integrate.simps for calculation of the area under the down_field branch for positive fields and
+    #     later subtracts the area under the Msi curve.
+    #
+    #     The energy is:
+    #
+    #     .. math::
+    #
+    #        E^{\delta}_t = 2 \int_0^{B_{max}} (M^+(B) - M_{si}(B)) dB
+    #
+    #     """
+    #     # if not self.msi_exists:
+    #     #     self.log.error(
+    #     #         '%s\tMsi branch does not exist or not properly saturated. Please check datafile' % self.sobj.name)
+    #     #     self.results['e_delta_t'] = np.nan
+    #     #     return np.nan
+    #     #
+    #     # # getting data for positive down field branch
+    #     # df_pos_fields = [v for v in self.data['down_field']['field'].v if v >= 0] + [0.0]  # need to add 0 to fields
+    #     # df_pos = self.data['down_field'].interpolate(df_pos_fields)  # interpolate value for 0
+    #     # df_pos_area = abs(sp.integrate.simps(y=df_pos['mag'].v, x=df_pos['field'].v))  # calculate area under downfield
+    #     #
+    #     # msi_area = abs(sp.integrate.simps(y=self.data['virgin']['mag'].v,
+    #     #                                   x=self.data['virgin']['field'].v))  # calulate area under virgin
+    #     #
+    #     # self.results['e_delta_t'] = abs(2 * (df_pos_area - msi_area))
+    #     # self.calculation_parameter['e_delta_t'].update(parameter)
+    #     # return self.results['e_delta_t'].v[0]
+    #     pass
+    #
+    # @result
+    # def result_e_delta_t(self, recalc=False, **options):
+    #     self.calc_result(dict(), recalc)
+    #     return self.results['e_delta_t']
+    #
+    # ####################################################################################################################
+    # ''' E_hys'''
+    #
+    # @calculate
+    # def calculate_e_hys(self, **parameter):
+    #     '''
+    #     Method calculates the :math:`E^{Hys}` value for the hysteresis.
+    #     It uses scipy.integrate.simps for calculation of the area under the down_field branch and
+    #     later subtracts the area under the up-field branch.
+    #
+    #     The energy is:
+    #
+    #     .. math::
+    #
+    #        E^{Hys} = \int_{-B_{max}}^{B_{max}} (M^+(B) - M^-(B)) dB
+    #
+    #     '''
+    #
+    #     df_area = sp.integrate.simps(y=self.data['down_field']['mag'].v,
+    #                                  x=self.data['down_field']['field'].v)  # calulate area under down_field
+    #     uf_area = sp.integrate.simps(y=self.data['up_field']['mag'].v,
+    #                                  x=self.data['up_field']['field'].v)  # calulate area under up_field
+    #
+    #     self.results['e_hys'] = abs(df_area - uf_area)
+    #
+    # @result
+    # def result_e_hys(self, recalc=False, **options):
+    #     self.calc_result(dict(), recalc)
+    #     return self.results['e_hys']
 
     ####################################################################################################################
     ''' Mrs/Ms'''
@@ -790,42 +788,42 @@ class Hysteresis(measurement.Measurement):
     def result_mrs_ms(self, recalc=False, **options):
         pass
 
-    ####################################################################################################################
-    ''' Moment at Field'''
-
-    @calculate
-    def calculate_m_b(self, b=300., branches='all', **non_method_parameters):
-        '''
-
-        Parameters
-        ----------
-            b: field in mT where the moment is returned
-        '''
-        aux = []
-        dtypes = []
-
-        possible = {'down_field': 1, 'up_field': -1}
-
-        if branches == 'all':
-            branches = possible
-        else:
-            branches = RockPy3.utils.general.to_list(branches)
-
-        if any(branch not in possible for branch in branches):
-            self.log.error('ONE or MORE branches not possible << %s >>' % branches)
-
-        for branch in branches:
-            if self.data[branch]:
-                field = float(b) * possible[branch]
-                m = self.data[branch].interpolate(new_variables=field / 1000.)  # correct mT -> T
-                aux.append(m['mag'].v[0])
-                dtypes.append(branch)
-        self.log.info('M(%.1f mT) calculated as mean of %s branch(es)' % (b, dtypes))
-        self.results['m_b'] = [[[np.nanmean(np.fabs(aux)), np.nanstd(np.fabs(aux))]]]
-
-    @result
-    def result_m_b(self, recalc=False, **options):
-        pass
+    # ####################################################################################################################
+    # ''' Moment at Field'''
+    #
+    # @calculate
+    # def calculate_m_b(self, b=300., branches='all', **non_method_parameters):
+    #     '''
+    #
+    #     Parameters
+    #     ----------
+    #         b: field in mT where the moment is returned
+    #     '''
+    #     aux = []
+    #     dtypes = []
+    #
+    #     possible = {'down_field': 1, 'up_field': -1}
+    #
+    #     if branches == 'all':
+    #         branches = possible
+    #     else:
+    #         branches = RockPy3.utils.general.to_list(branches)
+    #
+    #     if any(branch not in possible for branch in branches):
+    #         self.log.error('ONE or MORE branches not possible << %s >>' % branches)
+    #
+    #     for branch in branches:
+    #         if self.data[branch]:
+    #             field = float(b) * possible[branch]
+    #             m = self.data[branch].interpolate(new_variables=field / 1000.)  # correct mT -> T
+    #             aux.append(m['mag'].v[0])
+    #             dtypes.append(branch)
+    #     self.log.info('M(%.1f mT) calculated as mean of %s branch(es)' % (b, dtypes))
+    #     self.results['m_b'] = [[[np.nanmean(np.fabs(aux)), np.nanstd(np.fabs(aux))]]]
+    #
+    # @result
+    # def result_m_b(self, recalc=False, **options):
+    #     pass
 
     ####################################################################################################################
     ''' Bcr/ Bc '''
@@ -846,10 +844,10 @@ class Hysteresis(measurement.Measurement):
             self.log.info('NO backfield/coe measurement specified: searching through sample')
             coe_objs = [m for m in self.sobj.get_measurement(mtype='backfield') if m.series == self.series]
             if len(coe_objs) == 0:
-                self.log.info('CANT find measurement with << backfield, %s >>' % self.stype_sval_tuples)
+                self.log.error('CANT find measurement with << backfield, %s >>' % self.stype_sval_tuples)
                 return
             elif len(coe_objs) == 1:
-                self.log.error('FOUND exactly one measurement with << backfield, %s >>' % self.stype_sval_tuples)
+                self.log.info('FOUND exactly one measurement with << backfield, %s >>' % self.stype_sval_tuples)
                 coe_obj = coe_objs[0]
             else:
                 self.log.info('MULTIPLE find backfield/coe measurement found with same stypes/svals using first')
@@ -1453,11 +1451,13 @@ if __name__ == '__main__':
     hys = s.add_simulation(mtype='hys', ms=1)
     # print(hys.data['down_field'])
     hys.correct_paramag()
+    import cProfile
+    cProfile.run('hys.calc_all()')
     # for dtype in hys.data:
     #     print(dtype)
     #     print(hys.data[dtype])
-    fig = RockPy3.Figure(fig_input=Study)
-    v = fig.add_visual(visual='hysteresis')
+    # fig = RockPy3.Figure(fig_input=Study)
+    # v = fig.add_visual(visual='hysteresis')
     # v = fig.add_visual(visual='hysteresis', visual_input=hys)
-    fig.show()
+    # fig.show()
 #

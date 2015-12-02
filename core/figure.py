@@ -217,10 +217,15 @@ class Figure(object):
                 visual.ax.set_xlim(visual.xlims)
             if visual.ylims:
                 visual.ax.set_ylim(visual.ylims)
-            else:
-                xlim = visual.ax.get_xlim()
-                ylim = visual.ax.get_ylim()
-            #     visual.ax.set_xlim([xlim[0]-xlim[1]*0.05, xlim[1]+xlim[1]*0.05])
+
+            if visual.xscale:
+                visual.ax.set_xscale(visual.xscale)
+            if visual.yscale:
+                visual.ax.set_yscale(visual.yscale)
+
+            # else:
+            #     xlim = visual.ax.get_xlim()
+            #     ylim = visual.ax.get_ylim()
 
         if set_xlim == 'equal' or set_ylim == 'equal' or equal_lims:
             if equal_lims:
@@ -301,7 +306,7 @@ def generate_plots(n=3, xsize=5., ysize=5., columns=None, tight_layout=True):
         a = np.floor(n ** 0.5).astype(int)
         b = np.ceil(1. * n / a).astype(int)
 
-    fig = plt.figure(figsize=(xsize * b, ysize * a), tight_layout=tight_layout)
+    fig = plt.figure(figsize=(xsize * b, ysize * a))
 
     axes = []
 
@@ -312,5 +317,6 @@ def generate_plots(n=3, xsize=5., ysize=5., columns=None, tight_layout=True):
             ax.xaxis.major.formatter._useMathText = True
             ax.yaxis.major.formatter._useMathText = True
         axes.append([ax1, None, None])
+
     fig.set_tight_layout(tight_layout)
     return fig, axes

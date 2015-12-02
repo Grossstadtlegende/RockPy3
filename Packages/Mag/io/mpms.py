@@ -8,6 +8,7 @@ class Mpms(io.ftype):
     def __init__(self, dfile, dialect=None):
         self.file_name = dfile
         self.raw_data = self.simple_import()
+        self.raw_data = [i for i in self.raw_data if i]
         self.info = [i.split(',') for i in self.raw_data if i.startswith('INFO')]
         self.info = {i[1].lower().strip().replace(':', ''): i[2].strip() for i in self.info if len(i) > 2}
         self.name = self.info.pop('name', None)
@@ -17,7 +18,6 @@ class Mpms(io.ftype):
 
         # get rid of units in header
         self.header = [i.split('(')[0].strip() for i in self.raw_data[self.data_idx].split(',')]
-
         self.data = np.array(
             [[n if n else np.nan for n in i.split(',')] for i in self.raw_data[self.data_idx + 1:]]).astype(float)
 
@@ -41,5 +41,6 @@ class Mpms(io.ftype):
 
 
 if __name__ == '__main__':
-    file = '/Users/Mike/Dropbox/XXXOLD_BACKUPS/__PHD/__Projects/002 Hematite Nanoparticles, Morin Transition/04 data/MPMS/S3M2/S3M2_IRM7T_0T_60_300K_Cooling.rso.dat'
-    Mpms(dfile=file)
+    # file = '/Users/Mike/Dropbox/XXXOLD_BACKUPS/__PHD/__Projects/002 Hematite Nanoparticles, Morin Transition/04 data/MPMS/S3M2/S3M2_IRM7T_0T_60_300K_Cooling.rso.dat'
+    hys = '/Users/mike/Dropbox/Uni/Master Thesis/MPMS/S3M2/S3M2_Hys_7T_20K.rso.dat'
+    Mpms(dfile=hys)

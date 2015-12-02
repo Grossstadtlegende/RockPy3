@@ -8,7 +8,7 @@ import RockPy3.Packages.Mag.Features.hysteresis
 import inspect
 class Hysteresis(Visual):
     def init_visual(self):
-        self.standard_features = ['zero_lines', 'grid', 'hysteresis_data']
+        self.standard_features = ['zero_lines', 'hysteresis_data']
         # self.standard_plt_props = {'zero_lines': {'color': 'k'}}
         self.xlabel = 'Field'
         self.ylabel = 'Moment'
@@ -27,6 +27,15 @@ class Hysteresis(Visual):
     @plot(mtypes='hysteresis')
     def feature_virgin(self, mobj, **plt_props):
         pass
+
+    @plot(mtypes='hysteresis', overwrite_mobj_plt_props={'marker':''})
+    def feature_reversible_data(self, mobj, plt_props=None):
+        RockPy3.Packages.Mag.Features.hysteresis.irreversible(self.ax, mobj, **plt_props)
+
+    @plot(mtypes='hysteresis', overwrite_mobj_plt_props={'marker':''})
+    def feature_irreversible_data(self, mobj, plt_props=None):
+        RockPy3.Packages.Mag.Features.hysteresis.reversible(self.ax, mobj, **plt_props)
+
 # class Fabian2003(base.Visual):
 #     _required = [('hysteresis', 'backfield')]
 #

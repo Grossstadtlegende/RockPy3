@@ -42,9 +42,10 @@ class Measurement(object):
     _mcp = None  # mtype calculation parameter cache for all measurements implemented as a dict(measurement:method:parameter)
     _cmcp = None  # mtype calculation parameter cache for all measurements implemented as a dict(measurement: parameter)
     _pcp = None  # possible calculation parameters cache for a single measurement
-    _gcp = None # all possible parameters combined for all measurements and all methods
-    _mpcp = None # all possible parameters for each method of a specific mtype as a dict(method:parameters)
+    _gcp = None  # all possible parameters combined for all measurements and all methods
+    _mpcp = None  # all possible parameters for each method of a specific mtype as a dict(method:parameters)
 
+    _scp = None  # standard_calculation parameter
 
     # xml tags
     MEASUREMENT = 'measurement'
@@ -55,7 +56,6 @@ class Measurement(object):
 
     # xml attributes
     NAME = 'name'
-
 
     @classmethod
     def _mtype(cls):
@@ -80,7 +80,8 @@ class Measurement(object):
             for mname, measurement in RockPy3.implemented_measurements.items():
                 cls._cmcp.setdefault(
                     mname,
-                    sorted(list(set([i for j in measurement.mtype_possible_calculation_parameter().values() for i in j]))))
+                    sorted(
+                        list(set([i for j in measurement.mtype_possible_calculation_parameter().values() for i in j]))))
         return cls._cmcp
 
     @classmethod
@@ -146,9 +147,10 @@ class Measurement(object):
 
         if not cls._mpcp:
             # get all parameters from all measurements
-            cls._mpcp = {i: set(arg for arg, value in inspect.signature(getattr(cls, 'calculate_' + i)).parameters.items()
-                              if not arg in ['self', 'non_method_parameters'])
-                       for i in cls.calculate_methods()}
+            cls._mpcp = {
+            i: set(arg for arg, value in inspect.signature(getattr(cls, 'calculate_' + i)).parameters.items()
+                   if not arg in ['self', 'non_method_parameters'])
+            for i in cls.calculate_methods()}
 
             # methods with recipe need 'recipe' to be added to the calculation_parameters
             for res in cls.result_methods():
@@ -162,6 +164,38 @@ class Measurement(object):
                         cls._mpcp[res].update(set(param for recipe in methods for param in cls._mpcp[recipe]))
                         cls._mpcp[res].update(['recipe'])
         return cls._mpcp
+
+    def calculation_methods(self):
+        # dynamically generating the calculation and standard parameters for each calculation method.
+        # This just sets the values to non, the values have to be specified in the class itself
+        return {i: getattr(self, i) for i in dir(self)
+                        if i.startswith('calculate_')
+                        if not i.endswith('generic')
+                        if not i.endswith('result')
+                        }
+
+    def res_calc_dict(self):
+        """
+        generates a dictionary of results:calculate_methods
+        """
+        scp = {r: {} for r in self.result_methods()}
+        for res in scp:
+            res_method = getattr(self, 'result_' + res)
+            scp[res].setdefault('category', self.result_category(res))
+            result_sig = {k.name: k.default for k in inspect.signature(res_method).parameters.values() if not k.name == 'self'}
+            scp[res].setdefault('signature', result_sig)
+            for cmethod in self.calculate_methods():
+                method = getattr(self, 'calculate_' + cmethod)
+                if cmethod.startswith(res):
+                    scp[res].setdefault(cmethod, {
+                        'method': method, 'scp': result_sig})
+                if self.result_category(res).startswith('indirect') and cmethod.startswith(result_sig['calculation_method']):
+                    method_sig =  {k.name: k.default for k in
+                                   inspect.signature(method).parameters.values()
+                                   if not k.name == 'self'}
+                    scp[res].setdefault(cmethod, {
+                        'method': method, 'scp': method_sig})
+        return scp
 
     """
     ####################################################################################################################
@@ -639,6 +673,8 @@ class Measurement(object):
                 RockPy3.Measurement obj
 
         """
+        self._cm = None
+
         if mid is None:
             self.id = id(self)
         else:
@@ -730,7 +766,7 @@ class Measurement(object):
     def __hash__(self):
         return hash(self.id)
 
-    def __eq__(self,other):
+    def __eq__(self, other):
         return self.id == other.id
 
     def __add__(self, other):
@@ -742,9 +778,10 @@ class Measurement(object):
             diff = vars1 ^ vars2
             if diff:
                 vars = vars1 | vars2
-                first.data[dtype] = first.data[dtype].interpolate(new_variables = vars)
-                other.data[dtype] = other.data[dtype].interpolate(new_variables = vars)
-            first.data[dtype] = first.data[dtype].eliminate_duplicate_variable_rows()+other.data[dtype].eliminate_duplicate_variable_rows()
+                first.data[dtype] = first.data[dtype].interpolate(new_variables=vars)
+                other.data[dtype] = other.data[dtype].interpolate(new_variables=vars)
+            first.data[dtype] = first.data[dtype].eliminate_duplicate_variable_rows() + other.data[
+                dtype].eliminate_duplicate_variable_rows()
             first.data[dtype] = first.data[dtype].sort()
         return self.sobj.add_measurement(mtype=first.mtype, mdata=first.data)
 
@@ -757,9 +794,10 @@ class Measurement(object):
             diff = vars1 ^ vars2
             if diff:
                 vars = vars1 | vars2
-                first.data[dtype] = first.data[dtype].interpolate(new_variables = vars)
-                other.data[dtype] = other.data[dtype].interpolate(new_variables = vars)
-            first.data[dtype] = first.data[dtype].eliminate_duplicate_variable_rows()-other.data[dtype].eliminate_duplicate_variable_rows()
+                first.data[dtype] = first.data[dtype].interpolate(new_variables=vars)
+                other.data[dtype] = other.data[dtype].interpolate(new_variables=vars)
+            first.data[dtype] = first.data[dtype].eliminate_duplicate_variable_rows() - other.data[
+                dtype].eliminate_duplicate_variable_rows()
             first.data[dtype] = first.data[dtype].sort()
         return self.sobj.add_measurement(mtype=first.mtype, mdata=first.data)
 
@@ -799,16 +837,6 @@ class Measurement(object):
     def get_calc_method(self, method):
         result_name, recipe = get_result_recipe_name(method)
         self.calculation_recipes.setdefault(result_name, dict()).setdefault(recipe, method)
-
-    @property
-    def calculation_methods(self):
-        # dynamically generating the calculation and standard parameters for each calculation method.
-        # This just sets the values to non, the values have to be specified in the class itself
-        return {i: getattr(self, i) for i in dir(self)
-                if i.startswith('calculate_')
-                if not i.endswith('generic')
-                if not i.endswith('result')
-                }
 
     def __initialize(self):
         """
@@ -1490,6 +1518,11 @@ class Measurement(object):
                 if true, initial state values are normalized in the same manner as normal data
                 default: True
         """
+
+        # dont normalize parameter measurements
+        if isinstance(self, RockPy3.Parameter):
+            return
+
         # separate the calc from non calc parameters
         calculation_parameter, options = RockPy3.core.utils.separate_calculation_parameter_from_kwargs(rpobj=self,
                                                                                                        **options)
@@ -1503,6 +1536,7 @@ class Measurement(object):
                                                 **calculation_parameter)
 
         norm_dtypes = RockPy3.core.utils.to_list(norm_dtypes)  # make sure its a list/tuple
+
         for dtype, dtype_data in self.data.items():  # cycling through all dtypes in data
             if dtype_data:
                 if 'all' in norm_dtypes:  # if all, all non stype data will be normalized
@@ -1865,7 +1899,6 @@ class Measurement(object):
                     out = ';\t'.join([out, text])
             return out
 
-
         if not author:
             author = pwd.getpwuid(os.getuid())[0]
         if not filepath:
@@ -1934,6 +1967,7 @@ class Measurement(object):
 
     ####################################################################################################################
     ''' XML io'''
+
     @property
     def etree(self):
         """
@@ -1945,17 +1979,18 @@ class Measurement(object):
              etree: xml.etree.ElementTree
         """
 
-        measurement_node = etree.Element(type(self).MEASUREMENT, attrib={'id': str(self.id), 'mtype': str(self.mtype), 'is_mean': str(self.is_mean)})
+        measurement_node = etree.Element(type(self).MEASUREMENT, attrib={'id': str(self.id), 'mtype': str(self.mtype),
+                                                                         'is_mean': str(self.is_mean)})
 
         # store _data dictionary
         for name, data in self._data.items():
-            de = etree.SubElement( measurement_node, type(self).DATA, attrib={type(self).NAME: name})
+            de = etree.SubElement(measurement_node, type(self).DATA, attrib={type(self).NAME: name})
             if data is not None:
                 de.append(data.etree)
 
         # store _raw_data dictionary
         for name, data in self._raw_data.items():
-            de = etree.SubElement( measurement_node, type(self).RAW_DATA, attrib={type(self).NAME: name})
+            de = etree.SubElement(measurement_node, type(self).RAW_DATA, attrib={type(self).NAME: name})
             if data is not None:
                 det = data.etree
                 de.append(det)
@@ -1966,9 +2001,7 @@ class Measurement(object):
             for id in self.base_ids:
                 etree.SubElement(base_measurements_node, type(self).BID, attrib={}).text = str(id)
 
-
         return measurement_node
-
 
     @classmethod
     def from_etree(cls, et_element, sobj):
@@ -1982,15 +2015,14 @@ class Measurement(object):
             log.error('XML Import: Need {} node to construct object.'.format(cls.MEASUREMENT))
             return None
 
-
         # readin data
         mdata = {}
-        for data in et_element.findall( cls.DATA):
+        for data in et_element.findall(cls.DATA):
             mdata[data.attrib[cls.NAME]] = None
 
         # readin rawdata
         raw_data = {}
-        for data in et_element.findall( cls.RAW_DATA):
+        for data in et_element.findall(cls.RAW_DATA):
             raw_data[data.attrib[cls.NAME]] = None
 
         is_mean = (et_element.attrib['is_mean'].upper == 'TRUE')
@@ -2054,7 +2086,7 @@ def result(func, *args, **kwargs):
     # result
 
     # get a list of all possible calculation methods
-    recipes = [i.split('_')[-1] for i in self.calculation_methods.keys()
+    recipes = [i.split('_')[-1] for i in self.calculation_methods().keys()
                if len(i.split('_')) >= 3
                if calculation_method in i.split('_') or result_name in '_'.join(i.split('_')[1:-1])
                if i.split('_')[-1].isupper()]
@@ -2076,11 +2108,11 @@ def result(func, *args, **kwargs):
     if recipe:
         calc_name += '_' + str(recipe)
 
-    if calc_name not in self.calculation_methods:
+    if calc_name not in self.calculation_methods():
         raise NotImplementedError('CALCULATION METHOD << %s >> not implemented' % calc_name)
 
     # call calculation method, all args per passed
-    self.calculation_methods[calc_name](**parameters)
+    self.calculation_methods()[calc_name](**parameters)
     return self.results[result_name].v[0], self.results[result_name].e[0]
 
 
@@ -2211,3 +2243,16 @@ def get_result_recipe_name(func_name):
         result_name = full_name
 
     return result_name, recipe
+
+
+if __name__ == '__main__':
+    import RockPy3.Packages.Mag.Measurements.hysteresis
+    from pprint import pprint
+    S = RockPy3.RockPyStudy()
+    s = S.add_sample(name='test')
+    # S.import_folder('/Users/mike/Google Drive/__code/RockPy3/mike_testing/auto_import')
+    # S.info(sample_info=False)
+    # m = S.get_measurement(mtype='hysteresis')[0]
+    m = RockPy3.Packages.Mag.Measurements.hysteresis.Hysteresis(sobj=s)
+    pprint(m.res_calc_dict())
+    print(m.res_calc_dict()['ms']['ms_SIMPLE']['method']())

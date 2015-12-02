@@ -133,6 +133,7 @@ def get_fname_from_info(samplegroup='', sample_name='',
     mtype = abbrev_to_classname(mtype)
     ftype = abbrev_to_classname(ftype)
 
+    options.pop('fpath')
     if not mtype.lower() in RockPy3.implemented_measurements:
         RockPy3.logger.warning('MEASUREMENT mtype << %s >> may be wrong or measurement not implemented, yet.' % mtype)
 
@@ -188,6 +189,7 @@ def get_fname_from_info(samplegroup='', sample_name='',
         std = 'STD%s' % str(std)
     else:
         std = ''
+
     out = '#'.join([sample, sample_info, params, std, opt])
     out += '.%s' % idx
     return out
