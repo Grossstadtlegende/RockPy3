@@ -537,6 +537,7 @@ def set_colorscheme(scheme):
     return RockPy3.core.utils.colorscheme(scheme)
 
 if __name__ == '__main__':
+    pass
     # S = RockPy3.Study
     # s = S.add_sample(name='S1')
     # s.add_simulation(mtype='hysteresis')
@@ -544,4 +545,5 @@ if __name__ == '__main__':
     # fig = RockPy3.Figure()
     # v = fig.add_visual(visual='hysteresis', features=['reversible_data', 'irreversible_data', 'hysteresis_data'], visual_input=s)
     # fig.show()
-    print(RockPy3.implemented_measurements.keys())
+    # print(RockPy3.implemented_measurements.keys())
+    # print(RockPy3.implemented_visuals.keys())

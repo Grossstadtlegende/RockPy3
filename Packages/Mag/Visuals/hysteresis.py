@@ -2,6 +2,8 @@ __author__ = 'mike'
 import RockPy3
 # import Features.backfield
 import RockPy3.Packages.Mag
+import RockPy3.Packages.Mag.Visuals.backfield
+
 from RockPy3.core.utils import plot
 from RockPy3.core.visual import Visual
 import RockPy3.Packages.Mag.Features.hysteresis
@@ -36,37 +38,8 @@ class Hysteresis(Visual):
     def feature_irreversible_data(self, mobj, plt_props=None):
         RockPy3.Packages.Mag.Features.hysteresis.reversible(self.ax, mobj, **plt_props)
 
-class RevIrrev(Hysteresis):
+class Fabian2003(Hysteresis, RockPy3.Packages.Mag.Visuals.backfield.Backfield):
     def init_visual(self):
-        self.standard_features = ['irreversible_data', 'reversible_data']
+        self.standard_features = ['feature_hysteresis_data', 'feature_backfield_data', 'feature_zero_lines']
         self.xlabel = 'Field'
         self.ylabel = 'Moment'
-
-# class Fabian2003(base.Visual):
-#     _required = [('hysteresis', 'backfield')]
-#
-#     def init_visual(self):
-#         self.features = [self.feature_hysteresis_data, self.feature_backfield_data, self.feature_zero_lines]
-#         # self.features = [self.feature_backfield_data, self.feature_zero_lines]
-#
-#         self.xlabel = 'Field'
-#         self.ylabel = 'Moment'
-#
-#     @feature(mtypes='hysteresis')
-#     def feature_hysteresis_data(self, **plt_props):
-#         Features.hysteresis.hysteresis(self.ax, plt_props.pop('mobj'), **plt_props)
-#
-#     @feature(mtypes='backfield')
-#     def feature_backfield_data(self, **plt_props):
-#         plt_props.get('mobj').marker = ''
-#         Features.backfield.backfield(self.ax, plt_props.pop('mobj'), **plt_props)
-#
-#     @feature(plt_frequency='single')
-#     def feature_zero_lines(self, mobj=None, **plt_props):
-#         color = plt_props.pop('color', 'k')
-#         zorder = plt_props.pop('zorder', 0)
-#
-#         self.ax.axhline(0, color=color, zorder=zorder,
-#                         **plt_props)
-#         self.ax.axvline(0, color=color, zorder=zorder,
-#                         **plt_props)

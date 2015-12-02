@@ -9,12 +9,20 @@ installation_directory = os.path.dirname(RockPy3.__file__)
 
 # automatic import of all subpackages in Packages and core
 import pkgutil
-for i in list(pkgutil.walk_packages([installation_directory])):
-    if not i[2] and not i[1].startswith('_') and not 'test' in i[1]:
-        __import__(i[1])
+subpackages = sorted([(i[1], i[2]) for i in pkgutil.walk_packages([os.path.dirname(RockPy3.__file__)], prefix='RockPy3.')])
 
-import RockPy3.Packages
-import RockPy3.core
+for i in subpackages:
+    # dont import testing packages
+    if 'test' in i[0]:
+        continue
+    # store latest package name
+    if i[1]:
+        package = i[0]
+        __import__(package)
+    # the latest package name needs to be in the name of the 'non'-package to be imported
+    if not i[1] and package in i[0]:
+        #import the file in the package e.g. 'Packages.Mag.Visuals.paleointensity'
+        __import__(i[0])
 
 from RockPy3.core.visual import Visual
 from RockPy3.core.visual import set_colorscheme
