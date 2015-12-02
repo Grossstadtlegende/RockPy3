@@ -551,9 +551,9 @@ class Sample(object):
         out.pop('name', None)
         return out
 
-    def get_mobj_from_file(self, mtype=None, fpath=None, ftype=None, idx=None, series=None):
-
-        return mobj, file_info
+    # def get_mobj_from_file(self, mtype=None, fpath=None, ftype=None, idx=None, series=None):
+    #
+    #     return mobj, file_info
 
     def mtype_not_implemented_check(self, mtype):
         if mtype not in RockPy3.implemented_measurements:
@@ -750,6 +750,29 @@ class Sample(object):
 
 
         return out
+
+    def get_result(self, result, **calculation_parameter):
+        """
+        A function that returns a list of all the result calculated from all measurements, that actually have the result
+
+        Parameters
+        ----------
+            result: str:
+                the result to be calculated
+            calculation_parameter: dict
+                the calculation parameters to be used
+
+        Returns
+        -------
+            list of results
+
+        Note
+        ----
+            each of the results is a tuple of the actual value and the error if calculated
+        """
+        mlist = filter(lambda x: x.has_result(result=result), self.measurements)
+        res = [getattr(m, 'result_'+result)(**calculation_parameter) for m in mlist]
+        return res
 
     ####################################################################################################################
     ''' MEASUREMENT / RESULT DICTIONARY PART'''
@@ -1067,5 +1090,7 @@ class MeanSample(Sample):
 if __name__ == '__main__':
     S = RockPy3.Study
     s = S.add_sample(name='test')
-    s.add_simulation(mtype='hysteresis')
-    print(s.get_measurement())
+    for n in range(10):
+        s.add_simulation(mtype='hysteresis')
+
+    print(s.get_result(result='ms'))
