@@ -4,6 +4,15 @@ import matplotlib
 # matplotlib.use('WXAgg') #not working on OSX!
 matplotlib.use('QT4Agg') #not working on OSX!
 
+import RockPy3
+installation_directory = os.path.dirname(RockPy3.__file__)
+
+# automatic import of all subpackages in Packages and core
+import pkgutil
+for i in list(pkgutil.walk_packages([installation_directory])):
+    if not i[2] and not i[1].startswith('_') and not 'test' in i[1]:
+        __import__(i[1])
+
 import RockPy3.Packages
 import RockPy3.core
 
@@ -18,11 +27,10 @@ from RockPy3.core.series import Series
 from RockPy3.core.data import RockPyData as Data
 
 from RockPy3.Packages.Generic.Measurements.parameters import Parameter
-
 from RockPy3.core.figure import Figure
 
 from RockPy3.core.utils import ignored
-
+from RockPy3.core.utils import to_list
 
 from RockPy3.core.data import condense
 
@@ -32,7 +40,6 @@ from RockPy3.core.file_operations import load_xml, save_xml
 
 ### utility imports
 from RockPy3.utils.general import check_coordinate_system
-
 
 import subprocess
 

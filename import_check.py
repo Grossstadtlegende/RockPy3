@@ -27,11 +27,11 @@ def check_imports(): #todo is pip always installed?
         except ImportError:
             RockPy3.logger.error('please install matplotlib version')
 
-        # try:
-        #     import lmfit
-        #     RockPy3.log.info('using lmfit version %s' % lmfit.__version__)
-        # except ImportError:
-        #     RockPy3.log.error('please install lmfit version')
+        try:
+            import lmfit
+            RockPy3.log.info('using lmfit version %s' % lmfit.__version__)
+        except ImportError:
+            RockPy3.log.error('please install lmfit version')
 
         try:
             import pint

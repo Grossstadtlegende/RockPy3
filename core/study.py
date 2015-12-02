@@ -698,22 +698,3 @@ class Study(object):
         root = tree.getroot()
 
         return cls.from_etree(root)
-
-
-if __name__ == '__main__':
-    S = RockPy3.Study
-    S.import_folder('/Users/mike/Dropbox/experimental_data/FeNiX/FeNi20J')
-    S.info()
-    # print(S.stype_svals['mtime'])
-    # S.set_color(stype='mtime', sval=0, color='k')
-    # S.set_color(stype='mtime', sval=1, color='m')
-    # S.set_color(stype='mtime', sval=2, color='y')
-    # S.set_color(stype='mtime', sval=4, color='y')
-    # S.color_from_series(stype='mtime')
-    # fig = RockPy3.Figure(fig_input=S)
-    # v = fig.add_visual('resultseries', result='bc', series='mtime')
-    # v = fig.add_visual(visual='hysteresis')
-    # v = fig.add_visual(visual='hysteresis')
-    # v.normalize('mass')
-    # v = fig.add_visual(visual='day', marker='o')
-    # fig.show()

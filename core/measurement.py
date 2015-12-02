@@ -6,7 +6,7 @@ import itertools
 import xml.etree.ElementTree as etree
 from copy import deepcopy
 import numpy as np
-import os, pwd
+import os
 import os.path
 import decorator
 import RockPy3.core.io
@@ -1877,93 +1877,7 @@ class Measurement(object):
     ####################################################################################################################
     ''' REPORT '''
 
-    def report(self, author=None, doc=None, filepath=None,
-               add_results=True, add_calculation_params=True, add_plots=True,
-               generate_pdf=True, clean=False):
-
-        def params_dict_to_text(params):
-            """
-            turns key-value from calculation params into text
-            """
-            if not params:
-                return 'None'
-            out = ''
-            for key, value in params.items():
-                if not key:
-                    text = 'None \\\\'
-                else:
-                    text = '\\textsc{{{0}}}: {1}'.format(key, value).replace('_', ' ')
-                if not out:
-                    out = text
-                else:
-                    out = ';\t'.join([out, text])
-            return out
-
-        if not author:
-            author = pwd.getpwuid(os.getuid())[0]
-        if not filepath:
-            filepath = RockPy3.core.file_operations.default_folder
-        if not doc:
-            doc = Document(title='Measurement Report', author=author, date=RockPy3.utils.general.get_date_str(),
-                           maketitle=True)
-
-            for pckg in RockPy3.utils.latex.std_packages:
-                doc.packages.append(pckg)
-
-        subsection_name = '{} - {} {}'.format(self.sobj.name, self.mtype,
-                                              ','.join(['{} [{}]'.format(i.value, i.unit) for i in self.series]))
-
-        with doc.create(Subsection(subsection_name)):
-            ############################################################################################################
-            ''' RESULTS TABLE '''
-
-            if add_results:
-                doc.append(italic('Results:\\\\'))
-
-                # get all calculated results
-                names = sorted([name for name in self.results.column_names if 'stype' not in name])
-                names_lists = [names[x:x + 6] for x in xrange(0, len(names), 6)]
-
-                results = [['{res[0]:.3}$\\pm${res[1]:.2}'.format(res=getattr(self, 'result_' + name)())
-                            if not np.isnan(getattr(self, 'result_' + name)()[1])
-                            else '{res[0]:.3}'.format(res=getattr(self, 'result_' + name)())
-                            for name in line]
-                           for line in names_lists]
-
-                with doc.create(Tabular('cccccccccc')) as table:
-                    for i, row in enumerate(names_lists):
-                        table.add_hline()
-                        table.add_row([name.replace('result_', '').replace('_', ' ') for name in row])
-                        table.add_hline()
-                        table.add_row(results[i])
-                        table.add_empty_row()
-                doc.append('\\\\')
-
-            ############################################################################################################
-            ''' CALCULATION PARAMETERS '''
-
-            doc.append(italic('Calculation Parameters:\\\\'))
-
-            if add_calculation_params:
-                with doc.create(Description()) as desc:
-                    for n in names:
-                        n_text = n.replace('_', ' ')
-                        if n in self.calculation_parameter:
-                            desc.add_item(n_text + ': ', params_dict_to_text(self.calculation_parameter[n]))
-                    doc.append('\\\\')
-
-            ############################################################################################################
-            ''' CALCULATION PARAMETERS '''
-            if add_plots:
-                fig = RockPy3.Figure()
-                for name, visual in self.plottable.items():
-                    figname = os.path.join(filepath, '{}_{}.pdf'.format(self.sobj.name, name))
-                    visual = fig.add_visual(name, visual_input=self)
-                    visual.title += ' ' + self.sobj.name
-                fig.show()
-
-        if generate_pdf:
-            doc.generate_pdf(filepath=filepath, clean=clean)
+    #todo report sheet
 
     ####################################################################################################################
     ''' XML io'''

@@ -36,6 +36,12 @@ class Hysteresis(Visual):
     def feature_irreversible_data(self, mobj, plt_props=None):
         RockPy3.Packages.Mag.Features.hysteresis.reversible(self.ax, mobj, **plt_props)
 
+class RevIrrev(Hysteresis):
+    def init_visual(self):
+        self.standard_features = ['irreversible_data', 'reversible_data']
+        self.xlabel = 'Field'
+        self.ylabel = 'Moment'
+
 # class Fabian2003(base.Visual):
 #     _required = [('hysteresis', 'backfield')]
 #

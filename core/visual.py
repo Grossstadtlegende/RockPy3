@@ -81,7 +81,9 @@ class Visual(object):
                 txt_props.setdefault(k, kwargs.pop(k))
         return plt_props, txt_props, kwargs
 
-    def __init__(self, visual_input=None, plt_index=None, fig=None, name=None, coord=None,
+    def __init__(self,
+                 visual_input=None, plt_index=None, fig=None, name=None, coord=None,
+                 features=None,
                  plot_groupmean=None, plot_samplemean=None, plot_samplebase=None, plot_groupbase=None,
                  plot_other=None,
                  base_alpha=None, ignore_samples=None, result_from_means=None,
@@ -134,7 +136,13 @@ class Visual(object):
         if ylabel:
             self.ylabel = ylabel
 
-        for feature in self.standard_features:
+        # if features are given, it will overwrite the standard features
+        if features:
+            features = RockPy3.core.utils.to_list(features)
+        else:
+            features = self.standard_features
+
+        for feature in features:
             self.add_feature(feature=feature)
 
         # inputsection
@@ -527,3 +535,13 @@ class Visual(object):
 def set_colorscheme(scheme):
     RockPy3.colorscheme = RockPy3.core.utils.colorscheme(scheme)
     return RockPy3.core.utils.colorscheme(scheme)
+
+if __name__ == '__main__':
+    # S = RockPy3.Study
+    # s = S.add_sample(name='S1')
+    # s.add_simulation(mtype='hysteresis')
+    #
+    # fig = RockPy3.Figure()
+    # v = fig.add_visual(visual='hysteresis', features=['reversible_data', 'irreversible_data', 'hysteresis_data'], visual_input=s)
+    # fig.show()
+    print(RockPy3.implemented_measurements.keys())
