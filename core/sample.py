@@ -140,23 +140,6 @@ class Sample(object):
 
     def __repr__(self):
         return '<< RockPy3.Sample.{} >>'.format(self.name)
-    #
-    # def __setstate__(self, d):
-    #     self.__dict__.update(d)
-    #     # self._populate_mdict()
-    #
-    # def __getstate__(self):
-    #     """
-    #     returned dict will be pickled
-    #     :return:
-    #     """
-    #     pickle_me = {k: v for k, v in self.__dict__.iteritems() if k in
-    #                  ('comment', '_mean_results', 'results', 'study',
-    #                   '_samplegroups', '_coord', '_mean_mdict', '_rdict',
-    #                   '_mdict', 'raw_measurements', 'name', 'idx',
-    #                   'measurements', 'mean_measurements')
-    #                   }
-    #     return pickle_me
 
     ####################################################################################################################
     ''' class methods '''
