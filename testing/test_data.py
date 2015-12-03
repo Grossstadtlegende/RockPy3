@@ -3,7 +3,7 @@ import copy
 
 import numpy as np  # numerical array functions
 
-from core.data import RockPyData
+from RockPy3.core.data import RockPyData
 
 __author__ = 'wack'
 
@@ -90,12 +90,27 @@ class TestRockPyData(TestCase):
         # get all rows ending with '_A'
         self.assertEqual(self.RPD.filter_match_row_names('.*_A').row_names, ['2.Zeile_A', '4.Zeile_A'])
 
-    def test_append_columns(self):
+    def test_append_columns_1(self):
         cb = self.RPD.column_count
         d = (8, 7, 6, 5)
         self.RPD = self.RPD.append_columns('neue Spalte', d)
         self.assertEqual(cb + 1, self.RPD.column_count)
         self.assertTrue(np.array_equal(self.RPD['neue Spalte'].v, np.array(d)))
+
+
+    def test_append_columns_2(self):
+        cb = self.RPD.column_count
+        self.RPD = self.RPD.append_columns('leere Spalte')
+        self.RPD['leere Spalte'] = (1,2,3,4)
+        self.assertEqual(cb + 1, self.RPD.column_count)
+        self.assertTrue(np.array_equal(self.RPD['leere Spalte'].v, np.array((1,2,3,4))))
+
+    def test_append_columns_3(self):
+        cb = self.RPD.column_count
+        self.RPD = self.RPD.append_columns('new col')
+        self.RPD['new col'] = 7
+        self.assertEqual(cb + 1, self.RPD.column_count)
+        self.assertTrue(np.array_equal(self.RPD['new col'].v, np.array((7,7,7,7))))
 
     def test_sort(self):
         self.assertTrue(np.array_equal(self.RPD.sort('Mx')['Mx'].v, np.array((2, 2, 6, 6))))

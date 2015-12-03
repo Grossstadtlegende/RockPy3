@@ -477,10 +477,16 @@ class RockPyData(object):
             data = np.empty((self_copy.row_count, len(column_names)))
             data[:] = np.NAN
 
+        try:  # if data is a single number extend to list to fill whole column
+            data = [float(data)]*self.row_count
+        except TypeError:
+            pass
+
         data = RockPyData._convert_to_data3D(data, column=True)
 
         # append new values
-        self_copy._data = np.concatenate((self_copy._data, data), axis=1)
+        if self_copy._data is not None:
+            self_copy._data = np.concatenate((self_copy._data, data), axis=1)
         # update "all" alias to comprise also the new columns
         self_copy._update_all_alias()
 
