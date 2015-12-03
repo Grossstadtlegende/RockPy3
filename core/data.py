@@ -481,7 +481,6 @@ class RockPyData(object):
 
         # append new values
         self_copy._data = np.concatenate((self_copy._data, data), axis=1)
-
         # update "all" alias to comprise also the new columns
         self_copy._update_all_alias()
 

@@ -770,7 +770,10 @@ class Sample(object):
         ----
             each of the results is a tuple of the actual value and the error if calculated
         """
+        print(calculation_parameter)
         mlist = filter(lambda x: x.has_result(result=result), self.measurements)
+        for m in mlist:
+            print(m.standards_result()[result])
         res = [getattr(m, 'result_'+result)(**calculation_parameter) for m in mlist]
         return res
 
@@ -1088,9 +1091,10 @@ class MeanSample(Sample):
 
 
 if __name__ == '__main__':
+    from pprint import pprint
     S = RockPy3.Study
     s = S.add_sample(name='test')
     for n in range(10):
-        s.add_simulation(mtype='hysteresis')
-
-    print(s.get_result(result='ms'))
+        m = s.add_simulation(mtype='hysteresis')
+    pprint(m.standards_result())
+    # print(s.get_result(result='ms', test=7, saturation_percent=80))

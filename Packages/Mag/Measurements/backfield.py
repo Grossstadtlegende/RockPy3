@@ -128,7 +128,7 @@ class Backfield(measurement.Measurement):
     ''' Bcr '''
 
     @calculate
-    def calculate_bcr_LINEAR(self, no_points=4, check=False, **non_method_parameters):
+    def calculate_bcr_DEFAULT(self, no_points=4, check=False, **non_method_parameters):
         """
         Calculates the coercivity using a linear interpolation between the points crossing the x axis for upfield and down field slope.
 
@@ -217,7 +217,7 @@ class Backfield(measurement.Measurement):
         self.results['bcr'] = [[(np.nanmean(result), np.nanstd(result))]]
 
     @result
-    def result_bcr(self, recipe='LINEAR', recalc=False, **non_calculation_parameters):
+    def result_bcr(self, recipe='DEFAULT', recalc=False, **non_calculation_parameters):
         """
         calculates :math:`B_{cr}`
         """
@@ -227,7 +227,7 @@ class Backfield(measurement.Measurement):
     # ''' S300 '''
     #
     # @calculate
-    # def calculate_s300_LINEAR(self, no_points=4, check=True, **non_calculation_parameter):
+    # def calculate_s300_DEFAULT(self, no_points=4, check=True, **non_calculation_parameter):
     #     '''
     #     S300: :math:`(1 - (M_{300mT} /M_{rs})) / 2`
     #
@@ -300,7 +300,7 @@ class Backfield(measurement.Measurement):
     #     self.results['s300'] = [[(1-(np.nanmean(result)/mrs), np.nan)]]
     #
     # @result
-    # def result_s300(self, recipe='LINEAR', recalc=False, **non_calculation_parameter):
+    # def result_s300(self, recipe='DEFAULT', recalc=False, **non_calculation_parameter):
     #     pass
 
     ####################################################################################################################
@@ -340,7 +340,7 @@ def test():
     plt.plot(coe.data['data']['field'].v, coe.data['data']['mag'].v)
     plt.show()
     # coe = s.add_measurement(fpath=file, ftype='vsm', mtype='backfield')
-    # print(coe.result_s300(recipe='LINEAR', no_points=4, check=True))
+    # print(coe.result_s300(recipe='DEFAULT', no_points=4, check=True))
     # print(coe.result_s300(recipe='NONLINEAR', no_points=6, check=True))
 
 

@@ -61,7 +61,7 @@ class TestMeasurement(TestCase):
         import RockPy3.Packages.Mag.Measurements.hysteresis
         s = RockPy3.Sample()
         m = RockPy3.Packages.Mag.Measurements.hysteresis.Hysteresis.from_simulation(sobj=s)
-        self.assertEqual(sorted(['ms_SIMPLE', 'ms_APP2SAT']), sorted(m.get_calculate_methods('hf_sus')))
+        self.assertEqual(sorted(['ms_DEFAULT', 'ms_APP2SAT']), sorted(m.get_calculate_methods('hf_sus')))
         self.assertEqual(sorted(['mrs']), sorted(m.get_calculate_methods('mrs')))
         self.assertEqual(sorted(['bc_LINEAR', 'bc_NONLINEAR']), sorted(m.get_calculate_methods('bc')))
 

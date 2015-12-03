@@ -40,7 +40,7 @@ def create_heat_color_map(value_list, reverse=False):
 
 def create_logger(name):
     log = logging.getLogger(name=name)
-    log.setLevel(logging.ERROR)
+    log.setLevel(logging.DEBUG)
     formatter = logging.Formatter('%(asctime)s: %(levelname)-10s %(name)-20s %(message)s')
     # formatter = logging.Formatter('%(levelname)-10s %(name)-20s %(message)s')
     fh = logging.FileHandler('RPV3.log')
@@ -51,7 +51,7 @@ def create_logger(name):
     ch.setFormatter(formatter)
     log.addHandler(fh)
     log.addHandler(ch)
-    return log  # ch#, fh
+    return log
 
 
 def convert_time(time):
@@ -154,10 +154,10 @@ def get_full_argspec(func, args=None, kwargs=None):
     for i, v in enumerate(signature.parameters):
         try:
             # sets the value to the passed argument
-            argspec.setdefault(v, args[i])
+            argspec[v] = args[i]
         except IndexError:  # no arg has been passed
             if not isinstance(signature.parameters[v].default, inspect._empty):
-                argspec.setdefault(v, signature.parameters[v].default)
+                argspec[v] = signature.parameters[v].default
     argspec.update(kwargs)
     return argspec
 
@@ -527,6 +527,23 @@ def compare_measurement_series(m1, m2):
     else:
         return False
 
+def separate_cparam_str(**kwargs):
+
+    # the kwargs need to be sorted so that they follow the hierarchy
+    # 1. parameter only
+    # 2. mtype & parameter
+    # 3. method & parameter
+    # 4. mtype & method & parameter
+
+    param_only  = [i for i in kwargs if [i] == i.split('___') if [i] == i.split('__')]
+    mtype_only  = [i for i in kwargs if [i] == i.split('___') if [i] != i.split('__')]
+    method_only = [i for i in kwargs if [i] != i.split('___') if [i] == i.split('__')]
+    mixed = [i for i in kwargs if [i] != i.split('__') if [i] != i.split('___')]
+
+    print(param_only, mtype_only, method_only, mixed)
+
+if __name__ == '__main__':
+    separate_cparam_str(saturation_percent=10, hys__saturation_percent=10, bc___saturation_percent=10, hys___bc__saturation_percent=10)
 
 def kwargs_to_calculation_parameter(rpobj=None, mtype_list=None, result=None, **kwargs):
     """
@@ -577,6 +594,7 @@ def kwargs_to_calculation_parameter(rpobj=None, mtype_list=None, result=None, **
     # 2. mtype & parameter
     # 3. method & parameter
     # 4. mtype & method & parameter
+
     param_only = [i for i in kwargs if [i] == i.split('___') if [i] == i.split('__')]
     mtype_only = [i for i in kwargs if [i] == i.split('___') if [i] != i.split('__')]
     method_only = [i for i in kwargs if [i] == i.split('__') if [i] != i.split('___')]
@@ -619,9 +637,8 @@ def kwargs_to_calculation_parameter(rpobj=None, mtype_list=None, result=None, **
             methods = [method for method, params in RockPy3.Measurement.method_calculation_parameter_list().items()
                        if
                        parameter in params]
-        # print(mtypes, methods, parameter, rpobj)
 
-        # i an object is given, we can filter the possible mtypes, and methods further
+        # if an object is given, we can filter the possible mtypes, and methods further
         # 1. a measurement object
         if isinstance(rpobj, RockPy3.Measurement):
             mtypes = [mtype for mtype in mtypes if mtype == rpobj.mtype]
@@ -631,17 +648,13 @@ def kwargs_to_calculation_parameter(rpobj=None, mtype_list=None, result=None, **
         # 2. a sample object
         if isinstance(rpobj, RockPy3.Sample):
             mtypes = [mtype for mtype in mtypes if mtype == rpobj.mtypes]
+
         # 3. a samplegroup object
         # 4. a study object
         # 5. a visual object
         # 6. a result
         if result:
             methods = [result]
-
-        # if isinstance(rpobj, RockPy3.Visualize.base.Visual):
-        #     mtypes = [mtype for mtype in mtypes if mtype in rpobj.__class__._required]
-
-        # todo RockPy3.study, RockPy3.samplegroup
 
         ############################################################################################################
         # actual calculation
@@ -881,8 +894,8 @@ def separate_calculation_parameter_from_kwargs(rpobj=None, mtype_list=None, **kw
 
     """
     calculation_parameter, non_calculation_parameter = kwargs_to_calculation_parameter(rpobj=rpobj,
-                                                                                       mtype_list=mtype_list, **kwargs)
-    # print(calculation_parameter, non_calculation_parameter)
+                                                                                       mtype_list=mtype_list,
+                                                                                       **kwargs)
     out = {}
 
     for key, value in kwargs.items():
@@ -923,22 +936,22 @@ def range_to_tuple(range):
             pass
     else:
         return float(range)
-
-if __name__ == '__main__':
-    Study = RockPy3.RockPyStudy()
-    # sample
-    s2 = Study.add_sample(name='S2')
-    # noise ranging from 0-5%
-    for noise in range(5):
-        # 4 measurements for each noise
-        for n in range(4):
-            h1 = s2.add_simulation(mtype='hysteresis', noise = noise, marker='o')
-            # we add a series for the noise
-            h1.add_series('noise', noise, '%')
-
-    fig = RockPy3.Figure(fig_input=Study)
-    v = fig.add_visual(visual='hysteresis')
-    v = fig.add_visual(visual='resultseries',result='ms', series='noise')
-    v = fig.add_visual(visual='resultseries',result='bc', series='noise')
-    v.add_feature('result_series_errorbars')
-    fig.show()
+#
+# if __name__ == '__main__':
+#     Study = RockPy3.RockPyStudy()
+#     # sample
+#     s2 = Study.add_sample(name='S2')
+#     # noise ranging from 0-5%
+#     for noise in range(5):
+#         # 4 measurements for each noise
+#         for n in range(4):
+#             h1 = s2.add_simulation(mtype='hysteresis', noise = noise, marker='o')
+#             # we add a series for the noise
+#             h1.add_series('noise', noise, '%')
+#
+#     fig = RockPy3.Figure(fig_input=Study)
+#     v = fig.add_visual(visual='hysteresis')
+#     v = fig.add_visual(visual='resultseries',result='ms', series='noise')
+#     v = fig.add_visual(visual='resultseries',result='bc', series='noise')
+#     v.add_feature('result_series_errorbars')
+#     fig.show()
