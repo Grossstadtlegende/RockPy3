@@ -180,7 +180,7 @@ class Measurement(object):
         """
         generates a dictionary of results:calculate_methods
         """
-        scp = {r: {'recipe': False, 'indirect': False, 'secondary': False} for r in cls.result_methods()}
+        scp = {r: {'recipe': False, 'indirect': False, 'secondary': False, 'dependent':False} for r in cls.result_methods()}
         for res in scp:
             res_method = getattr(cls, 'result_' + res)
             result_sig = {k.name: k.default for k in inspect.signature(res_method).parameters.values() if
@@ -192,6 +192,8 @@ class Measurement(object):
                 scp[res]['indirect'] = True
             if 'secondary' in result_sig:
                 scp[res]['secondary'] = True
+            if 'dependencies' in result_sig:
+                scp[res]['dependent'] = True
 
             scp[res].setdefault('signature', result_sig)
             result_sig.setdefault('recipe', 'default')
@@ -758,15 +760,6 @@ class Measurement(object):
             self.set_plt_prop('marker', marker)
             self.set_plt_prop('linestyle', linestyle)
 
-        # calculate the standards for results, calculation and the appropriate methods
-        self.result_recipe = {result: self.standards_result()[result]['signature']['recipe'].upper() for result in
-                              self.standards_result()}
-        self.calculation_parameter = {
-            result: self.standards_calculate()[self.get_calculate_method(result)] for result in self.result_recipe
-            if not self.standards_result()[result]['secondary']}
-        self.methods = {result: getattr(self, 'calculate_' + self.get_calculate_method(result)) for result in
-                        self.result_recipe
-                        if not self.standards_result()[result]['secondary']}
 
     def set_recipe(self, result, recipe):
         """
@@ -870,17 +863,33 @@ class Measurement(object):
     def get_dependent_results(self, result):
         """
         gets all result names that are equally independent and the independent result they are based on
+
+        Example
+        -------
+            hf_sus(hysteresis) is always dependent on the calculation of ms.
+                -> returns [ms, hf_sus]
+            mrs_ms(hysteresis) is always dependent on ms & mrs and dependencies on each of these
+                -> returns [ms, mrs, mrs_ms, hf_sus]
         :param result:
         :return:
         """
-        if not self.standards_result()[result]['indirect']:
-            return [result]
-        cm = self.standards_result()[result]['signature']['calculation_method']
-        indirect_methods = [res for res in self.standards_result() if self.standards_result()[res]['indirect']]
 
-        dependent_on_cm = [res for res in indirect_methods if
-                           self.standards_result()[res]['signature']['calculation_method'] == cm]
-        return sorted([cm] + dependent_on_cm)
+        # if not self.standards_result()[result]['indirect'] and not self.standards_result()[result]['dependent']:
+        #     return [result]
+
+        if 'calculation_method' in self.standards_result()[result]['signature']:
+            cm = self.standards_result()[result]['signature']['calculation_method']
+        else:
+            cm = result
+
+        indirect_methods = [res for res in self.standards_result() if self.standards_result()[res]['indirect']]
+        dependent_on_cm = [res for res in indirect_methods if self.standards_result()[res]['signature']['calculation_method'] == cm]
+
+        if self.standards_result()[result]['dependent']:
+            for res in self.standards_result()[result]['signature']['dependencies']:
+                dependent_on_cm.extend(self.get_dependent_results(res))
+
+        return sorted(set([cm]+dependent_on_cm))
 
     @property
     def mtype(self):
@@ -981,10 +990,17 @@ class Measurement(object):
         :return:
         """
 
-        # dynamic entry creation for all available result methods #todo change to as needed creation
-        # self.results = RockPy3.Data(column_names=self.result_methods(),
-        #                             data=[np.nan for i in self.result_methods()])
-        self.calculation_parameter = {}
+        # calculate the standards for results, calculation and the appropriate methods
+        self.result_recipe = {result: self.standards_result()[result]['signature']['recipe'].upper() for result in
+                              self.standards_result()}
+
+        self.calculation_parameter = {
+            result: self.standards_calculate()[self.get_calculate_method(result)] for result in self.result_recipe
+            if not self.standards_result()[result]['secondary']}
+
+        self.methods = {result: getattr(self, 'calculate_' + self.get_calculate_method(result)) for result in
+                        self.result_recipe if not self.standards_result()[result]['secondary']}
+
         self._info_dict = self.__create_info_dict()
 
     @property
@@ -2001,9 +2017,13 @@ def result_new(func, *args, **kwargs):
     if self.results is None:
         self.log.debug('No results calculated, yet. Calculating')
         recalc = True
+    # if this result has not been calculated
+    elif result_name not in self.results.column_names:
+        recalc = True
+
     # if any parameter changed after a result has been calculated, it has to be calculated again
     elif result_name in self.results.column_names:
-        if not any(self.calculation_parameter[result_name][param] != kwargs[param] for param in changed_params):
+        if any(self.calculation_parameter[result_name][param] != kwargs[param] for param in changed_params):
             self.log.debug('Calculation parameters have changed. Calculating')
             recalc = True
 
@@ -2109,15 +2129,17 @@ def calculate_new(func, *args, **kwargs):
     self = args[0]
     result_name = kwargs.pop('result_name')
 
+    # get all results that are dependent of or a dependency of result_name
     dependent_results = self.get_dependent_results(result_name)
 
+    # if no Results have been calculated - create a new RPdata object
     if self.results is None:
         self.results = RockPy3.Data(column_names=dependent_results, data=[np.nan for i in dependent_results])
 
+    # create new columns for all dependent results #todo change if RPdata['not_yet_a_column']=5 gives no error
     for result in dependent_results:
         if not result in self.results.column_names:
-            self.results.append_columns(column_names=result, data=np.nan)
-
+            self.results = self.results.append_columns(column_names=result, data=[[[np.nan, np.nan]]])
     return func(self, **self.calculation_parameter[result_name])
 
 
@@ -2262,6 +2284,12 @@ if __name__ == '__main__':
     # m = RockPy3.Packages.Mag.Measurements.hysteresis.Hysteresis(sobj=s)
     m = s.add_simulation(mtype='hysteresis', ms=1)
     m.set_recipe('hf_sus', 'app2sat')
+    # print(m.standards_result())
+    # print(m.standards_calculate())
+    # print(m.get_dependent_results(result='ms'))
+    # print(m.get_dependent_results(result='mrs_ms'))
+    m.calc_all()
     # print(m)
-    print(m.result_hf_sus(recalc=True, saturation_percent=90, ommit_last_n=1, check=True))
-    # print(m.get_dependent_results(result='hf_sus'))
+    # print(m.result_hf_sus(recalc=True, saturation_percent=90, ommit_last_n=1, check=True))
+    # print(m.result_mrs_ms())
+    print(m.results)

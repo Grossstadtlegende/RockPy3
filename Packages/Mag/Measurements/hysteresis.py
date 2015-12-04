@@ -2,7 +2,6 @@
 __author__ = 'volk'
 from copy import deepcopy
 from math import tanh, cosh
-
 import numpy as np
 import numpy.random
 import scipy as sp
@@ -10,13 +9,12 @@ from scipy import stats
 from scipy.optimize import curve_fit
 from scipy.interpolate import UnivariateSpline
 from lmfit import minimize, Parameters, report_fit
-
 import RockPy3
 from RockPy3.core import measurement
 from RockPy3.core.measurement import calculate, result, correction, result_new, calculate_new
 from RockPy3.core.data import RockPyData
-
 import matplotlib.pyplot as plt
+
 
 class Hysteresis(measurement.Measurement):
     """
@@ -61,7 +59,7 @@ class Hysteresis(measurement.Measurement):
 
     @classmethod
     def from_simulation(cls, sobj, idx=0,
-                        ms=250., mrs_ms=0.5, bc=0.2, hf_sus=1., bmax=1.8, b_sat=1, steps=100,
+                        ms=250., mrs_ms=0.3, bc=0.1, hf_sus=1., bmax=1.4, b_sat=1, steps=100,
                         noise=None, color=None, marker=None, linestyle=None):
         """
         Simulation of hysteresis loop using single tanh and sech functions.
@@ -116,7 +114,7 @@ class Hysteresis(measurement.Measurement):
         irrev_mag = float(ms) * mrs_ms * np.array([cosh(3.5 * i / b_sat) ** -1 for i in fields])
 
         if noise:
-            noise = max(max(rev_mag), max(irrev_mag)) * noise /100
+            noise = max(max(rev_mag), max(irrev_mag)) * noise / 100
             rev_mag += np.random.normal(0, noise, len(rev_mag))
             irrev_mag += np.random.normal(0, noise, len(irrev_mag))
 
@@ -140,7 +138,7 @@ class Hysteresis(measurement.Measurement):
         return np.array(grid)
 
     @staticmethod
-    def approach2sat_func(h, ms, chi, alpha):
+    def approach2sat_func(h, ms, chi, alpha, beta=-2):
         """
         General approach to saturation function
 
@@ -161,7 +159,7 @@ class Hysteresis(measurement.Measurement):
            ndarray:
               :math:`M_s \chi * B + \\alpha * B^{\\beta = -2}`
         """
-        return ms + chi * h + alpha * h ** -2  # beta
+        return ms + chi * h + alpha * h ** beta
 
     @staticmethod
     def fit_tanh(params, x, data=0):
@@ -250,6 +248,7 @@ class Hysteresis(measurement.Measurement):
 
     ####################################################################################################################
     """ formatting functions """
+
     # have to return mdata matching the measurement type
     @staticmethod
     def format_vsm(ftype_data, sobj_name=None):
@@ -303,15 +302,15 @@ class Hysteresis(measurement.Measurement):
     @staticmethod
     def format_mpms(ftype_data, sobj_name=None):
 
-        #get the index of the field column
+        # get the index of the field column
         field_idx = ftype_data.header.index('Field')
         # get the differences in fieldbetween steps
-        diff_data = np.diff(ftype_data.data[:,1])
+        diff_data = np.diff(ftype_data.data[:, 1])
         # assuming the measurement starts with the down field branch -> the difference between field steps is negative
-        if diff_data[0]<0:
-            start_idx = min(i+1 for i,v in enumerate(np.diff(ftype_data.data[:,1])) if v > 0)
-            df_data = ftype_data.data[:start_idx,:]
-            uf_data = ftype_data.data[start_idx-1:,:]
+        if diff_data[0] < 0:
+            start_idx = min(i + 1 for i, v in enumerate(np.diff(ftype_data.data[:, 1])) if v > 0)
+            df_data = ftype_data.data[:start_idx, :]
+            uf_data = ftype_data.data[start_idx - 1:, :]
         else:
             raise NotImplementedError('implement hysteresis starting from 0 or up field')
 
@@ -321,7 +320,7 @@ class Hysteresis(measurement.Measurement):
         mdata.setdefault('down_field', RockPyData(column_names=[i.lower() for i in ftype_data.header],
                                                   data=df_data, units=ftype_data.units).sort('field'))
         mdata.setdefault('up_field', RockPyData(column_names=[i.lower() for i in ftype_data.header],
-                                                  data=uf_data, units=ftype_data.units).sort('field'))
+                                                data=uf_data, units=ftype_data.units).sort('field'))
 
         for dtype in mdata:
             if mdata[dtype]:
@@ -329,6 +328,7 @@ class Hysteresis(measurement.Measurement):
                 mdata[dtype].rename_column('temperature', 'temp')
         # print(mdata['down_field'])
         return mdata
+
     @property
     def max_field(self):
         fields = set(self.data['down_field']['field'].v) | set(self.data['up_field']['field'].v)
@@ -340,7 +340,7 @@ class Hysteresis(measurement.Measurement):
     ####################################################################################################################
     """ BC """
 
-    @calculate
+    @calculate_new
     def calculate_bc_LINEAR(self, no_points=6, check=False, **non_method_parameters):
         """
         Calculates the coercivity using a linear interpolation between the points crossing the x axis for upfield and down field slope.
@@ -384,7 +384,7 @@ class Hysteresis(measurement.Measurement):
 
         self.results['bc'] = [[(np.nanmean(result), np.nanstd(result))]]
 
-    @calculate
+    @calculate_new
     def calculate_bc_NONLINEAR(self, no_points=8, check=False, **non_method_parameters):
         """
         Calculates the coercivity using a spline interpolation between the points crossing the x axis for upfield and down field slope.
@@ -435,7 +435,7 @@ class Hysteresis(measurement.Measurement):
         # set result so it can be accessed
         self.results['bc'] = [[(np.nanmean(result), np.nanstd(result))]]
 
-    @result
+    @result_new
     def result_bc(self, recipe='LINEAR', recalc=False, **non_method_parameters):
         """
         Calculates :math:`B_c` using a linear interpolation between the points closest to zero.
@@ -448,7 +448,7 @@ class Hysteresis(measurement.Measurement):
     ####################################################################################################################
     """ MRS """
 
-    @calculate
+    @calculate_new
     def calculate_mrs(self, no_points=4, check=False, **non_method_parameters):
         # initialize result
         result = []
@@ -513,7 +513,6 @@ class Hysteresis(measurement.Measurement):
 
         return df_plus, df_minus, uf_plus, uf_minus
 
-
     def calc_approach2sat(self, saturation_percent, ommit_last_n):
         """
         calculates approach to saturation
@@ -549,27 +548,31 @@ class Hysteresis(measurement.Measurement):
         """
 
         ms, chi, alpha = self.calc_approach2sat(saturation_percent=saturation_percent,
-                                                  ommit_last_n=ommit_last_n)
+                                                ommit_last_n=ommit_last_n)
 
         self.results['ms'] = [[[np.mean(ms), np.std(ms)]]]
         self.results['hf_sus'] = [[[np.mean(chi), np.std(chi)]]]
-        self.results = self.results.append_columns(column_names=['alpha'],
-                                                   data=[[[np.mean(chi), np.std(chi)]]])
+
+        if not 'alpha' in self.results.column_names:
+            self.results = self.results.append_columns(column_names=['alpha'],
+                                                       data=[[[np.mean(alpha), np.std(alpha)]]])
+        else:
+            self.results['alpha'] = [[[np.mean(alpha), np.std(alpha)]]]
+
         if check:
             df_pos, df_neg, uf_pos, uf_neg = self.get_df_uf_plus_minus(saturation_percent=0,
-                                                                        ommit_last_n=ommit_last_n)
+                                                                       ommit_last_n=ommit_last_n)
             new_y = self.approach2sat_func(df_pos['field'].v, np.mean(ms), np.mean(chi), np.mean(alpha))
             plt.plot(df_pos['field'].v, df_pos['mag'].v, 'o', label='data')
             plt.plot(df_pos['field'].v, new_y, label='app2sat_function')
             plt.plot(0, np.mean(ms), 'x', markeredgewidth=2, markersize=5, zorder=100)
-            plt.plot(df_pos['field'].v, df_pos['field'].v*np.mean(chi)+np.mean(ms), label='slope')
-            plt.plot([saturation_percent*self.max_field/100, saturation_percent*self.max_field/100],
-                     [min(new_y),max(new_y)], 'k--', label='assumed saturation %i %%'%saturation_percent)
+            plt.plot(df_pos['field'].v, df_pos['field'].v * np.mean(chi) + np.mean(ms), label='slope')
+            plt.plot([saturation_percent * self.max_field / 100, saturation_percent * self.max_field / 100],
+                     [min(new_y), max(new_y)], 'k--', label='assumed saturation %i %%' % saturation_percent)
             plt.legend(loc='best')
             plt.grid()
             plt.ylim([-0.1, max(new_y)])
             plt.show()
-
 
     @calculate_new
     def calculate_ms(self, saturation_percent=75., ommit_last_n=0, check=False, **non_method_parameters):
@@ -640,7 +643,7 @@ class Hysteresis(measurement.Measurement):
         self.results['hf_sus'] = [[(np.nanmean(hf_sus_result), np.nanstd(hf_sus_result))]]
         self.results['ms'] = [[(np.nanmean(ms_result), np.nanstd(ms_result))]]
 
-    @result
+    @result_new
     def result_ms(self, recipe='DEFAULT', recalc=False, **non_method_parameters):
         """
         calculates the Ms value with a linear fit
@@ -697,65 +700,65 @@ class Hysteresis(measurement.Measurement):
 
     ####################################################################################################################
     ''' Brh'''
-
-    @calculate
-    def calculate_brh(self, **non_method_parameters):
-        pass  # todo implement
-
-    @result
-    def result_brh(self, recalc=False, **non_method_parameters):
-        """
-        By definition, Brh is the median destructive field of the vertical hysteresis difference:
-
-        .. math::
-
-           M_{rh}(B) = \\frac{M^+(B)-M^-(B)}{2}
-
-        """
-        pass
+    #
+    # @calculate_new
+    # def calculate_brh(self, **non_method_parameters):
+    #     pass  # todo implement
+    #
+    # @result_new
+    # def result_brh(self, recalc=False, **non_method_parameters):
+    #     """
+    #     By definition, Brh is the median destructive field of the vertical hysteresis difference:
+    #
+    #     .. math::
+    #
+    #        M_{rh}(B) = \\frac{M^+(B)-M^-(B)}{2}
+    #
+    #     """
+    #     pass
     ####################################################################################################################
     ''' E_delta_t'''
 
-    @calculate
-    def calculate_e_delta_t(self, **non_method_parameters):
-        """
-        Method calculates the :math:`E^{\Delta}_t` value for the hysteresis.
-        It uses scipy.integrate.simps for calculation of the area under the down_field branch for positive fields and
-        later subtracts the area under the Msi curve.
+    # @calculate_new
+    # def calculate_e_delta_t(self, **non_method_parameters):
+    #     """
+    #     Method calculates the :math:`E^{\Delta}_t` value for the hysteresis.
+    #     It uses scipy.integrate.simps for calculation of the area under the down_field branch for positive fields and
+    #     later subtracts the area under the Msi curve.
+    #
+    #     The energy is:
+    #
+    #     .. math::
+    #
+    #        E^{\delta}_t = 2 \int_0^{B_{max}} (M^+(B) - M_{si}(B)) dB
+    #
+    #     """
+    # if not self.msi_exists:
+    #     self.log.error(
+    #         '%s\tMsi branch does not exist or not properly saturated. Please check datafile' % self.sobj.name)
+    #     self.results['e_delta_t'] = np.nan
+    #     return np.nan
+    #
+    # # getting data for positive down field branch
+    # df_pos_fields = [v for v in self.data['down_field']['field'].v if v >= 0] + [0.0]  # need to add 0 to fields
+    # df_pos = self.data['down_field'].interpolate(df_pos_fields)  # interpolate value for 0
+    # df_pos_area = abs(sp.integrate.simps(y=df_pos['mag'].v, x=df_pos['field'].v))  # calculate area under downfield
+    #
+    # msi_area = abs(sp.integrate.simps(y=self.data['virgin']['mag'].v,
+    #                                   x=self.data['virgin']['field'].v))  # calulate area under virgin
+    #
+    # self.results['e_delta_t'] = abs(2 * (df_pos_area - msi_area))
+    # self.calculation_parameter['e_delta_t'].update(parameter)
+    # return self.results['e_delta_t'].v[0]
+    # pass
 
-        The energy is:
-
-        .. math::
-
-           E^{\delta}_t = 2 \int_0^{B_{max}} (M^+(B) - M_{si}(B)) dB
-
-        """
-        # if not self.msi_exists:
-        #     self.log.error(
-        #         '%s\tMsi branch does not exist or not properly saturated. Please check datafile' % self.sobj.name)
-        #     self.results['e_delta_t'] = np.nan
-        #     return np.nan
-        #
-        # # getting data for positive down field branch
-        # df_pos_fields = [v for v in self.data['down_field']['field'].v if v >= 0] + [0.0]  # need to add 0 to fields
-        # df_pos = self.data['down_field'].interpolate(df_pos_fields)  # interpolate value for 0
-        # df_pos_area = abs(sp.integrate.simps(y=df_pos['mag'].v, x=df_pos['field'].v))  # calculate area under downfield
-        #
-        # msi_area = abs(sp.integrate.simps(y=self.data['virgin']['mag'].v,
-        #                                   x=self.data['virgin']['field'].v))  # calulate area under virgin
-        #
-        # self.results['e_delta_t'] = abs(2 * (df_pos_area - msi_area))
-        # self.calculation_parameter['e_delta_t'].update(parameter)
-        # return self.results['e_delta_t'].v[0]
-        pass
-
-    @result
-    def result_e_delta_t(self, recalc=False, **non_method_parameters):
-        pass
+    # @result_new
+    # def result_e_delta_t(self, recalc=False, **non_method_parameters):
+    #     pass
     ####################################################################################################################
     ''' E_hys'''
 
-    @calculate
+    @calculate_new
     def calculate_e_hys(self, **non_method_parameters):
         '''
         Method calculates the :math:`E^{Hys}` value for the hysteresis.
@@ -777,14 +780,14 @@ class Hysteresis(measurement.Measurement):
 
         self.results['e_hys'] = abs(df_area - uf_area)
 
-    @result
+    @result_new
     def result_e_hys(self, recalc=False, **non_method_parameters):
         pass
 
     ####################################################################################################################
     ''' Mrs/Ms'''
 
-    @calculate
+    @calculate_new
     def calculate_mrs_ms(self, **non_method_parameters):
         '''
         Method calculates the :math:`E^{Hys}` value for the hysteresis.
@@ -802,14 +805,14 @@ class Hysteresis(measurement.Measurement):
         ms = self.result_ms(**non_method_parameters)
         self.results['mrs_ms'] = [[[mrs[0] / ms[0], mrs[1] + ms[1]]]]
 
-    @result
-    def result_mrs_ms(self, recalc=False, **non_method_parameters):
+    @result_new
+    def result_mrs_ms(self, recalc=False, dependencies=('ms', 'mrs'), **non_method_parameters):
         pass
 
     ####################################################################################################################
     ''' Moment at Field'''
 
-    @calculate
+    @calculate_new
     def calculate_m_b(self, b=300., branches='all', **non_method_parameters):
         '''
 
@@ -838,46 +841,47 @@ class Hysteresis(measurement.Measurement):
                 dtypes.append(branch)
         self.log.info('M(%.1f mT) calculated as mean of %s branch(es)' % (b, dtypes))
         self.results['m_b'] = [[[np.nanmean(np.fabs(aux)), np.nanstd(np.fabs(aux))]]]
+        # self.results.define_alias('m_b[%.1f]'%b, 'm_b') #todo rename the column
 
-    @result
+    @result_new
     def result_m_b(self, recalc=False, **non_method_parameters):
         pass
 
     ####################################################################################################################
-    ''' Bcr/ Bc '''
-
-    @calculate
-    def calculate_bcr_bc(self,
-                         coe_obj=None, bcr_recipe='LINEAR', bcr_no_points=4,
-                         bc_no_points=4, bc_recipe='LINEAR',
-                         **non_method_parameters):
-        '''
-
-        Parameters
-        ----------
-            b: field in mT where the moment is returned
-        '''
-
-        if not coe_obj:
-            self.log.info('NO backfield/coe measurement specified: searching through sample')
-            coe_objs = [m for m in self.sobj.get_measurement(mtype='backfield') if m.series == self.series]
-            if len(coe_objs) == 0:
-                self.log.error('CANT find measurement with << backfield, %s >>' % self.stype_sval_tuples)
-                return
-            elif len(coe_objs) == 1:
-                self.log.info('FOUND exactly one measurement with << backfield, %s >>' % self.stype_sval_tuples)
-                coe_obj = coe_objs[0]
-            else:
-                self.log.info('MULTIPLE find backfield/coe measurement found with same stypes/svals using first')
-                coe_obj = coe_objs[0]
-
-        bcr = coe_obj.result_bcr(recipe=bcr_recipe, no_points=bcr_no_points, **non_method_parameters)
-        bc = self.result_bc(recipe=bc_recipe, no_points=bc_no_points, **non_method_parameters)
-        self.results['bcr_bc'] = [[[bcr[0] / bc[0], bcr[1] + bc[1]]]]
-
-    @result
-    def result_bcr_bc(self, secondary='backfield', recalc=False, **non_method_parameters):
-        pass
+    # ''' Bcr/ Bc '''
+    #
+    # @calculate_new
+    # def calculate_bcr_bc(self,
+    #                      coe_obj=None, bcr_recipe='LINEAR', bcr_no_points=4,
+    #                      bc_no_points=4, bc_recipe='LINEAR',
+    #                      **non_method_parameters):
+    #     '''
+    #
+    #     Parameters
+    #     ----------
+    #         b: field in mT where the moment is returned
+    #     '''
+    #
+    #     if not coe_obj:
+    #         self.log.info('NO backfield/coe measurement specified: searching through sample')
+    #         coe_objs = [m for m in self.sobj.get_measurement(mtype='backfield') if m.series == self.series]
+    #         if len(coe_objs) == 0:
+    #             self.log.error('CANT find measurement with << backfield, %s >>' % self.stype_sval_tuples)
+    #             return
+    #         elif len(coe_objs) == 1:
+    #             self.log.info('FOUND exactly one measurement with << backfield, %s >>' % self.stype_sval_tuples)
+    #             coe_obj = coe_objs[0]
+    #         else:
+    #             self.log.info('MULTIPLE find backfield/coe measurement found with same stypes/svals using first')
+    #             coe_obj = coe_objs[0]
+    #
+    #     bcr = coe_obj.result_bcr(recipe=bcr_recipe, no_points=bcr_no_points, **non_method_parameters)
+    #     bc = self.result_bc(recipe=bc_recipe, no_points=bc_no_points, **non_method_parameters)
+    #     self.results['bcr_bc'] = [[[bcr[0] / bc[0], bcr[1] + bc[1]]]]
+    #
+    # @result_new
+    # def result_bcr_bc(self, secondary='backfield', recalc=False, **non_method_parameters):
+    #     pass
 
     """ CALCULATIONS """
 
@@ -1147,6 +1151,33 @@ class Hysteresis(measurement.Measurement):
     def correct_holder(self):
         raise NotImplementedError
 
+    def symmetry_smoothing(self):
+        self_copy = deepcopy(self)
+
+        irev = self_copy.get_irreversible(correct_symmetry=False)
+        irevp = irev.filter(irev['field'].v >= 0)
+        irevm = irev.filter(irev['field'].v <= 0)
+        irevm['field'] = irevm['field'].v * -1
+        irevm['mag'] = irevm['mag'].v * -1
+
+        irev = RockPy3.condense([irevm, irevp])
+        irevm_new = deepcopy(irev) * - 1
+        irevm_new['field'] = irevm_new['field'].data *-1
+        irev = irev.append_rows(irevm_new).sort()
+
+        print(irev)
+        rev = self_copy.get_reversible()
+        rev['field'] = np.fabs(rev['field'].data)
+        rev = RockPy3.condense([rev])
+        rev_m = deepcopy(rev)
+        rev_m['field'] = rev_m['field'].data *-1
+        rev = rev.append_rows(rev_m).sort()
+
+        self_copy.data['down_field'] = irev + rev
+        self_copy.data['up_field'] = irev - rev
+
+        return self_copy
+
     def fit_irrev(self, nfunc, check=False):
         """
         Fitting of the irreversible part of the hysteresis
@@ -1323,6 +1354,7 @@ class Hysteresis(measurement.Measurement):
         bm = max([abs(bmax), abs(bmin)])
 
         grid = Hysteresis.get_grid(bmax=bm, grid_points=grid_points, tuning=tuning, **parameter)
+
         # interpolate the magnetization values M_int(Bgrid(i)) for i = -n+1 .. n-1
         # by fitting M_{measured}(B_{experimental}) individually in all intervals [Bgrid(i-1), Bgrid(i+1)]
         # with first or second order polinomials
@@ -1463,19 +1495,13 @@ class Hysteresis(measurement.Measurement):
             f.writelines(line_four + '\n')
             f.writelines(data)
 
+
 if __name__ == '__main__':
     Study = RockPy3.RockPyStudy()
     s = Study.add_sample(name='S1')
-    hys = s.add_simulation(mtype='hys', ms=1)
-    # print(hys.data['down_field'])
-    hys.correct_paramag()
-    import cProfile
-    cProfile.run('hys.calc_all()')
-    # for dtype in hys.data:
-    #     print(dtype)
-    #     print(hys.data[dtype])
-    # fig = RockPy3.Figure(fig_input=Study)
-    # v = fig.add_visual(visual='hysteresis')
-    # v = fig.add_visual(visual='hysteresis', visual_input=hys)
-    # fig.show()
-#
+    hys = deepcopy(s.add_simulation(mtype='hys', ms=1, noise=2))
+    smooth = hys.symmetry_smoothing()
+    fig = RockPy3.Figure()
+    v = fig.add_visual(visual='hysteresis', visual_input=hys)
+    v = fig.add_visual(visual='hysteresis', visual_input=smooth)
+    fig.show()
