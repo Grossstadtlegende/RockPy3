@@ -1162,7 +1162,7 @@ class Hysteresis(measurement.Measurement):
 
         irev = RockPy3.condense([irevm, irevp])
         irevm_new = deepcopy(irev) * - 1
-        irevm_new['field'] = irevm_new['field'].data *-1
+        irevm_new['field'] = irevm_new['field'].data * -1
         irev = irev.append_rows(irevm_new).sort()
 
         print(irev)
@@ -1170,7 +1170,7 @@ class Hysteresis(measurement.Measurement):
         rev['field'] = np.fabs(rev['field'].data)
         rev = RockPy3.condense([rev])
         rev_m = deepcopy(rev)
-        rev_m['field'] = rev_m['field'].data *-1
+        rev_m['field'] = rev_m['field'].data * -1
         rev = rev.append_rows(rev_m).sort()
 
         self_copy.data['down_field'] = irev + rev
@@ -1499,9 +1499,11 @@ class Hysteresis(measurement.Measurement):
 if __name__ == '__main__':
     Study = RockPy3.RockPyStudy()
     s = Study.add_sample(name='S1')
-    hys = deepcopy(s.add_simulation(mtype='hys', ms=1, noise=2))
-    smooth = hys.symmetry_smoothing()
-    fig = RockPy3.Figure()
-    v = fig.add_visual(visual='hysteresis', visual_input=hys)
-    v = fig.add_visual(visual='hysteresis', visual_input=smooth)
-    fig.show()
+    # hys_vsm = s.add_measurement(fpath='/Users/mike/Google Drive/__code/RockPy3/testing/test_data/hys.001',
+    #                         mtype='hysteresis',
+    #                         ftype='vsm')
+
+    coe = s.add_measurement(fpath='/Users/mike/Google Drive/__code/RockPy3/testing/test_data/coe.001',
+                            mtype='backfield',
+                            ftype='vsm')
+    print(coe.calc_all())

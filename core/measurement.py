@@ -180,7 +180,8 @@ class Measurement(object):
         """
         generates a dictionary of results:calculate_methods
         """
-        scp = {r: {'recipe': False, 'indirect': False, 'secondary': False, 'dependent':False} for r in cls.result_methods()}
+        scp = {r: {'recipe': False, 'indirect': False, 'secondary': False, 'dependent': False} for r in
+               cls.result_methods()}
         for res in scp:
             res_method = getattr(cls, 'result_' + res)
             result_sig = {k.name: k.default for k in inspect.signature(res_method).parameters.values() if
@@ -760,7 +761,6 @@ class Measurement(object):
             self.set_plt_prop('marker', marker)
             self.set_plt_prop('linestyle', linestyle)
 
-
     def set_recipe(self, result, recipe):
         """
         changes the recipe for a result to a new value. Changes the standard parameter dictionary to the new values
@@ -883,13 +883,14 @@ class Measurement(object):
             cm = result
 
         indirect_methods = [res for res in self.standards_result() if self.standards_result()[res]['indirect']]
-        dependent_on_cm = [res for res in indirect_methods if self.standards_result()[res]['signature']['calculation_method'] == cm]
+        dependent_on_cm = [res for res in indirect_methods if
+                           self.standards_result()[res]['signature']['calculation_method'] == cm]
 
         if self.standards_result()[result]['dependent']:
             for res in self.standards_result()[result]['signature']['dependencies']:
                 dependent_on_cm.extend(self.get_dependent_results(res))
 
-        return sorted(set([cm]+dependent_on_cm))
+        return sorted(set([cm] + dependent_on_cm))
 
     @property
     def mtype(self):
@@ -1495,6 +1496,9 @@ class Measurement(object):
         """
         if sobj.stype != 'none':
             # data = np.ones(len(self.results['variable'].v)) * sobj.value
+            if not self.results:
+                self.results = RockPy3.Data(column_names='stype ' + sobj.stype,
+                                            data=[sobj.value])
             if not 'stype ' + sobj.stype in self.results.column_names:
                 self.results = self.results.append_columns(column_names='stype ' + sobj.stype,
                                                            data=[sobj.value])  # , unit=sobj.unit) #todo add units
@@ -2005,18 +2009,26 @@ class Measurement(object):
 @decorator.decorator
 def result_new(func, *args, **kwargs):
     result_name = '_'.join(func.__name__.split('_')[1:])
-    self = args[0]
-    recalc = kwargs.pop('recalc', False)
 
+    # get the signature of the function: meaning all parameters taht have been passed and the variable names
+    signature = {k:args[i] for i,k in enumerate(inspect.signature(func).parameters) if i< len(args)}
+    recalc = signature.pop('recalc', False)
+    self = signature.pop('self')
+    cmethod = signature.pop('calculation_method', None)
+
+    kwargs.update(signature)
     # look through the kwargs if there are possible calculation_parameter
     changed_params = set(self.calculation_parameter[result_name]) & set(kwargs)
     unused_params = set(kwargs) - set(self.calculation_parameter[result_name])
 
+    if not hasattr(self, 'results'):
+        setattr(self, 'results', None)
     # check if result needs to be called again
     # if no results have been calculated set recalc to true
     if self.results is None:
         self.log.debug('No results calculated, yet. Calculating')
         recalc = True
+
     # if this result has not been calculated
     elif result_name not in self.results.column_names:
         recalc = True

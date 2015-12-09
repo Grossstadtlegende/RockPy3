@@ -13,7 +13,7 @@ import datetime
 
 import RockPy3
 from RockPy3.core import measurement
-from RockPy3.core.measurement import calculate, result, correction
+from RockPy3.core.measurement import calculate_new, result_new, correction
 from RockPy3.core.data import RockPyData
 from pprint import pprint
 import matplotlib.pyplot as plt
@@ -68,7 +68,7 @@ class Demagnetization(measurement.Measurement):
     ####################################################################################################################
     """ M1/2 """
 
-    @calculate
+    @calculate_new
     def calculate_m05_NONLINEAR(self, no_points=4, component='mag', check=False, **non_method_parameters):
         """
         """
@@ -107,7 +107,7 @@ class Demagnetization(measurement.Measurement):
         # set result so it can be accessed
         self.results['m05'] = [[(np.nanmean(result), np.nan)]]
 
-    @result
+    @result_new
     def result_m05(self, recipe='nonlinear', recalc=False, **non_method_parameters):
         """
         the variable, where the moment is 1/2 of the max moment

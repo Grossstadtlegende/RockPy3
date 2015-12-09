@@ -9,7 +9,7 @@ from scipy.interpolate import UnivariateSpline
 import RockPy3
 from RockPy3.core.data import RockPyData
 from RockPy3.core import measurement
-from RockPy3.core.measurement import calculate, result, correction
+from RockPy3.core.measurement import calculate_new, result_new, correction
 import matplotlib.pyplot as plt
 
 
@@ -109,7 +109,7 @@ class Backfield(measurement.Measurement):
     ####################################################################################################################
     ''' Mrs '''
 
-    @calculate
+    @calculate_new
     def calculate_mrs(self, **non_method_parameters):
         """
         Magnetic Moment at last measurement point
@@ -120,15 +120,15 @@ class Backfield(measurement.Measurement):
         end = self.data['data']['mag'].v[-1]
         self.results['mrs'] = [[[np.nanmean([abs(start), abs(end)]), np.nanstd([abs(start), abs(end)])]]]
 
-    @result
+    @result_new
     def result_mrs(self, recalc=False, **non_method_parameters):
         pass
 
     ####################################################################################################################
     ''' Bcr '''
 
-    @calculate
-    def calculate_bcr_DEFAULT(self, no_points=4, check=False, **non_method_parameters):
+    @calculate_new
+    def calculate_bcr(self, no_points=4, check=False, **non_method_parameters):
         """
         Calculates the coercivity using a linear interpolation between the points crossing the x axis for upfield and down field slope.
 
@@ -169,7 +169,7 @@ class Backfield(measurement.Measurement):
 
         self.results['bcr'] = [[(np.nanmean(result), np.nan)]]
 
-    @calculate
+    @calculate_new
     def calculate_bcr_NONLINEAR(self, no_points=4, check=False, **non_method_parameters):
         """
         Calculates the coercivity of remanence using a spline interpolation between the points crossing
@@ -216,7 +216,7 @@ class Backfield(measurement.Measurement):
         # set result so it can be accessed
         self.results['bcr'] = [[(np.nanmean(result), np.nanstd(result))]]
 
-    @result
+    @result_new
     def result_bcr(self, recipe='DEFAULT', recalc=False, **non_calculation_parameters):
         """
         calculates :math:`B_{cr}`
@@ -304,32 +304,30 @@ class Backfield(measurement.Measurement):
     #     pass
 
     ####################################################################################################################
-
-    ''' Moment at Field'''
-
-    @calculate
-    def calculate_m_b(self, b=300., **non_method_parameters):
-        '''
-
-        Parameters
-        ----------
-            b: field in mT where the moment is returned
-        '''
-        aux = []
-        dtypes = []
-        for dtype in ['virgin', 'down_field', 'up_field']:
-            if not dtype in self.data:
-                continue
-            if self.data[dtype]:
-                m = self.data[dtype].interpolate(new_variables=float(b) / 1000.)  # correct mT -> T
-                aux.append(m['mag'].v[0])
-                dtypes.append(dtype)
-        self.logger.info('M(%.1f mT) calculated as mean of %s branch(es)' % (b, dtypes))
-        self.results['m_b'] = [[[np.nanmean(np.fabs(aux)), np.nanstd(np.fabs(aux))]]]
-
-    @result
-    def result_m_b(self, recalc=False, **non_method_parameters):
-        pass
+    #
+    # ''' Moment at Field'''
+    #
+    # @calculate_new
+    # def calculate_m_b(self, b=.3, **non_method_parameters):
+    #     '''
+    #
+    #     Parameters
+    #     ----------
+    #         b: field in mT where the moment is returned
+    #     '''
+    #     aux = []
+    #     dtypes = []
+    #     for dtype in ['data']:
+    #         if self.data[dtype]:
+    #             m = self.data[dtype].interpolate(new_variables=float(b))
+    #             aux.append(m['mag'].v[0])
+    #             dtypes.append(dtype)
+    #     self.logger.info('M(%.1f mT) calculated as mean of %s branch(es)' % (b, dtypes))
+    #     self.results['m_b'] = [[[np.nanmean(np.fabs(aux)), np.nanstd(np.fabs(aux))]]]
+    #
+    # @result_new
+    # def result_m_b(self, recalc=False, **non_method_parameters):
+    #     pass
 
 
 def test():

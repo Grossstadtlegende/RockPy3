@@ -18,7 +18,7 @@ import datetime
 from RockPy3.core import measurement
 import RockPy3.Packages.Mag.Measurements.demagnetization
 import RockPy3.Packages.Mag.Measurements.acquisition
-from RockPy3.core.measurement import calculate, result, correction
+from RockPy3.core.measurement import calculate_new, result_new, correction
 from RockPy3.core.data import RockPyData
 from pprint import pprint
 
@@ -49,6 +49,7 @@ class Paleointensity(measurement.Measurement):
 
         mdata = {'acquisition': acquisition_data,
                  'demagnetization': demagnetization_data}
+
         return cls(sobj=sobj, ftype='from_measurement', mdata=mdata,
                    initial_state=initial_state, series=series, ismean=ismean,
                    color=color, marker=marker, linestyle=linestyle)
@@ -56,7 +57,7 @@ class Paleointensity(measurement.Measurement):
     ####################################################################################################################
     """ RESULTS CALCULATED USING CALCULATE_SLOPE  METHODS """
 
-    @calculate
+    @calculate_new
     def calculate_slope(self, var_min=20, var_max=90, component='mag',
                         **non_method_parameters):
         """
@@ -65,6 +66,7 @@ class Paleointensity(measurement.Measurement):
         :param parameter:
 
         """
+        print(var_min, var_max)
 
         # get equal temperature steps for both demagnetization and acquisition measurements
         equal_steps = list(set(self.data['demagnetization']['variable'].v) & set(self.data['acquisition']['variable'].v))
@@ -105,7 +107,7 @@ class Paleointensity(measurement.Measurement):
 
 
 
-    @result
+    @result_new
     def result_slope(self, var_min=20, var_max=700, component='mag',
                      recalc=False,
                      **non_method_parameters):
@@ -114,7 +116,7 @@ class Paleointensity(measurement.Measurement):
         """
         pass
 
-    @result
+    @result_new
     def result_n(self, var_min=20, var_max=700, component='mag',
                  recalc=False,
                  calculation_method='slope',
@@ -124,7 +126,7 @@ class Paleointensity(measurement.Measurement):
         """
         pass
 
-    @result
+    @result_new
     def result_sigma(self, var_min=20, var_max=700, component='mag',
                      recalc=False,
                      calculation_method='slope',
@@ -134,7 +136,7 @@ class Paleointensity(measurement.Measurement):
         """
         pass
 
-    @result
+    @result_new
     def result_x_int(self, var_min=20, var_max=700, component='mag',
                      recalc=False,
                      calculation_method='slope',
@@ -143,7 +145,7 @@ class Paleointensity(measurement.Measurement):
         """  # todo write doc
         pass
 
-    @result
+    @result_new
     def result_y_int(self, var_min=20, var_max=700, component='mag',
                      recalc=False,
                      calculation_method='slope',
@@ -155,7 +157,7 @@ class Paleointensity(measurement.Measurement):
     ####################################################################################################################
     ''' NOT ONLY SLOPE BASED '''
 
-    @calculate
+    @calculate_new
     def calculate_b_anc(self, var_min=20, var_max=700, component='mag', b_lab=35.0,
                         **non_method_parameters):
         """
@@ -173,13 +175,13 @@ class Paleointensity(measurement.Measurement):
         self.results['b_anc'] = [[[abs(b_lab * b_anc[0]), abs(b_lab * b_anc[1])]]]
         self.results['sigma_b_anc'] = abs(b_lab * b_anc[1])
 
-    @result
-    def result_b_anc(self, var_min=20, var_max=700, component='mag', b_lab=35.0,
+    @result_new
+    def result_b_anc(self, var_min=20, var_max=700, component='mag', b_lab=35.0, dependent='slope',
                      recalc=False,
                      **non_method_parameters):  # todo write comment
         pass
 
-    @result
+    @result_new
     def result_sigma_b_anc(self, var_min=20, var_max=700, component='mag', b_lab=35.0,
                            recalc=False, calculation_method='b_anc',
                            **non_method_parameters):  # todo write comment
@@ -188,7 +190,7 @@ class Paleointensity(measurement.Measurement):
     ####################################################################################################################
     """ F """
 
-    @calculate
+    @calculate_new
     def calculate_f(self, **parameter):
         """
 
@@ -209,7 +211,7 @@ class Paleointensity(measurement.Measurement):
         y_int = self.results['y_int'].v
         self.results['f'] = delta_y_dash / abs(y_int)
 
-    @result
+    @result_new
     def result_f(self, var_min=20, var_max=700, recalc=False, **options):
         # todo write comment for this method
         pass
@@ -217,7 +219,7 @@ class Paleointensity(measurement.Measurement):
     ####################################################################################################################
     """ F_VDS """
 
-    @calculate
+    @calculate_new
     def calculate_f_vds(self, var_min=20, var_max=700,
                         **non_method_parameters):
         """
@@ -236,14 +238,14 @@ class Paleointensity(measurement.Measurement):
         VDS = self.calculate_vds()
         self.results['f_vds'] = delta_y / VDS
 
-    @result
+    @result_new
     def result_f_vds(self, var_min=20, var_max=700, recalc=False, **non_method_parameters):
         pass
 
     ####################################################################################################################
     """ FRAC """
 
-    @calculate
+    @calculate_new
     def calculate_frac(self, var_min=20, var_max=700, **non_method_parameters):
         """
 
@@ -263,7 +265,7 @@ class Paleointensity(measurement.Measurement):
         VDS = self.calculate_vds()
         self.results['frac'] = NRM_sum / VDS
 
-    @result
+    @result_new
     def result_frac(self, var_min=20, var_max=700, recalc=False, **options):
         # todo write comment for this method
         pass
@@ -271,7 +273,7 @@ class Paleointensity(measurement.Measurement):
     ####################################################################################################################
     """ BETA """
 
-    @calculate
+    @calculate_new
     def calculate_beta(self, var_min=20, var_max=700, component='mag',
                        **non_method_parameters):
         """
@@ -293,7 +295,7 @@ class Paleointensity(measurement.Measurement):
         sigma = self.result_sigma(var_min=var_min, var_max=var_max, component=component, **non_method_parameters)[0]
         self.results['beta'] = sigma / abs(slope)
 
-    @result
+    @result_new
     def result_beta(self, var_min=20, var_max=700, recalc=False, **non_method_parameters):
         # todo write comment for this method
         pass
@@ -301,7 +303,7 @@ class Paleointensity(measurement.Measurement):
     ####################################################################################################################
     """ G """
 
-    @calculate
+    @calculate_new
     def calculate_g(self, var_min=20, var_max=700, component='mag',
                     **non_method_parameters):
         """
@@ -317,7 +319,7 @@ class Paleointensity(measurement.Measurement):
 
         self.results['g'] = 1 - y_sum_dash_diff_sq / delta_y_dash ** 2
 
-    @result
+    @result_new
     def result_g(self, var_min=20, var_max=700, component='mag', recalc=False, **non_method_parameters):
         # todo write comment for this method
         pass
@@ -325,6 +327,7 @@ class Paleointensity(measurement.Measurement):
     ####################################################################################################################
     """ GAP MAX """
 
+    @calculate_new
     def calculate_gap_max(self, var_min=20, var_max=700, **non_method_parameters):
         """
         The gap factor is a measure of the average Arai plot point spacing and may not represent extremes
@@ -343,7 +346,7 @@ class Paleointensity(measurement.Measurement):
         sum_vd = np.sum(vd)
         self.results['gap_max'] = max_vd / sum_vd
 
-    @result
+    @result_new
     def result_gap_max(self, var_min=20, var_max=700, recalc=False, **non_method_parameters):
         # todo write comment for this method
         pass
@@ -351,7 +354,7 @@ class Paleointensity(measurement.Measurement):
     ####################################################################################################################
     """ Q """
 
-    @calculate
+    @calculate_new
     def calculate_q(self, var_min=20, var_max=700, component='mag', **non_method_parameters):
         """
 
@@ -372,7 +375,7 @@ class Paleointensity(measurement.Measurement):
         gap = self.result_g(var_min=var_min, var_max=var_max, component=component)[0]
         self.results['q'] = (f * gap) / beta
 
-    @result
+    @result_new
     def result_q(self, var_min=20, var_max=700, component='mag', recalc=False, **non_method_parameters):
         # todo write comment for this method
         pass
@@ -380,7 +383,7 @@ class Paleointensity(measurement.Measurement):
     ####################################################################################################################
     """ W """
 
-    @calculate
+    @calculate_new
     def calculate_w(self, var_min=20, var_max=700, component='mag', **non_method_parameters):
         """
         Weighting factor of Prevot et al. (1985). It is calculated by
@@ -409,7 +412,7 @@ class Paleointensity(measurement.Measurement):
         n = self.result_n(var_min=var_min, var_max=var_max, component=component)[0]
         self.results['w'] = q / np.sqrt((n - 2))
 
-    @result
+    @result_new
     def result_w(self, var_min=20, var_max=700, component='mag', recalc=False, **options):
         # todo write comment for this method
         pass
@@ -552,15 +555,20 @@ class Paleointensity(measurement.Measurement):
 
     ####################################################################################################################
 if __name__ == '__main__':
-    step1C = '/Users/mike/Dropbox/experimental_data/RelPint/Step1C/1c.csv'
-    step1B = '/Users/mike/Dropbox/experimental_data/RelPint/Step1B/IG_1291A.cmag.xml'
+    step1C = '/Users/mike/Dropbox/experimental_data/RelPint/Step_1C'
+    step1B = '/Users/mike/Dropbox/experimental_data/RelPint/Step_1B'
 
     S = RockPy3.Study
     s = S.add_sample(name='IG_1291A')
     pARM_acq = s.add_measurement(mtype='parmacq', fpath=step1C, ftype='sushibar', series=[('ARM', 50, 'muT')])
-    NRM_AF = s.add_measurement(mtype='afdemag', fpath=step1B, ftype='cryo', series=[('NRM', 0, '')])
+    NRM_AF = s.add_measurement(mtype='afdemag', fpath=step1B, ftype='sushibar', series=[('NRM', 0, '')])
 
     m = s.add_measurement(mtype='paleointensity', mobj=(pARM_acq, NRM_AF))
-    m.calc_all(var_min=30, var_max=60)
-    print(m.results)
+    # m.result_slope(var_max=90, var_min=10)
+    # m.result_b_anc()
+    m.calc_all(var_max=90, var_min=10)
+    # print(m.results)
+    # fig = RockPy3.Figure(fig_input=S)
+    # v = fig.add_visual('paleointensity')
+    # fig.show()
 
