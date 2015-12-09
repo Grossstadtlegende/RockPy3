@@ -193,9 +193,10 @@ class Measurement(object):
                 scp[res]['indirect'] = True
             if 'secondary' in result_sig:
                 scp[res]['secondary'] = True
-            if 'dependencies' in result_sig:
+            if 'dependent' in result_sig:
                 scp[res]['dependent'] = True
-
+                if not type(result_sig['dependent']) == tuple:
+                    result_sig['dependent'] = (result_sig['dependent'], )
             scp[res].setdefault('signature', result_sig)
             result_sig.setdefault('recipe', 'default')
         return scp
@@ -868,7 +869,7 @@ class Measurement(object):
         -------
             hf_sus(hysteresis) is always dependent on the calculation of ms.
                 -> returns [ms, hf_sus]
-            mrs_ms(hysteresis) is always dependent on ms & mrs and dependencies on each of these
+            mrs_ms(hysteresis) is always dependent on ms & mrs and dependent on each of these
                 -> returns [ms, mrs, mrs_ms, hf_sus]
         :param result:
         :return:
@@ -887,7 +888,7 @@ class Measurement(object):
                            self.standards_result()[res]['signature']['calculation_method'] == cm]
 
         if self.standards_result()[result]['dependent']:
-            for res in self.standards_result()[result]['signature']['dependencies']:
+            for res in self.standards_result()[result]['signature']['dependent']:
                 dependent_on_cm.extend(self.get_dependent_results(res))
 
         return sorted(set([cm] + dependent_on_cm))
@@ -2015,14 +2016,31 @@ def result_new(func, *args, **kwargs):
     recalc = signature.pop('recalc', False)
     self = signature.pop('self')
     cmethod = signature.pop('calculation_method', None)
+    dependencies = signature.pop('dependent', None) # get dependencies of method
+    dependencies = RockPy3.to_list(dependencies)
 
     kwargs.update(signature)
     # look through the kwargs if there are possible calculation_parameter
     changed_params = set(self.calculation_parameter[result_name]) & set(kwargs)
-    unused_params = set(kwargs) - set(self.calculation_parameter[result_name])
 
+    #todo check why needed
     if not hasattr(self, 'results'):
         setattr(self, 'results', None)
+    # print('before', self.calculation_parameter[result_name])
+
+    if dependencies:
+        for dependent_res in dependencies:
+            if not self.results:
+                break
+            if dependent_res in self.results.column_names:
+                dependent_parameters = {k:v for k,v in self.calculation_parameter[dependent_res].items()
+                                        if k in self.calculation_parameter[result_name]}
+                self.calculation_parameter[result_name].update(dependent_parameters)
+                # print('from dependent', dependent_parameters)
+    # print('after', self.calculation_parameter[result_name])
+    unused_params = set(kwargs) - set(self.calculation_parameter[result_name])
+
+    # print(self.get_dependent_results('slope'))
     # check if result needs to be called again
     # if no results have been calculated set recalc to true
     if self.results is None:

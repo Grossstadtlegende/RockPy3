@@ -108,9 +108,7 @@ class Paleointensity(measurement.Measurement):
 
 
     @result_new
-    def result_slope(self, var_min=20, var_max=700, component='mag',
-                     recalc=False,
-                     **non_method_parameters):
+    def result_slope(self, recalc=False, **non_method_parameters):
         """
         Gives result for calculate_slope(var_min, var_max), returns slope value if not calculated already
         """
@@ -564,9 +562,10 @@ if __name__ == '__main__':
     NRM_AF = s.add_measurement(mtype='afdemag', fpath=step1B, ftype='sushibar', series=[('NRM', 0, '')])
 
     m = s.add_measurement(mtype='paleointensity', mobj=(pARM_acq, NRM_AF))
-    # m.result_slope(var_max=90, var_min=10)
-    # m.result_b_anc()
-    m.calc_all(var_max=90, var_min=10)
+    print(m.standards_result()['b_anc'])
+    m.result_slope(var_max=90, var_min=10)
+    m.result_b_anc()
+    # m.calc_all(var_max=90, var_min=10)
     # print(m.results)
     # fig = RockPy3.Figure(fig_input=S)
     # v = fig.add_visual('paleointensity')

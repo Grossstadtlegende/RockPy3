@@ -806,7 +806,7 @@ class Hysteresis(measurement.Measurement):
         self.results['mrs_ms'] = [[[mrs[0] / ms[0], mrs[1] + ms[1]]]]
 
     @result_new
-    def result_mrs_ms(self, recalc=False, dependencies=('ms', 'mrs'), **non_method_parameters):
+    def result_mrs_ms(self, recalc=False, dependent=('ms', 'mrs'), **non_method_parameters):
         pass
 
     ####################################################################################################################
