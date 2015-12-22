@@ -136,6 +136,7 @@ class Study(object):
                    coord=None,
                    samplegroup=None,
                    sobj=None,
+                   **options
                    ):
 
         if name in self.samplenames:
@@ -243,7 +244,7 @@ class Study(object):
 
         samples = '_'.join(sobj.name for sobj in slist)
 
-        # create epty mean_sample
+        # create empty mean_sample
         mean_sample = RockPy3.MeanSample(name='mean[{}]'.format(samples))
 
         # get all measurements from all samples
@@ -386,7 +387,7 @@ class Study(object):
 
         return list(set(mlist))
 
-    def import_folder(self, folder):
+    def import_folder(self, folder): #todo specify samples, mtypes and series for selective import of folder
         files = [os.path.join(folder, i) for i in os.listdir(folder)
                  if not i.startswith('#')
                  if not i.startswith(".")
@@ -399,11 +400,8 @@ class Study(object):
 
         start = time.clock()
 
-        # with Pool(5) as p:
-        #     measurements = p.map(self.import_file, files)
-        # print(measurements)
-        # print(measurements[0].sobj)
         measurements = [self.import_file(file) for file in files]
+
         end = time.clock()
         measurements = [m for m in measurements if m]
         RockPy3.logger.debug(
