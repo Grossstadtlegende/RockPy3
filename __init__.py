@@ -1,8 +1,8 @@
 import os
 import logging
 import matplotlib
-# matplotlib.use('WXAgg')
-matplotlib.use('MacOSX')
+matplotlib.use('Qt4Agg')
+# matplotlib.use('rtes')
 
 import RockPy3
 installation_directory = os.path.dirname(RockPy3.__file__)

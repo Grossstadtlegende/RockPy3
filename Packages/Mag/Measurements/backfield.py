@@ -9,7 +9,7 @@ from scipy.interpolate import UnivariateSpline
 import RockPy3
 from RockPy3.core.data import RockPyData
 from RockPy3.core import measurement
-from RockPy3.core.measurement import calculate_new, result_new, correction
+from RockPy3.core.measurement import calculate, result, correction
 import matplotlib.pyplot as plt
 
 
@@ -106,10 +106,25 @@ class Backfield(measurement.Measurement):
 
         return mdata
 
+    @staticmethod
+    def format_vftb(ftype_data, sobj_name=None):
+        '''
+        formats the output from vftb to measurement.data
+        :return:
+        '''
+        data = ftype_data.data
+        header = ftype_data.header
+
+        mdata = {}
+        mdata['data'] = RockPyData(column_names=header, data=data[0])
+        mdata['data'].define_alias('variable', 'field')
+
+        return mdata
+
     ####################################################################################################################
     ''' Mrs '''
 
-    @calculate_new
+    @calculate
     def calculate_mrs(self, **non_method_parameters):
         """
         Magnetic Moment at last measurement point
@@ -120,14 +135,14 @@ class Backfield(measurement.Measurement):
         end = self.data['data']['mag'].v[-1]
         self.results['mrs'] = [[[np.nanmean([abs(start), abs(end)]), np.nanstd([abs(start), abs(end)])]]]
 
-    @result_new
+    @result
     def result_mrs(self, recalc=False, **non_method_parameters):
         pass
 
     ####################################################################################################################
     ''' Bcr '''
 
-    @calculate_new
+    @calculate
     def calculate_bcr(self, no_points=4, check=False, **non_method_parameters):
         """
         Calculates the coercivity using a linear interpolation between the points crossing the x axis for upfield and down field slope.
@@ -169,7 +184,7 @@ class Backfield(measurement.Measurement):
 
         self.results['bcr'] = [[(np.nanmean(result), np.nan)]]
 
-    @calculate_new
+    @calculate
     def calculate_bcr_NONLINEAR(self, no_points=4, check=False, **non_method_parameters):
         """
         Calculates the coercivity of remanence using a spline interpolation between the points crossing
@@ -216,7 +231,7 @@ class Backfield(measurement.Measurement):
         # set result so it can be accessed
         self.results['bcr'] = [[(np.nanmean(result), np.nanstd(result))]]
 
-    @result_new
+    @result
     def result_bcr(self, recipe='DEFAULT', recalc=False, **non_calculation_parameters):
         """
         calculates :math:`B_{cr}`
@@ -345,8 +360,11 @@ def test():
 if __name__ == '__main__':
     S = RockPy3.Study
     s = S.add_sample(name='test')
-    m = s.add_measurement(fpath='/Users/mike/Dropbox/experimental_data/FeNiX/FeNi20J/FeNi_FeNi20-Jz000-G03_COE_VSM#50,3[mg]_[]_[]#mtime_000_min;GC_03_No;rpm_400_##.001')
-
-    fig = RockPy3.Figure(fig_input=S)
-    v = fig.add_visual('resultseries', result='bc', series='mtime', xscale='log')
-    fig.show()
+    # m = s.add_measurement(fpath='/Users/mike/Dropbox/experimental_data/FeNiX/FeNi20J/FeNi_FeNi20-Jz000-G03_COE_VSM#50,3[mg]_[]_[]#mtime_000_min;GC_03_No;rpm_400_##.001')
+    m = s.add_measurement(fpath='/Users/Mike/Dropbox/experimental_data/001_PintP/LF4C/VFTB/P0-postTT/140310_1a.coe',
+                            mtype='backfield',
+                            ftype='vftb')
+    print(m.data)
+    # fig = RockPy3.Figure(fig_input=S)
+    # v = fig.add_visual('resultseries', result='bc', series='mtime', xscale='log')
+    # fig.show()

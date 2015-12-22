@@ -11,7 +11,7 @@ from scipy.interpolate import UnivariateSpline
 from lmfit import minimize, Parameters, report_fit
 import RockPy3
 from RockPy3.core import measurement
-from RockPy3.core.measurement import calculate, result, correction, result_new, calculate_new
+from RockPy3.core.measurement import calculate, result, correction, result, calculate
 from RockPy3.core.data import RockPyData
 import matplotlib.pyplot as plt
 
@@ -329,6 +329,34 @@ class Hysteresis(measurement.Measurement):
         # print(mdata['down_field'])
         return mdata
 
+    @staticmethod
+    def format_vftb(ftype_data, sobj_name=None):
+        # get data
+        data = ftype_data.get_data()
+        # get header
+        header = ftype_data.header
+        raw_data = RockPyData(column_names=header, data=data[0])
+        raw_data['mag'] = raw_data['mag'].v * ftype_data.mass
+        raw_data['std_dev'] = raw_data['std_dev'].v * ftype_data.mass
+
+        dfield = np.diff(raw_data['field'].v)
+
+        # get index where change of field value is negative
+        idx = [i for i in range(len(dfield)) if dfield[i] <= 0]
+        idx += [max(idx) + 1]  # add 1 point so down and up field branches start at same values
+
+        virgin_idx = range(0, idx[0] + 1)
+        down_field_idx = idx
+        up_field_idx = range(idx[-1], len(dfield) + 1)
+
+        mdata = {'virgin':None, 'down_field':None, 'up_field':None}
+        mdata['virgin'] = raw_data.filter_idx(virgin_idx).sort('field')
+        mdata['down_field'] = raw_data.filter_idx(down_field_idx).sort('field')
+        mdata['up_field'] = raw_data.filter_idx(up_field_idx).sort('field')
+
+        return mdata
+
+
     @property
     def max_field(self):
         fields = set(self.data['down_field']['field'].v) | set(self.data['up_field']['field'].v)
@@ -340,7 +368,7 @@ class Hysteresis(measurement.Measurement):
     ####################################################################################################################
     """ BC """
 
-    @calculate_new
+    @calculate
     def calculate_bc_LINEAR(self, no_points=6, check=False, **non_method_parameters):
         """
         Calculates the coercivity using a linear interpolation between the points crossing the x axis for upfield and down field slope.
@@ -384,7 +412,7 @@ class Hysteresis(measurement.Measurement):
 
         self.results['bc'] = [[(np.nanmean(result), np.nanstd(result))]]
 
-    @calculate_new
+    @calculate
     def calculate_bc_NONLINEAR(self, no_points=8, check=False, **non_method_parameters):
         """
         Calculates the coercivity using a spline interpolation between the points crossing the x axis for upfield and down field slope.
@@ -435,7 +463,7 @@ class Hysteresis(measurement.Measurement):
         # set result so it can be accessed
         self.results['bc'] = [[(np.nanmean(result), np.nanstd(result))]]
 
-    @result_new
+    @result
     def result_bc(self, recipe='LINEAR', recalc=False, **non_method_parameters):
         """
         Calculates :math:`B_c` using a linear interpolation between the points closest to zero.
@@ -448,7 +476,7 @@ class Hysteresis(measurement.Measurement):
     ####################################################################################################################
     """ MRS """
 
-    @calculate_new
+    @calculate
     def calculate_mrs(self, no_points=4, check=False, **non_method_parameters):
         # initialize result
         result = []
@@ -479,7 +507,7 @@ class Hysteresis(measurement.Measurement):
 
         self.results['mrs'] = [[(np.nanmean(result), np.nanstd(result))]]
 
-    @result_new
+    @result
     def result_mrs(self, recalc=False, **non_method_parameters):
         """
         The default definition of magnetic remanence is the magnetization remaining in zero field after a large magnetic field is applied (enough to achieve saturation).[Banerjee, S. K.; Mellema, J. P. (1974)] The effect of a magnetic hysteresis loop is measured using instruments such as a vibrating sample magnetometer; and the zero-field intercept is a measure of the remanence. In physics this measure is converted to an average magnetization (the total magnetic moment divided by the volume of the sample) and denoted in equations as Mr. If it must be distinguished from other kinds of remanence it is called the saturation remanence or saturation isothermal remanence (SIRM) and denoted by :math:`M_{rs}`.
@@ -540,7 +568,7 @@ class Hysteresis(measurement.Measurement):
             alpha.append(popt[2])
         return ms, slope, alpha
 
-    @calculate_new
+    @calculate
     def calculate_ms_APP2SAT(self, saturation_percent=75., ommit_last_n=1, check=False, **non_method_parameters):
         """
         Calculates the high field susceptibility using approach to saturation
@@ -571,10 +599,10 @@ class Hysteresis(measurement.Measurement):
                      [min(new_y), max(new_y)], 'k--', label='assumed saturation %i %%' % saturation_percent)
             plt.legend(loc='best')
             plt.grid()
-            plt.ylim([-0.1, max(new_y)])
+            plt.ylim([0, max(new_y)])
             plt.show()
 
-    @calculate_new
+    @calculate
     def calculate_ms(self, saturation_percent=75., ommit_last_n=0, check=False, **non_method_parameters):
         """
         Calculates High-Field susceptibility using a simple linear regression on all branches
@@ -643,7 +671,7 @@ class Hysteresis(measurement.Measurement):
         self.results['hf_sus'] = [[(np.nanmean(hf_sus_result), np.nanstd(hf_sus_result))]]
         self.results['ms'] = [[(np.nanmean(ms_result), np.nanstd(ms_result))]]
 
-    @result_new
+    @result
     def result_ms(self, recipe='DEFAULT', recalc=False, **non_method_parameters):
         """
         calculates the Ms value with a linear fit
@@ -675,8 +703,8 @@ class Hysteresis(measurement.Measurement):
         """
         pass
 
-    @result_new
-    def result_hf_sus(self, recipe='DEFAULT', calculation_method='ms', **non_method_parameters):
+    @result
+    def result_hf_sus(self, recipe='DEFAULT', dependent='ms', **non_method_parameters):
         """
         Calculates the result for high field susceptibility using the specified method
 
@@ -758,7 +786,7 @@ class Hysteresis(measurement.Measurement):
     ####################################################################################################################
     ''' E_hys'''
 
-    @calculate_new
+    @calculate
     def calculate_e_hys(self, **non_method_parameters):
         '''
         Method calculates the :math:`E^{Hys}` value for the hysteresis.
@@ -780,14 +808,14 @@ class Hysteresis(measurement.Measurement):
 
         self.results['e_hys'] = abs(df_area - uf_area)
 
-    @result_new
+    @result
     def result_e_hys(self, recalc=False, **non_method_parameters):
         pass
 
     ####################################################################################################################
     ''' Mrs/Ms'''
 
-    @calculate_new
+    @calculate
     def calculate_mrs_ms(self, **non_method_parameters):
         '''
         Method calculates the :math:`E^{Hys}` value for the hysteresis.
@@ -805,14 +833,14 @@ class Hysteresis(measurement.Measurement):
         ms = self.result_ms(**non_method_parameters)
         self.results['mrs_ms'] = [[[mrs[0] / ms[0], mrs[1] + ms[1]]]]
 
-    @result_new
+    @result
     def result_mrs_ms(self, recalc=False, dependent=('ms', 'mrs'), **non_method_parameters):
         pass
 
     ####################################################################################################################
     ''' Moment at Field'''
 
-    @calculate_new
+    @calculate
     def calculate_m_b(self, b=300., branches='all', **non_method_parameters):
         '''
 
@@ -843,7 +871,7 @@ class Hysteresis(measurement.Measurement):
         self.results['m_b'] = [[[np.nanmean(np.fabs(aux)), np.nanstd(np.fabs(aux))]]]
         # self.results.define_alias('m_b[%.1f]'%b, 'm_b') #todo rename the column
 
-    @result_new
+    @result
     def result_m_b(self, recalc=False, **non_method_parameters):
         pass
 
@@ -1502,8 +1530,10 @@ if __name__ == '__main__':
     # hys_vsm = s.add_measurement(fpath='/Users/mike/Google Drive/__code/RockPy3/testing/test_data/hys.001',
     #                         mtype='hysteresis',
     #                         ftype='vsm')
-
-    coe = s.add_measurement(fpath='/Users/mike/Google Drive/__code/RockPy3/testing/test_data/coe.001',
-                            mtype='backfield',
-                            ftype='vsm')
-    print(coe.calc_all())
+    hys_vftb = s.add_measurement(fpath='/Users/Mike/Dropbox/experimental_data/001_PintP/LF4C/VFTB/P0-postTT/140310_1a.hys',
+                            mtype='hysteresis',
+                            ftype='vftb')
+    print(hys_vftb.data)
+    # coe = s.add_measurement(fpath='/Users/mike/Google Drive/__code/RockPy3/testing/test_data/coe.001',
+    #                         mtype='backfield',
+    #                         ftype='vsm')
