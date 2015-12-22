@@ -4,10 +4,12 @@ from copy import deepcopy
 import RockPy3
 import RockPy3.core.study
 import RockPy3.core.utils
+import numpy as np
 from functools import partial
 import xml.etree.ElementTree as etree
 
 log = logging.getLogger(__name__)
+
 
 class Sample(object):
     snum = 0
@@ -119,8 +121,8 @@ class Sample(object):
             self.add_measurement(mobj=diameter)
         if height is not None:
             height = RockPy3.implemented_measurements['height'](sobj=self,
-                                                                    height=height, length_unit=length_unit,
-                                                                    ftype=length_ftype)
+                                                                height=height, length_unit=length_unit,
+                                                                ftype=length_ftype)
             self.add_measurement(mobj=height)
 
         if x_len:
@@ -242,7 +244,6 @@ class Sample(object):
                         param = RockPy3.implemented_measurements[mtype](sobj=self, **parameter_info)
                         self._add_mobj(param)
 
-
             # if given add samplegroup to sample
             sg = import_info.pop('samplegroup', None)
 
@@ -264,7 +265,6 @@ class Sample(object):
         if any(i in options for i in ['mass', 'diameter', 'height', 'x_len', 'y_len', 'z_len']):
             mobj = RockPy3.implemented_measurements[mtype](sobj=self, **options)
 
-
         """
         ################################################################################################################
         # DATA import from MDATA
@@ -279,7 +279,7 @@ class Sample(object):
         # DATA import from MOBJ
         """
         if mobj:
-            if isinstance(mobj, tuple) or ftype=='from_measurement':
+            if isinstance(mobj, tuple) or ftype == 'from_measurement':
                 if not self.mtype_not_implemented_check(mtype=mtype):
                     return
                 mobj = RockPy3.implemented_measurements[mtype].from_measurement(sobj=self, mobj=mobj, **import_info)
@@ -296,12 +296,12 @@ class Sample(object):
 
     def _add_mobj(self, mobj):
         if mobj not in self.measurements:
-                    self.measurements.append(mobj)
-                    self.raw_measurements.append(deepcopy(mobj))
-                    if mobj.is_mean:
-                        self._add_m2_mdict(mobj, mdict_type='mean_mdict')
-                    else:
-                        self._add_m2_mdict(mobj)
+            self.measurements.append(mobj)
+            self.raw_measurements.append(deepcopy(mobj))
+            if mobj.is_mean:
+                self._add_m2_mdict(mobj, mdict_type='mean_mdict')
+            else:
+                self._add_m2_mdict(mobj)
 
     def add_simulation(self, mtype, idx=None, **sim_param):
         """
@@ -356,7 +356,7 @@ class Sample(object):
         # separate the different mtypes
         for mtype in self.mdict['mtype']:
             # all measurements with that mtype
-            measurements = self.get_measurement(mtype=mtype, mean=False)#self.mdict['mtype'][mtype]
+            measurements = self.get_measurement(mtype=mtype, mean=False)  # self.mdict['mtype'][mtype]
 
             # use first measurement as template to check for series
             while measurements:
@@ -382,12 +382,14 @@ class Sample(object):
                     continue
 
                 mean_measurements.append(self.create_mean_measurement(mlist=mlist,
-                                             ignore_series=ignore_series,
-                                             interpolate=interpolate, substfunc=substfunc,
-                                             reference=reference, ref_dtype=ref_dtype, norm_dtypes=norm_dtypes,
-                                             vval=vval,
-                                             norm_method=norm_method,
-                                             normalize_variable=normalize_variable, dont_normalize=dont_normalize))
+                                                                      ignore_series=ignore_series,
+                                                                      interpolate=interpolate, substfunc=substfunc,
+                                                                      reference=reference, ref_dtype=ref_dtype,
+                                                                      norm_dtypes=norm_dtypes,
+                                                                      vval=vval,
+                                                                      norm_method=norm_method,
+                                                                      normalize_variable=normalize_variable,
+                                                                      dont_normalize=dont_normalize))
         return mean_measurements
 
     def create_mean_measurement(self,
@@ -485,7 +487,7 @@ class Sample(object):
 
         # mlist = [m for m in mlist]  # create deepcopies
 
-        # create mean measurement from a alist of measurements
+        # create mean measurement from a list of measurements
         mean = RockPy3.implemented_measurements[mtype].from_measurements_create_mean(
             sobj=self, mlist=mlist, interpolate=interpolate, recalc_mag=recalc_mag,
             substfunc=substfunc, ignore_series=ignore_series, color=color, marker=marker, linestyle=linestyle)
@@ -534,7 +536,8 @@ class Sample(object):
         if not file_info:
             self.log.warning(
                 'CANNOT readin fpath automatically. See RockPy naming conventions for proper naming scheme.')
-            fname = RockPy3.get_fname_from_info(samplegroup='SG', sample_name=self.name, mtype=mtype, ftype=ftype, series=series)
+            fname = RockPy3.get_fname_from_info(samplegroup='SG', sample_name=self.name, mtype=mtype, ftype=ftype,
+                                                series=series)
             self.log.info('FILE NAME proposition:')
             self.log.info('-'.join('' for i in range(50)))
             self.log.info('%s' % fname)
@@ -570,6 +573,95 @@ class Sample(object):
         gnames = RockPy3.core.utils.to_list(gnames)
         if all(gname in self._samplegroups for gname in gnames):
             return True
+
+    """
+    ####################################################################################################################
+    RESULTS
+    """
+
+    def get_result(self, result, mtype=None, mean=False, base=False, return_mean=True, **calculation_parameter):
+        """
+        A function that returns a list of all the result calculated from all measurements, that actually have the result
+
+        Parameters
+        ----------
+            result: str:
+                the result to be calculated
+            mtype: str or list of str
+                if provided, only results from that mtype are calculated
+            calculation_parameter: dict
+                the calculation parameters to be used
+            mean: bool
+                if true the results are calculated for the mean measuremnets
+            base: bool
+                if true the results are calculated for the base measurements (needs to be a mean measurement)
+            return_mean: bool
+                if true a numpy mean is calculated and returned
+
+
+        Returns
+        -------
+            list of results
+
+        Note
+        ----
+            each of the results is a tuple of the actual value and the error if calculated
+        """
+        # get all measurements that have the result
+        # if mean use only mean measurements
+        if mean:
+            mlist = filter(lambda x: x.has_result(result=result), self.mean_measurements)
+            if base:
+                mlist = [m for mean in mlist for m in mean.base_measurements if m.has_result(result=result)]
+        # if not use all non mean measurements
+        else:
+            mlist = filter(lambda x: x.has_result(result=result), self.measurements)
+
+        if mtype:
+            mtypes = RockPy3.to_list(mtype)
+            mlist = filter(lambda x: x.mtype in mtypes, mlist)
+
+        res = [getattr(m, 'result_' + result)(**calculation_parameter) for m in mlist]
+        self.log.debug('Calculating result << {} >> for {} measurements'.format(result, len(res)))
+
+        if return_mean:
+            res = [(np.mean(res, axis=0)[0], np.std(res, axis=0)[0])]
+        return res
+
+    def set_recipe(self, result, recipe):
+        """
+        Sets a recipe for all measurements that have the result
+        """
+        mlist = self.get_measurement_new(result=result, all_types=True)
+        self.log.debug('setting recipe = {} for result = {} for {} measuremnts'.format(recipe, result, len(mlist)))
+
+        for m in mlist:
+            m.set_recipe(result=result, recipe=recipe)
+
+    def get_measurement_new(self, mtype=None, stype=None, sval=None, result=None, mean=False, base=False, all_types=False):
+
+        if mean or all_types:
+            mlist = self.mean_measurements
+            if base or all_types:
+                mlist = [m for mean in mlist for m in mean.base_measurements]
+        else:
+            mlist = self.measurements
+
+        # if all types are supposed to be returned, hence the all_types boolean, mlost has to be extended
+        if all_types:
+            mlist.extend(self.measurements)
+            mlist.extend(self.mean_measurements)
+
+        if mtype:
+            mtype = RockPy3.to_list(mtype)
+            mlist = filter(lambda x: x.mtype in mtype, mlist)
+        if stype:
+            stype = RockPy3.to_list(stype)
+            mlist = filter(lambda x: x.stype in stype, mlist)
+        if result:
+            mlist = filter(lambda x: x.has_result(result=result), mlist)
+
+        return list(mlist)
 
     """
     ####################################################################################################################
@@ -681,7 +773,7 @@ class Sample(object):
             and you search for stypes=['pressure','temperature'], svals=[0,100]. It will return both M1 and M2 because
             both M1 and M2 have [temperature, 100.0, C].
 
-        """#todo fix search for only series
+        """  # todo fix search for only series
 
         if id:
             id = RockPy3.core.utils.to_list(id)
@@ -706,7 +798,6 @@ class Sample(object):
             mtype = [RockPy3.abbrev_to_classname(mt) for mt in mtype]
         else:
             mtype = [None]
-
 
         stype = RockPy3.core.utils.to_list(stype)
         sval = RockPy3.core.utils.to_list(sval)
@@ -748,34 +839,7 @@ class Sample(object):
         if invert:
             out = [i for i in mdict['measurements'] if not i in out]
 
-
         return out
-
-    def get_result(self, result, **calculation_parameter):
-        """
-        A function that returns a list of all the result calculated from all measurements, that actually have the result
-
-        Parameters
-        ----------
-            result: str:
-                the result to be calculated
-            calculation_parameter: dict
-                the calculation parameters to be used
-
-        Returns
-        -------
-            list of results
-
-        Note
-        ----
-            each of the results is a tuple of the actual value and the error if calculated
-        """
-        print(calculation_parameter)
-        mlist = filter(lambda x: x.has_result(result=result), self.measurements)
-        for m in mlist:
-            print(m.standards_result()[result])
-        res = [getattr(m, 'result_'+result)(**calculation_parameter) for m in mlist]
-        return res
 
     ####################################################################################################################
     ''' MEASUREMENT / RESULT DICTIONARY PART'''
@@ -941,14 +1005,14 @@ class Sample(object):
     @property
     def stypes(self):
         return list(self.mdict['stype'].keys())
+
     @property
     def mtypes(self):
         return list(self.mdict['mtype'].keys())
 
-
-
     ####################################################################################################################
     ''' PLOTTING PART'''
+
     def set_plt_prop(self, prop, value):
         for m in self.measurements + self.mean_measurements:
             m.set_plt_prop(prop, value)
@@ -960,7 +1024,6 @@ class Sample(object):
         for m in self.measurements:
             if m.has_series(stype=stype.lower()):
                 m.series_to_color(stype=stype.lower())
-
 
     ####################################################################################################################
     ''' LABES PART'''
@@ -1004,7 +1067,7 @@ class Sample(object):
 
         # add list of samplegroups
         for sg in self._samplegroups:
-            etree.SubElement(sample_node, type(self).SAMPLEGROUP).text=sg
+            etree.SubElement(sample_node, type(self).SAMPLEGROUP).text = sg
 
         # add list of measurements
         for m in self.measurements:
@@ -1015,7 +1078,6 @@ class Sample(object):
             sample_node.append(m.etree)
 
         return sample_node
-
 
     @classmethod
     def from_etree(cls, et_element):
@@ -1042,11 +1104,13 @@ class Sample(object):
         # return sample
         return s
 
+
 class MeanSample(Sample):
     MeanSample = 0
+
     def __init__(self, name, coord=None,
                  results_from_mean_data=False,
-                 study = None,
+                 study=None,
                  **options):
         """
         Parameters
@@ -1092,6 +1156,7 @@ class MeanSample(Sample):
 
 if __name__ == '__main__':
     from pprint import pprint
+
     S = RockPy3.Study
     s = S.add_sample(name='test')
     for n in range(10):
