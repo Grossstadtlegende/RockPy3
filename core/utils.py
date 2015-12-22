@@ -374,8 +374,8 @@ class plot(object):
                                 self.update_plt_props(kwargs, visual=visual, name=name)
 
                                 # update the plt_props for reducing the alpha
-                                if (plt_type == 'samplebase' or plt_type == 'groupbase') and (
-                                            plt_info['plot_samplemean'] or plt_info['plot_groupmean']):
+                                if (plt_type == 'samplebase' and plt_info['plot_samplemean'] and plt_info['samplemean']) or \
+                                        (plt_type == 'groupbase' and plt_info['plot_groupmean' and plt_info['groupmean']]):
                                     kwargs['plt_props']['alpha'] = plt_info['base_alpha']
                                 feature(visual, data=d, **kwargs)
                         else:
@@ -452,8 +452,8 @@ class plot(object):
                             self.update_plt_props(kwargs, visual=visual, name=name)
 
                             # change the alpha to base_alpha if group or sample base should be plotted and the means
-                            if (plt_type == 'samplebase' or plt_type == 'groupbase') and (
-                                        plt_info['plot_samplemean'] or plt_info['plot_groupmean']):
+                            if (plt_type == 'samplebase' and plt_info['plot_samplemean'] and plt_info['samplemean']) or \
+                                    (plt_type == 'groupbase' and plt_info['plot_groupmean'] and plt_info['groupmean']):
                                 kwargs['plt_props']['alpha'] = plt_info['base_alpha']
                             if plt_type == 'groupmean':
                                 kwargs['plt_props']['zorder'] = 100
@@ -558,6 +558,7 @@ def kwargs_to_calculation_parameter(rpobj=None, mtype_list=None, result=None, **
             list of possible mtypes, parameters are filtered for these
         result: str
             parameters are filtered
+
     Hierarchy
     ---------
         4. passing a pure parameter causes all methods in all mtypes to be set to that value
