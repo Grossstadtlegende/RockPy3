@@ -439,6 +439,17 @@ class RockPyData(object):
             self._column_dict['dep_var'] = tuple([i for i in range(self.column_count) if
                                             i not in self._keyseq2colseq('variable')])
 
+    def delete_alias(self, alias_name):
+        """
+        delete an existing alias, all columns will remain
+        :param alias_name: name alias to remove
+        :return: None
+        """
+        if self.alias_exists(alias_name):
+            del self._column_dict[ alias_name]
+        else:
+            raise KeyError('alias {} can not be deleted since it does not exist'.format(alias_name))
+
     def append_columns(self, column_names, data=None):
         """
         add one or more columns to values object
@@ -464,17 +475,15 @@ class RockPyData(object):
             if self.key_exists(n):
                 raise IndexError('column %s already exists' % n)
 
-        self_copy = deepcopy(self)
-
         # append new column names to the list
-        self_copy._column_names.extend(column_names)
+        self._column_names.extend(column_names)
 
         # update internal column dictionary
-        self_copy._update_column_dictionary(column_names)
+        self._update_column_dictionary(column_names)
 
         if data is None:
             # if there are no data, fill with NAN
-            data = np.empty((self_copy.row_count, len(column_names)))
+            data = np.empty((self.row_count, len(column_names)))
             data[:] = np.NAN
 
         try:  # if data is a single number extend to list to fill whole column
@@ -485,15 +494,15 @@ class RockPyData(object):
         data = RockPyData._convert_to_data3D(data, column=True)
 
         # append new values
-        if self_copy._data is not None:
-            self_copy._data = np.concatenate((self_copy._data, data), axis=1)
+        if self._data is not None:
+            self._data = np.concatenate((self._data, data), axis=1)
         # update "all" alias to comprise also the new columns
-        self_copy._update_all_alias()
+        self._update_all_alias()
 
         # update 'variable' and 'dep_var' aliases
-        self_copy._define_alias_indices('variable', self.column_dict['variable'])
+        self._define_alias_indices('variable', self.column_dict['variable'])
 
-        return self_copy
+        return self
 
     def rename_column(self, old_cname, new_cname):
         """
@@ -527,6 +536,54 @@ class RockPyData(object):
         self._column_names[idx] = new_cname
         self._update_column_dictionary(self._column_names)
         self._column_dict.pop(old_cname)
+
+
+    def delete_columns(self, keys):
+        """
+        delete columns, data and update aliases
+        :param column_names: list of keys (=column names + alias names)
+        :return: self
+        """
+
+        #if not self.column_exists(column_names):
+        #    raise KeyError('Column {} can not be deleted since it does not exist'.format(column_names))
+
+        ids = self._keyseq2colseq(keys)
+
+        # create list of column indices replacing the old ones, deleted column indices get -1
+        newcidxs = np.arange(self.column_count)
+        for id in ids:
+            #set deleted column index to -1
+            newcidxs[id] = -1
+            # decrease all following indices by one
+            newcidxs[id+1:] -= 1
+
+
+        # delete columns from _column_dict
+        for id in ids:
+            self._column_dict.pop(self.column_names[id])
+        # delete columns from column_names
+        for id in ids:
+            del self.column_names[id]
+
+        # delete columns from data
+        self._data = np.delete(self._data, ids, axis=1)
+
+        # update _column_dict
+        for key in self._column_dict.keys():
+            # remove indices of removed columns
+            self._column_dict[key] = [i for i in self._column_dict[key] if i not in ids]
+
+            # update remaining column indices
+            self._column_dict[key] = [newcidxs[i] for i in self._column_dict[key]]
+
+            # delete empty aliases
+            if len(self._column_dict[key]) == 0:
+                del self._column_dict[key]
+
+        return self
+
+
 
     def append_rows(self, data, row_names=None, ignore_row_names=False, add_extra_columns=True):
         """
@@ -776,6 +833,14 @@ class RockPyData(object):
         returns true if named column exists
         """
         return column_name in self._column_names
+
+    def alias_exists(self, alias_name):
+        """
+        chekcs if an alias exists
+        :param alias_name: name of alias
+        :return: True if alias exists, otherwise False
+        """
+        return self.key_exists(alias_name) and not self.column_exists(alias_name)
 
     def column_indices_to_names(self, c_indices):
         """
