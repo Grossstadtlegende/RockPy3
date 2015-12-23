@@ -1,12 +1,13 @@
 from unittest import TestCase  # Unit tutorials.rst framework
 import copy
-
+import logging
 import numpy as np  # numerical array functions
 
 from RockPy3.core.data import RockPyData
 
 __author__ = 'wack'
 
+log = logging.getLogger('log')
 
 class TestRockPyData(TestCase):
     def setUp(self):
@@ -157,3 +158,21 @@ class TestRockPyData(TestCase):
         # set values and errors
         self.RPD['Mx'] = [[[1.1, 0.11]], [[1.2, 0.12]], [[1.3, 0.13]], [[1.4, 0.14]]]
         print(self.RPD)
+
+
+    def test_define_delete_alias(self):
+        self.RPD.define_alias('m', ('Mx', 'My', 'Mz'))
+        self.assertTrue(self.RPD.alias_exists('m'))
+        self.RPD.delete_alias('m')
+        self.assertFalse(self.RPD.alias_exists('m'))
+
+    def test_add_delete_columns(self):
+        self.RPD.append_columns('empty')
+        self.assertTrue(self.RPD.column_exists('empty'))
+        #print(self.RPD)
+        self.RPD.delete_columns('empty')
+        self.assertFalse(self.RPD.column_exists('empty'))
+        #print(self.RPD)
+        #self.assertTrue(False)
+
+
