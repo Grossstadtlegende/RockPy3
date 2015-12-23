@@ -218,10 +218,9 @@ class Measurement(object):
 
             if 'recipe' in result_sig:
                 scp[res]['recipe'] = True
-            # if 'calculation_method' in result_sig:
-            #     scp[res]['indirect'] = result_sig['calculation_method']
-            #     scp[res]['dependent'] = True
-            #     result_sig['dependent'] = (result_sig['calculation_method'],)
+
+            if not any(res in method for method in cls.calculate_methods()):
+                scp[res]['indirect'] = True
 
             if 'secondary' in result_sig:
                 scp[res]['secondary'] = True
@@ -828,26 +827,23 @@ class Measurement(object):
         direct_result = result
         indirect_result = None
 
+
         # break if the result does not exist
         if not direct_result in self.result_recipe:
             self.log.error('Measurement << %s >> has no result << %s >>' % (self.mtype, direct_result))
             return
 
-        # break if the recipe does not exist
-        if not self.standards_result()[direct_result]['recipe']:
-            self.log.error('Result << %s >> has no recipe << %s >>' % (direct_result, recipe))
-            return
+        # for dependent results, the recipe has to be set for the method the result is dependent on
+        if self.standards_result()[direct_result]['indirect']:
+            direct_result = self.standards_result()[direct_result]['signature']['dependent'][0]
+            indirect_result = result
 
         # break if the recipe is already set
         if self.result_recipe[direct_result].upper() == recipe.upper():
             self.log.info('RECIPE << %s, %s >> already set' %(result, recipe))
             return
 
-        # for dependent results, the recipe has to be set for the method the result is dependent on
-        if self.standards_result()[direct_result]['dependent']:
-            direct_result = self.standards_result()[direct_result]['signature']['dependent'][0]
-            indirect_result = result
-
+        # break if recipy not implemented
         if not recipe in self.get_recipes(direct_result):
             self.log.error('Recipe not found, these are implemented: %s' % self.get_recipes(direct_result))
             return
@@ -860,7 +856,7 @@ class Measurement(object):
 
         self.log.warning('Calculation parameter changed from:')
         self.log.warning('{}: {}'.format(old_recipe, self.calculation_parameter[direct_result]))
-        self.calculation_parameter[direct_result] = self.standards_calculate()[self.get_calculate_method(direct_result)]
+        self.calculation_parameter[direct_result] = deepcopy(self.standards_calculate()[self.get_calculate_method(direct_result)])
 
         # change the method that is called
         if recipe == 'default':
@@ -871,12 +867,13 @@ class Measurement(object):
 
         if indirect_result:
             self.log.warning(
-                    'The result << {} >> is an in direct result and is calculated through the method << {} >>'.format(
+                    'The result << {} >> is an indirect result and is calculated through the method << {} >>'.format(
                             indirect_result, direct_result))
             self.log.warning('The recipe for all connected results has been changed to << {} >>'.format(recipe))
             # change the method that is called for the indirect result
             self.calculation_parameter[indirect_result] = self.calculation_parameter[direct_result]
             self.methods[indirect_result] = self.methods[direct_result]
+
         self.remove_result(result=direct_result)
 
     def remove_result(self, result):
@@ -885,7 +882,7 @@ class Measurement(object):
         if not self.results or not result in self.results.column_names:
             return
 
-        self.results.remove_columns()
+        # self.results.remove_columns()
         if self.standards_result()[result]['base_for']:
             for res in self.standards_result()[result]['base_for']:
                 print(res)
@@ -918,13 +915,15 @@ class Measurement(object):
             For indirect methods with a recipe this will be: calculationmethod
 
         """
-        # for indirect methods the result name must be the calculation name
+        # check for indirect methods
         if self.standards_result()[result]['dependent']:
-            result = self.standards_result()[result]['signature']['dependent'][0]
+            # the result is truly dependent if there is no calculate method with its name in it
+            if not any(result in i for i in self.calculate_methods()):
+                result = self.standards_result()[result]['signature']['dependent'][0]
 
         # get the recipe
         recipe = self.result_recipe[result]
-        # add the suffix for non-default mewthods
+        # add the suffix for non-default methods
         if recipe != 'DEFAULT':
             method_name = '_'.join([result, recipe.upper()])
         # default recipes do not need a suffix
@@ -1070,6 +1069,9 @@ class Measurement(object):
         self.calculation_parameter = {
             result: self.standards_calculate()[self.get_calculate_method(result)] for result in self.result_recipe
             if not self.standards_result()[result]['secondary']}
+
+        for k in self.calculation_parameter:
+            self.calculation_parameter[k].update(dict(recalc=True))
 
         self.methods = {result: getattr(self, 'calculate_' + self.get_calculate_method(result)) for result in
                         self.result_recipe if not self.standards_result()[result]['secondary']}
@@ -2076,71 +2078,100 @@ class Measurement(object):
 ###################################################################
 # decorators
 ###################################################################
+def update_dict(dic1, dic2):
+    """
+    Function that updates a dictionary with the values of a second dictionary.
+    Only keys that are in dict1 are used therefore additional keys from dict2 are abandoned and returned as unused keys
+
+    :param dic1: dict
+    :param dic2: dict
+    :return: dict, set
+        the dictionary that is returned has been updated with the values from dict2
+        all unused keys are returned as a set
+    """
+    for k in dic1:
+        if k in dic2:
+            dic1[k] = dic2[k]
+    unused_keys = [k for k in dic2 if not k in dic1]
+    return dic1, set(unused_keys)
 
 @decorator.decorator
 def result(func, *args, **kwargs):
+    """
+    Decorates the function and determines if it has to be called or not
+
+    :param func:
+    :param args:
+    :param kwargs:
+    :return:
+
+    Notes
+    -----
+        In the case of a dependent result, there are three cases to be considered.
+        As an example lets consider 'b_anc', which is dependent on 'slope'. The calculation parameters of the
+        method (p(method)) may have to be updated.
+
+        1. base is calculated:
+            -> p(dependent) are updated with the p(base)
+        2. base is not calculated:
+            -> slope is calculated with p(dependent), missing parameters for 'base' are updated
+        3. base calculated with different parameters
+            -> calculate slope with changed parameters from 'dependent'
+    """
+    # get the name of the result
     result_name = '_'.join(func.__name__.split('_')[1:])
 
-    # get the signature of the function: meaning all parameters taht have been passed and the variable names
-    signature = {k: args[i] for i, k in enumerate(inspect.signature(func).parameters) if i < len(args)}
-    recalc = signature.pop('recalc', False)
-    self = signature.pop('self')
-    cmethod = signature.pop('calculation_method', None)
-    dependencies = signature.pop('dependent', None)  # get dependencies of method
-    dependencies = RockPy3.to_list(dependencies)
+    self = args[0]
 
-    kwargs.update(signature)
-    # look through the kwargs if there are possible calculation_parameter
-    changed_params = set(self.calculation_parameter[result_name]) & set(kwargs)
+    # get the signature of the function: meaning all parameters that have been passed and the variable names
+    signature = self.standards_result()[result_name]['signature']
+    recalc = signature.get('recalc', False)
 
-    # todo check why needed
-    if not hasattr(self, 'results'):
-        setattr(self, 'results', None)
-    # print('before', self.calculation_parameter[result_name])
+    dependencies = signature.get('dependent', None)  # get dependencies of method
 
-    # how dependencies work:
-    # 1. is the result calculated that the result depends apon? e.g. slope when trying to calculate b_anc
-    # 1y: are the calculation parameters the same?
+    # if the result has dependencies, check if they are calculated already
     if dependencies:
-        for dependent_res in dependencies:
-            if not self.results:
-                break
-            if dependent_res in self.results.column_names:
-                dependent_parameters = {k: v for k, v in self.calculation_parameter[dependent_res].items()
-                                        if k in self.calculation_parameter[result_name]}
-                self.calculation_parameter[result_name].update(dependent_parameters)
-                # print('from dependent', dependent_parameters)
-    # print('after', self.calculation_parameter[result_name])
-    unused_params = set(kwargs) - set(self.calculation_parameter[result_name])
+        self.log.debug('result << {} >> has dependencies << {} >>'.format(result_name, dependencies))
+        # check each dependency
+        for dep_res in dependencies:
+            self.log.debug('checking dependency << {} >>'.format(dep_res))
 
-    # print(self.get_dependent_results('slope'))
-    # check if result needs to be called again
-    # if no results have been calculated set recalc to true
-    if self.results is None:
-        self.log.debug('No results calculated, yet. Calculating')
-        recalc = True
+            # if no results have been calcuted or the result is not calculated
+            cpars = deepcopy(self.calculation_parameter[dep_res])
+            cpars, unused_pars = update_dict(cpars, kwargs)
 
-    # if this result has not been calculated
-    elif result_name not in self.results.column_names:
-        recalc = True
+            if not self.results or dep_res not in self.results.column_names:
+                self.log.debug('dependency << {} >> has to be calculated'.format(dep_res))
+                self.methods[dep_res](result_name=dep_res, **cpars)
 
-    # if any parameter changed after a result has been calculated, it has to be calculated again
-    elif result_name in self.results.column_names:
-        if any(self.calculation_parameter[result_name][param] != kwargs[param] for param in changed_params):
-            self.log.debug('Calculation parameters have changed. Calculating')
-            recalc = True
+            # check if calculation parameter of dependent result have changed
+            if self.calculation_parameter[dep_res] != cpars:
+                self.log.debug('dependency << {} >> parameters have changed, has to be calculated'.format(dep_res))
+                self.methods[dep_res](result_name=dep_res, **cpars)
 
-    if unused_params:
-        self.log.warning('Found calculation_parameters that have not been used:')
-        self.log.warning('{}'.format(unused_params))
+        else:
+            if not self.results or result_name not in self.results.column_names:
+                self.log.debug('dependencies << {} >> successfully calculated, calculating << {} >>'.format(dependencies, result_name))
+                cpars = deepcopy(self.calculation_parameter[result_name])
+                cpars, unused_pars = update_dict(cpars, kwargs)
+                self.methods[result_name](result_name=result_name, **cpars)
+            else:
+                self.log.debug('dependencies << {} >> successfully calcuated, << {} >> already calculated'.format(dependencies, result_name))
 
-    for param in changed_params:
-        self.calculation_parameter[result_name][param] = kwargs[param]
 
-    # call calculation method, all args per passed
-    if recalc:
-        self.log.debug('calling {}'.format(self.methods[result_name].__name__))
-        self.methods[result_name](result_name=result_name, **self.calculation_parameter[result_name])
+    # result is independent
+    else:
+        self.log.debug('result << {} >> is indepedent'.format(result_name))
+        cpars = deepcopy(self.calculation_parameter[result_name])
+        cpars, unused_pars = update_dict(cpars, kwargs)
+        if not self.results or result_name not in self.results.column_names:
+            self.log.debug('result << {} >> no calculated yet, has to be calculated'.format(result_name))
+            self.methods[result_name](result_name=result_name, **cpars)
+        elif self.calculation_parameter[result_name] != cpars:
+            self.log.debug('result << {} >> parameters have changed, has to be calculated'.format(result_name))
+            self.methods[result_name](result_name=result_name, **cpars)
+
+    #todo recalculate all dependent results
     return self.results[result_name].v[0], self.results[result_name].e[0]
 
 
@@ -2157,18 +2188,23 @@ def calculate(func, *args, **kwargs):
     result_name = kwargs.pop('result_name')
 
     # get all results that are dependent of or a dependency of result_name
-    dependent_results = self.get_dependent_results(result_name)
+    dependent_results = self.standards_result()[result_name].get('base_for', set())
+
+    # remove results that have their own calculate function and thus are not independent
+    dependent_results = set(res for res in dependent_results if not any(res in method for method in self.calculation_methods()))
+
+    dependent_results.add(result_name)
 
     # if no Results have been calculated - create a new RPdata object
     if self.results is None:
         self.results = RockPy3.Data(column_names=dependent_results, data=[np.nan for i in dependent_results])
 
-    # create new columns for all dependent results #todo change if RPdata['not_yet_a_column']=5 gives no error
+    # create new columns for all dependent results
     for result in dependent_results:
         if not result in self.results.column_names:
             self.results = self.results.append_columns(column_names=result, data=[[[np.nan, np.nan]]])
-    return func(self, **self.calculation_parameter[result_name])
 
+    return func(self, **self.calculation_parameter[result_name])
 
 @decorator.decorator
 def correction(func, *args, **kwargs):
@@ -2216,8 +2252,13 @@ if __name__ == '__main__':
     # m = S.get_measurement(mtype='hysteresis')[0]
     # m = RockPy3.Packages.Mag.Measurements.hysteresis.Hysteresis(sobj=s)
     m = s.add_simulation(mtype='hysteresis', ms=1)
+    # pprint(m.standards_result())
+    # print(m.result_ms())
+    # print(m.result_hf_sus())
+    # print(m.result_hf_sus(saturation_percent=80))
+    m.set_recipe('hf_sus', 'simple')
     m.set_recipe('hf_sus', 'app2sat')
-    m.result_bc()
+    # print(m.result_ms())
     # print(m.standards_result())
     # print(m.standards_calculate())
     # print(m.get_dependent_results(result='ms'))

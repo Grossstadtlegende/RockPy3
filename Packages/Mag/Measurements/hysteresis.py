@@ -726,6 +726,14 @@ class Hysteresis(measurement.Measurement):
         """
         pass
 
+    @calculate
+    def calculate_test(self, recalc=False, **non_method_parameters):
+        self.results['test']= self.results['ms'].v
+
+    @result
+    def result_test(self, recipe='default', dependent='ms'):
+        pass
+
     ####################################################################################################################
     ''' Brh'''
     #
