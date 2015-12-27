@@ -167,10 +167,14 @@ class TestRockPyData(TestCase):
         self.assertFalse(self.RPD.alias_exists('m'))
 
     def test_add_delete_columns(self):
+        #print(self.RPD._column_dict)
         self.RPD.append_columns('empty')
+        self.RPD.define_alias('variable', ('F', 'empty'))
+        #print(self.RPD._column_dict)
         self.assertTrue(self.RPD.column_exists('empty'))
         #print(self.RPD)
         self.RPD.delete_columns('empty')
+        #print(self.RPD._column_dict)
         self.assertFalse(self.RPD.column_exists('empty'))
         #print(self.RPD)
         #self.assertTrue(False)
