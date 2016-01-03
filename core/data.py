@@ -570,7 +570,8 @@ class RockPyData(object):
         self._data = np.delete(self._data, ids, axis=1)
 
         # update _column_dict
-        for key in self._column_dict.keys():
+        keys = list(self._column_dict.keys())
+        for key in keys:
             # remove indices of removed columns
             self._column_dict[key] = [i for i in self._column_dict[key] if i not in ids]
 
