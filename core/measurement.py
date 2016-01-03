@@ -103,11 +103,11 @@ class Measurement(object):
             cls._cmcp = {}
             for mname, measurement in RockPy3.implemented_measurements.items():
                 cls._cmcp.setdefault(
-                        mname,
-                        sorted(
-                                list(set(
-                                        [i for j in measurement.mtype_possible_calculation_parameter().values() for i in
-                                         j]))))
+                    mname,
+                    sorted(
+                        list(set(
+                            [i for j in measurement.mtype_possible_calculation_parameter().values() for i in
+                             j]))))
         return cls._cmcp
 
     @classmethod
@@ -261,7 +261,7 @@ class Measurement(object):
         checks if result has parameter recipe in signature. if it does this means that the result_method has
         different
         """
-        if 'recipe' in cls.standards_result[res]:
+        if 'recipe' in cls.standards_result()[res]:
             return True
         else:
             return False
@@ -552,8 +552,8 @@ class Measurement(object):
         else:
             cls.log.error('UNKNOWN ftype: << %s >>' % ftype)
             cls.log.error(
-                    'most likely cause is the \"format_%s\" method is missing in the measurement << %s >>' % (
-                        ftype, cls.__name__))
+                'most likely cause is the \"format_%s\" method is missing in the measurement << %s >>' % (
+                    ftype, cls.__name__))
             return
 
         return cls(sobj=sobj, fpath=fpath, ftype=ftype, mdata=mdata, series=series, idx=idx, **options)
@@ -685,7 +685,7 @@ class Measurement(object):
         # can only be created if the measurement is actually implemented
         if all([mtype, ftype, fpath]) or fpath or mobj:
             self.initial_state = self.sobj.add_measurement(
-                    mtype=mtype, ftype=ftype, fpath=fpath, series=series, mobj=mobj)
+                mtype=mtype, ftype=ftype, fpath=fpath, series=series, mobj=mobj)
             self.initial_state.is_initial_state = True
             return self.initial_state
         else:
@@ -810,7 +810,6 @@ class Measurement(object):
         else:
             self.set_plt_prop(prop='linestyle', value='-')
 
-
     def set_recipe(self, result, recipe):
         """
         changes the recipe for a result to a new value. Changes the standard parameter dictionary to the new values
@@ -821,12 +820,12 @@ class Measurement(object):
             recipe:
 
         Note:
-            if the result is indirect (e.g. hf_sus is calculated through ms) the result will overwrite the method for both
+            if the result is indirect (e.g. hf_sus is calculated through ms) the result will overwrite the method for
+            both
 
         """
         direct_result = result
         indirect_result = None
-
 
         # break if the result does not exist
         if not direct_result in self.result_recipe:
@@ -834,13 +833,13 @@ class Measurement(object):
             return
 
         # for dependent results, the recipe has to be set for the method the result is dependent on
-        if self.standards_result()[direct_result]['indirect']:
+        if self.standards_result()[direct_result].get('indirect', False):
             direct_result = self.standards_result()[direct_result]['signature']['dependent'][0]
             indirect_result = result
 
         # break if the recipe is already set
         if self.result_recipe[direct_result].upper() == recipe.upper():
-            self.log.info('RECIPE << %s, %s >> already set' %(result, recipe))
+            self.log.info('RECIPE << %s, %s >> already set' % (result, recipe))
             return
 
         # break if recipy not implemented
@@ -856,7 +855,8 @@ class Measurement(object):
 
         self.log.warning('Calculation parameter changed from:')
         self.log.warning('{}: {}'.format(old_recipe, self.calculation_parameter[direct_result]))
-        self.calculation_parameter[direct_result] = deepcopy(self.standards_calculate()[self.get_calculate_method(direct_result)])
+        self.calculation_parameter[direct_result] = deepcopy(
+            self.standards_calculate()[self.get_calculate_method(direct_result)])
 
         # change the method that is called
         if recipe == 'default':
@@ -867,8 +867,8 @@ class Measurement(object):
 
         if indirect_result:
             self.log.warning(
-                    'The result << {} >> is an indirect result and is calculated through the method << {} >>'.format(
-                            indirect_result, direct_result))
+                'The result << {} >> is an indirect result and is calculated through the method << {} >>'.format(
+                    indirect_result, direct_result))
             self.log.warning('The recipe for all connected results has been changed to << {} >>'.format(recipe))
             # change the method that is called for the indirect result
             self.calculation_parameter[indirect_result] = self.calculation_parameter[direct_result]
@@ -877,15 +877,25 @@ class Measurement(object):
         self.remove_result(result=direct_result)
 
     def remove_result(self, result):
+        """
+        Removes a result from the results data object. If there are results that are dependent on this result,
+        they are also removed.
 
+        :param result:
+        :return:
+        """
         # no need to to remove if result has not been calculated
         if not self.results or not result in self.results.column_names:
+            self.log.debug('result << {} >> not calculated, yet. No need for removal'.format(result))
             return
 
-        # self.results.remove_columns()
+        self.log.debug('removing result << {} >>'.format(result))
+        self.results.delete_columns(result)
         if self.standards_result()[result]['base_for']:
             for res in self.standards_result()[result]['base_for']:
-                print(res)
+                # remove the dependent result, if it has been calculated
+                if res in self.results.column_names:
+                    self.results.delete_columns(res)
 
     def get_recipes(self, result):
         """
@@ -1037,6 +1047,7 @@ class Measurement(object):
                          '_raw_data', '_data',
                          'initial_state', 'is_initial_state',
                          'is_mean', 'base_measurements',
+                         'results',
                          # sample related
                          'sobj',
                          '_series',
@@ -1399,7 +1410,8 @@ class Measurement(object):
         takes a list of rpdata objects. it checks for all steps, the size of the step and min and max values of the
         variable. It then generates a list of new variables from the max(min) -> min(max) with the mean step size
         """
-        cls.log.debug('Creating new variable list for %s measurement out of %i measurements' %(cls.__name__, len(rpdata_list)))
+        cls.log.debug(
+            'Creating new variable list for %s measurement out of %i measurements' % (cls.__name__, len(rpdata_list)))
         min_vars = []
         max_vars = []
         stepsizes = []
@@ -1683,7 +1695,7 @@ class Measurement(object):
                         dtype_data[ntype] = dtype_data[ntype].v / norm_factor
                     except KeyError:
                         self.log.warning(
-                                'CAN\'T normalize << %s, %s >> to %s' % (self.sobj.name, self.mtype, ntype))
+                            'CAN\'T normalize << %s, %s >> to %s' % (self.sobj.name, self.mtype, ntype))
 
                 if 'mag' in dtype_data.column_names:
                     try:
@@ -1995,7 +2007,7 @@ class Measurement(object):
     def plt_all(self, **plt_props):
         fig = RockPy3.Figure()
         calculation_parameter, non_calculation_parameter = core.utils.separate_calculation_parameter_from_kwargs(
-                self, **plt_props)
+            self, **plt_props)
         for visual in self.plottable:
             fig.add_visual(visual=visual, visual_input=self, **plt_props)
         fig.show(**non_calculation_parameter)
@@ -2095,6 +2107,7 @@ def update_dict(dic1, dic2):
     unused_keys = [k for k in dic2 if not k in dic1]
     return dic1, set(unused_keys)
 
+
 @decorator.decorator
 def result(func, *args, **kwargs):
     """
@@ -2149,14 +2162,22 @@ def result(func, *args, **kwargs):
                 self.log.debug('dependency << {} >> parameters have changed, has to be calculated'.format(dep_res))
                 self.methods[dep_res](result_name=dep_res, **cpars)
 
+            self.calculation_parameter[dep_res] = cpars
+
         else:
             if not self.results or result_name not in self.results.column_names:
-                self.log.debug('dependencies << {} >> successfully calculated, calculating << {} >>'.format(dependencies, result_name))
+                self.log.debug(
+                    'dependencies << {} >> successfully calculated, calculating << {} >>'.format(dependencies,
+                                                                                                 result_name))
                 cpars = deepcopy(self.calculation_parameter[result_name])
                 cpars, unused_pars = update_dict(cpars, kwargs)
                 self.methods[result_name](result_name=result_name, **cpars)
+                self.calculation_parameter[result_name] = cpars
+
             else:
-                self.log.debug('dependencies << {} >> successfully calcuated, << {} >> already calculated'.format(dependencies, result_name))
+                self.log.debug(
+                    'dependencies << {} >> successfully calcuated, << {} >> already calculated'.format(dependencies,
+                                                                                                       result_name))
 
 
     # result is independent
@@ -2166,12 +2187,28 @@ def result(func, *args, **kwargs):
         cpars, unused_pars = update_dict(cpars, kwargs)
         if not self.results or result_name not in self.results.column_names:
             self.log.debug('result << {} >> no calculated yet, has to be calculated'.format(result_name))
-            self.methods[result_name](result_name=result_name, **cpars)
+            recalc = True
         elif self.calculation_parameter[result_name] != cpars:
             self.log.debug('result << {} >> parameters have changed, has to be calculated'.format(result_name))
+            recalc = True
+
+        if recalc:
             self.methods[result_name](result_name=result_name, **cpars)
 
-    #todo recalculate all dependent results
+            # results that are dependent on the result have to be calculated again
+            dependencies = self.standards_result()[result_name].get('base_for', [])
+            if dependencies:
+                self.log.debug('Recalculating all results that are dependent on << {} >> and have been calculated already'.format(result_name))
+                for dep_res in dependencies:
+                    # skip results that have not been calculated
+                    if not dep_res in self.results.column_names:
+                        continue
+                    dpars = self.calculation_parameter[dep_res]
+                    dpars, unused_pars = update_dict(dpars, kwargs)
+                    self.methods[dep_res](result_name=dep_res, **dpars)
+                    self.calculation_parameter[dep_res] = dpars
+            self.calculation_parameter[result_name] = cpars
+
     return self.results[result_name].v[0], self.results[result_name].e[0]
 
 
@@ -2186,25 +2223,28 @@ def calculate(func, *args, **kwargs):
     """
     self = args[0]
     result_name = kwargs.pop('result_name')
+    signature = {k: args[i] for i, k in enumerate(inspect.signature(func).parameters) if 0 < i < len(args)}
 
     # get all results that are dependent of or a dependency of result_name
     dependent_results = self.standards_result()[result_name].get('base_for', set())
 
     # remove results that have their own calculate function and thus are not independent
-    dependent_results = set(res for res in dependent_results if not any(res in method for method in self.calculation_methods()))
+    dependent_results = set(
+        res for res in dependent_results if not any(res in method for method in self.calculation_methods()))
 
     dependent_results.add(result_name)
 
     # if no Results have been calculated - create a new RPdata object
     if self.results is None:
-        self.results = RockPy3.Data(column_names=dependent_results, data=[np.nan for i in dependent_results])
+        self.results = RockPy3.Data(column_names='measurement id', data=self.id)
 
     # create new columns for all dependent results
     for result in dependent_results:
         if not result in self.results.column_names:
             self.results = self.results.append_columns(column_names=result, data=[[[np.nan, np.nan]]])
 
-    return func(self, **self.calculation_parameter[result_name])
+    return func(self, **signature)
+
 
 @decorator.decorator
 def correction(func, *args, **kwargs):
@@ -2252,19 +2292,4 @@ if __name__ == '__main__':
     # m = S.get_measurement(mtype='hysteresis')[0]
     # m = RockPy3.Packages.Mag.Measurements.hysteresis.Hysteresis(sobj=s)
     m = s.add_simulation(mtype='hysteresis', ms=1)
-    # pprint(m.standards_result())
-    # print(m.result_ms())
-    # print(m.result_hf_sus())
-    # print(m.result_hf_sus(saturation_percent=80))
-    m.set_recipe('hf_sus', 'simple')
-    m.set_recipe('hf_sus', 'app2sat')
-    # print(m.result_ms())
-    # print(m.standards_result())
-    # print(m.standards_calculate())
-    # print(m.get_dependent_results(result='ms'))
-    # print(m.get_dependent_results(result='mrs_ms'))
-    # m.calc_all()
-    # print(m)
-    # print(m.result_hf_sus(recalc=True, saturation_percent=90, ommit_last_n=1, check=True))
-    # print(m.result_mrs_ms())
-    # print(m.results)
+    m.result_ms(saturation_percent=80)
