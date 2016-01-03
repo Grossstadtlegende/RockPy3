@@ -35,7 +35,8 @@ class Visual(object):
                           'markeredgecolor',
                           'markeredgewidth', 'markerfacecolor', 'markerfacecoloralt', 'markersize', 'markevery',
                           'path_effects', 'picker', 'pickradius', 'rasterized', 'sketch_params', 'snap',
-                          'solid_capstyle', 'solid_joinstyle', 'transform', 'url', 'visible', 'xdata', 'ydata',
+                          'solid_capstyle', 'solid_joinstyle', 'transform', 'url', 'visible',
+                          'xdata', 'ydata', 'xerr', 'yerr',
                           'zorder',
                           ]
 
@@ -380,6 +381,10 @@ class Visual(object):
     @plot(single=True)
     def feature_generic_data(self, plt_props=None):
         RockPy3.Packages.Generic.Features.generic.plot_x_y(ax=self.ax, **plt_props)
+
+    @plot(single=True)
+    def feature_generic_errorbars(self, plt_props=None):
+        RockPy3.Packages.Generic.Features.generic.plot_errorbars(ax=self.ax, **plt_props)
 
     @plot(single=True)
     def feature_generic_text(self, plt_props=None):
