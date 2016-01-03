@@ -30,6 +30,8 @@ class Vftb(io.ftype):
     def get_units(self):
         units = self.raw_data[self.set_idx[0][0] + 1]
         units = ['/'.join(i.split(' / ')[1:]) for i in units]  # only getting the column name without the unit
+        units = [i if not 'centigrade' in i else 'C' for i in units]
+        units = [i if not '%' in i else '' for i in units]
         return units
 
     def get_data(self):
@@ -46,8 +48,10 @@ class Vftb(io.ftype):
         data = self.convert_to_T(data)
 
         # convert to A m instead of A m^2
-        # convert = [self.mass*1e-6 if 'g' in v else 1 for i,v in enumerate(self.units)]
-        # data = np.array([i * convert for i in data])
+        convert = [self.mass*1e-6 if 'g' in v else 1 for i,v in enumerate(self.units)]
+        data = np.array([i * convert for i in data])
+        # change unit emu/g -> Am^2
+        self.units =[i if not 'emu' in i else 'A m^2' for i in self.units]
         # some vftb files have a prefix of E-3
         # -> data is corrected
         convert = [1e-3 if 'E-3' in v else 1 for i,v in enumerate(self.units)]
