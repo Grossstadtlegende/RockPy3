@@ -12,8 +12,8 @@ class Day(Visual):
     def init_visual(self):
         self.standard_features = ['zero_lines', 'day_grid', 'day_data']
         # self.standard_plt_props = {'zero_lines': {'color': 'k'}}
-        self.xlabel = 'Field'
-        self.ylabel = 'Moment'
+        self.xlabel = 'Bcr / Bc'
+        self.ylabel = 'Mrs / Ms'
 
     @plot(mtypes=('hysteresis', 'backfield'))
     def feature_day_data(self, mobj, plt_props=None):
