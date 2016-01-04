@@ -168,6 +168,7 @@ class Study(object):
                         stype=None, sval=None, sval_range=None,
                         mean=False,
                         invert=False,
+                        slist=None,
                         ):
         """
         adds selected samples to a samplegroup
@@ -177,20 +178,25 @@ class Study(object):
             name: str
             default: None
             if None, name is 'SampleGroup #samplegroups'
+            slist: list
+                list of samples to be added to the sample_group
 
         Returns
         -------
             list
                 list of samples in samplegroup
         """
-        samples = self.get_sample(
-            sname=sname,
-            mtype=mtype,
-            series=series,
-            stype=stype, sval=sval, sval_range=sval_range,
-            mean=mean,
-            invert=invert,
-        )
+        if not slist:
+            samples = self.get_sample(
+                sname=sname,
+                mtype=mtype,
+                series=series,
+                stype=stype, sval=sval, sval_range=sval_range,
+                mean=mean,
+                invert=invert,
+            )
+        else:
+            samples = mlist
         if not gname:
             gname = 'SG%02i' % self.ngroups
 
