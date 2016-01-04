@@ -60,6 +60,9 @@ class Thermocurve(measurement.Measurement):
             RockPy3.logger.error('LENGTH of machine.out_thermocurve < 2.')
         return mdata
 
+    def get_tc(self):
+        for idx, dtype in enumerate(('warming', 'cooling')):
+            self.data[dtype].find_peaks()
 if __name__ == '__main__':
     file = '/Users/Mike/Dropbox/XXXOLD_BACKUPS/__PHD/__Projects/002 Hematite Nanoparticles, Morin Transition/04 data/MPMS/S3M2/S3M2_IRM7T_0T_60_300K_Cooling.rso.dat'
     file = '/Users/Mike/Dropbox/experimental_data/pyrrhotite/Pyrr17591-a_Ms_1T_300K_10K_Cooling.rso.dat'
