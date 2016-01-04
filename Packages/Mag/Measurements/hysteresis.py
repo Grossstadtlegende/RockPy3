@@ -558,8 +558,11 @@ class Hysteresis(measurement.Measurement):
         ms = []
         slope = []
         alpha = []
-
         for dir in [df_pos, df_neg, uf_pos, uf_neg]:
+            if len(dir['field'].v) < 2:
+                self.log.warning('CANT calculate approach to saturation. Not enough points (<=2) in data. '
+                                 'Consider using smaller <saturation_percent> value')
+                continue
             popt, pcov = curve_fit(self.approach2sat_func, np.fabs(dir['field'].v), np.fabs(dir['mag'].v),
                                    p0=[max(abs(dir['mag'].v)), 1, 0]
                                    )
@@ -569,12 +572,11 @@ class Hysteresis(measurement.Measurement):
         return ms, slope, alpha
 
     @calculate
-    def calculate_ms_APP2SAT(self, saturation_percent=75., ommit_last_n=1, check=False, **non_method_parameters):
+    def calculate_ms_APP2SAT(self, saturation_percent=70., ommit_last_n=0, check=False, **non_method_parameters):
         """
         Calculates the high field susceptibility using approach to saturation
         :return:
         """
-
         ms, chi, alpha = self.calc_approach2sat(saturation_percent=saturation_percent,
                                                 ommit_last_n=ommit_last_n)
 
@@ -726,13 +728,13 @@ class Hysteresis(measurement.Measurement):
         """
         pass
 
-    @calculate
-    def calculate_test(self, recalc=False, **non_method_parameters):
-        self.results['test']= self.results['ms'].v
-
-    @result
-    def result_test(self, recipe='default', dependent='ms'):
-        pass
+    # @calculate
+    # def calculate_test(self, recalc=False, **non_method_parameters):
+    #     self.results['test']= self.results['ms'].v
+    #
+    # @result
+    # def result_test(self, recipe='default', dependent='ms'):
+    #     pass
 
     ####################################################################################################################
     ''' Brh'''
@@ -755,42 +757,40 @@ class Hysteresis(measurement.Measurement):
     ####################################################################################################################
     ''' E_delta_t'''
 
-    # @calculate_new
-    # def calculate_e_delta_t(self, **non_method_parameters):
-    #     """
-    #     Method calculates the :math:`E^{\Delta}_t` value for the hysteresis.
-    #     It uses scipy.integrate.simps for calculation of the area under the down_field branch for positive fields and
-    #     later subtracts the area under the Msi curve.
-    #
-    #     The energy is:
-    #
-    #     .. math::
-    #
-    #        E^{\delta}_t = 2 \int_0^{B_{max}} (M^+(B) - M_{si}(B)) dB
-    #
-    #     """
-    # if not self.msi_exists:
-    #     self.log.error(
-    #         '%s\tMsi branch does not exist or not properly saturated. Please check datafile' % self.sobj.name)
-    #     self.results['e_delta_t'] = np.nan
-    #     return np.nan
-    #
-    # # getting data for positive down field branch
-    # df_pos_fields = [v for v in self.data['down_field']['field'].v if v >= 0] + [0.0]  # need to add 0 to fields
-    # df_pos = self.data['down_field'].interpolate(df_pos_fields)  # interpolate value for 0
-    # df_pos_area = abs(sp.integrate.simps(y=df_pos['mag'].v, x=df_pos['field'].v))  # calculate area under downfield
-    #
-    # msi_area = abs(sp.integrate.simps(y=self.data['virgin']['mag'].v,
-    #                                   x=self.data['virgin']['field'].v))  # calulate area under virgin
-    #
-    # self.results['e_delta_t'] = abs(2 * (df_pos_area - msi_area))
-    # self.calculation_parameter['e_delta_t'].update(parameter)
-    # return self.results['e_delta_t'].v[0]
-    # pass
+    @calculate
+    def calculate_e_delta_t(self, **non_method_parameters):
+        """
+        Method calculates the :math:`E^{\Delta}_t` value for the hysteresis.
+        It uses scipy.integrate.simps for calculation of the area under the down_field branch for positive fields and
+        later subtracts the area under the Msi curve.
 
-    # @result_new
-    # def result_e_delta_t(self, recalc=False, **non_method_parameters):
-    #     pass
+        The energy is:
+
+        .. math::
+
+           E^{\delta}_t = 2 \int_0^{B_{max}} (M^+(B) - M_{si}(B)) dB
+
+        """
+        if not self.msi_exists:
+            self.log.error(
+                '%s\tMsi branch does not exist or not properly saturated. Please check datafile' % self.sobj.name)
+            self.results['e_delta_t'] = np.nan
+            return np.nan
+
+        # getting data for positive down field branch
+        df_pos_fields = [v for v in self.data['down_field']['field'].v if v >= 0] + [0.0]  # need to add 0 to fields
+        df_pos = self.data['down_field'].interpolate(df_pos_fields)  # interpolate value for 0
+        df_pos_area = abs(sp.integrate.simps(y=df_pos['mag'].v, x=df_pos['field'].v))  # calculate area under downfield
+
+        msi_area = abs(sp.integrate.simps(y=self.data['virgin']['mag'].v,
+                                          x=self.data['virgin']['field'].v))  # calulate area under virgin
+
+        self.results['e_delta_t'] = abs(2 * (df_pos_area - msi_area))
+        self.calculation_parameter['e_delta_t'].update(parameter)
+
+    @result
+    def result_e_delta_t(self, recalc=False, **non_method_parameters):
+        pass
     ####################################################################################################################
     ''' E_hys'''
 
@@ -1347,7 +1347,7 @@ class Hysteresis(measurement.Measurement):
            bool
         """
         if self.data['virgin']:
-            mrs = self.result_mrs().v
+            mrs = self.result_mrs()[0]
             if abs(self.data['virgin']['mag'].v[0]) >= 0.7 * mrs:
                 return True
 
