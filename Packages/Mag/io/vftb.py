@@ -47,11 +47,12 @@ class Vftb(io.ftype):
         data = np.array([i.astype(float) for i in data])
         data = self.convert_to_T(data)
 
-        # convert to A m instead of A m^2
-        convert = [self.mass*1e-6 if 'g' in v else 1 for i,v in enumerate(self.units)]
-        data = np.array([i * convert for i in data])
-        # change unit emu/g -> Am^2
+        # change unit emu/g -> Am^2/kg
         self.units =[i if not 'emu' in i else 'A m^2' for i in self.units]
+        # convert to A m^2 instead of A m^2/kg
+        convert = [self.mass if 'g' in v else 1 for i,v in enumerate(self.units)]
+        data = np.array([i * convert for i in data])
+
         # some vftb files have a prefix of E-3
         # -> data is corrected
         convert = [1e-3 if 'E-3' in v else 1 for i,v in enumerate(self.units)]
