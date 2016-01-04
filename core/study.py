@@ -196,7 +196,7 @@ class Study(object):
                 invert=invert,
             )
         else:
-            samples = mlist
+            samples = slist
         if not gname:
             gname = 'SG%02i' % self.ngroups
 
