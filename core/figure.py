@@ -227,6 +227,9 @@ class Figure(object):
             if visual.yscale:
                 visual.ax.set_yscale(visual.yscale)
 
+            # prevent scientific notation for x axis
+            if type in ('thermocurve'):
+                visual.ax.ticklabel_format(style='plain', axis='x')
             # else:
             #     xlim = visual.ax.get_xlim()
             #     ylim = visual.ax.get_ylim()
