@@ -8,6 +8,7 @@ from os.path import join
 from copy import deepcopy
 
 class Vsm(io.ftype):
+    standard_calibration_exponent = -3
     def __init__(self, dfile, dialect=None):
         super(Vsm, self).__init__(dfile=dfile, dialect=dialect)
         self.raw_data = self.simple_import()
@@ -26,6 +27,12 @@ class Vsm(io.ftype):
         self.info_header = self.get_measurement_infos()
 
         self.calibration_factor = self.info_header['calibration factor']
+
+        if np.floor(np.log10(self.calibration_factor)) != 0:
+            self.correct_exp = np.power(10, np.floor(np.log10(self.calibration_factor)))
+            RockPy3.logger.warning('CALIBRATION FACTOR (cf) seems to be wrong. Generally the exponent of the cf is -3 here: {}. Data is corrected'.format(int(np.floor(np.log10(self.calibration_factor)))))
+        else:
+            self.correct_exp = None
 
         # remove all data points from raw data
         self.data_idx = min(i for i, v in enumerate(self.raw_data) if v.startswith('+') or v.startswith('-'))
@@ -76,8 +83,14 @@ class Vsm(io.ftype):
     def get_data(self):
         # get the empty line numbers
         empty_lines = [0]+[i for i,v in enumerate(self._data) if not v]+[len(self._data)]
-        data = [np.array([i.split(',') for i in self._data[v: empty_lines[i+1]] if i]).astype(float)
-                for i,v in enumerate(empty_lines[:-1])]
+        data = np.array([np.array([i.split(',') for i in self._data[v: empty_lines[i+1]] if i]).astype(float)
+                for i,v in enumerate(empty_lines[:-1])])
+
+        if self.correct_exp:
+            moment_idx = [i for i,v in enumerate(self.header) if v in ('moment', 'remanence', 'induced')]
+            for idx in moment_idx:
+                for i, d in enumerate(data):
+                    data[i][:, idx] *= self.correct_exp
 
         return data
 
@@ -134,3 +147,9 @@ class Vsm(io.ftype):
 
     def check_calibration_factor(self):
         pass
+
+if __name__ == '__main__':
+    wrong_exp = RockPy3.test_data_path+'/hys_vsm_wrong_exponent.001'
+    correct_exp = RockPy3.test_data_path+'/FeNi_FeNi20-Jz000\'-G03_HYS_VSM#50,3[mg]_[]_[]##STD020.003'
+    print(Vsm(dfile=wrong_exp).get_data())
+    # vsm = Vsm(dfile=correct_exp)
