@@ -27,6 +27,13 @@ class Sample(object):
     def __lt__(self, other):
         return self.name < other.name
 
+    @property
+    def samplegroups(self):
+        if self._samplegroups:
+            return self._samplegroups
+        else:
+            return ('None',)
+
     def __init__(self,
                  name=None,
                  comment='',

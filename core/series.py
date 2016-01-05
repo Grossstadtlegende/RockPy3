@@ -18,6 +18,9 @@ class Series(object):
     def from_tuple(cls, series):
         return cls(stype=series[0], value=series[1], unit=series[2])
 
+    def get_tuple(self):
+        return  (self.stype, self.value, self.unit)
+
     @property
     def label(self):
         return '%.2f [%s]' % (self.value, self.unit)
