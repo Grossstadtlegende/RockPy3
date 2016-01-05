@@ -196,6 +196,7 @@ class Figure(object):
              save_path=None,
              pad=0.4, w_pad=0.5, h_pad=1.0,
              file_name=None,
+             return_figure=False,
              **options):
         """
         calls all visuals
@@ -272,6 +273,9 @@ class Figure(object):
             # (left, bottom, right, top) in the normalized figure coordinate that the whole subplots area
             # (including labels) will fit into
             self._fig.set_tight_layout(tight={'rect': (0, 0, 1, 0.95)})
+
+        if return_figure:
+            return self._fig
 
         if save_path:
             if save_path == 'Desktop':
