@@ -103,11 +103,11 @@ class Measurement(object):
             cls._cmcp = {}
             for mname, measurement in RockPy3.implemented_measurements.items():
                 cls._cmcp.setdefault(
-                    mname,
-                    sorted(
-                        list(set(
-                            [i for j in measurement.mtype_possible_calculation_parameter().values() for i in
-                             j]))))
+                        mname,
+                        sorted(
+                                list(set(
+                                        [i for j in measurement.mtype_possible_calculation_parameter().values() for i in
+                                         j]))))
         return cls._cmcp
 
     @classmethod
@@ -552,8 +552,8 @@ class Measurement(object):
         else:
             cls.log.error('UNKNOWN ftype: << %s >>' % ftype)
             cls.log.error(
-                'most likely cause is the \"format_%s\" method is missing in the measurement << %s >>' % (
-                    ftype, cls.__name__))
+                    'most likely cause is the \"format_%s\" method is missing in the measurement << %s >>' % (
+                        ftype, cls.__name__))
             return
 
         return cls(sobj=sobj, fpath=fpath, ftype=ftype, mdata=mdata, series=series, idx=idx, **options)
@@ -685,7 +685,7 @@ class Measurement(object):
         # can only be created if the measurement is actually implemented
         if all([mtype, ftype, fpath]) or fpath or mobj:
             self.initial_state = self.sobj.add_measurement(
-                mtype=mtype, ftype=ftype, fpath=fpath, series=series, mobj=mobj)
+                    mtype=mtype, ftype=ftype, fpath=fpath, series=series, mobj=mobj)
             self.initial_state.is_initial_state = True
             return self.initial_state
         else:
@@ -773,8 +773,6 @@ class Measurement(object):
         self.results = None
         self.__initialize()
 
-        # setattr(self.__class__, 'result_' + result + '.__doc__', 'TEST') #todo move to __init__ of measurement
-
         # normalization
         self.is_normalized = False  # normalized flag for visuals, so its not normalized twice
         self.norm = None  # the actual parameters
@@ -809,6 +807,53 @@ class Measurement(object):
             self.set_plt_prop('linestyle', linestyle)
         else:
             self.set_plt_prop(prop='linestyle', value='-')
+
+    def get_RockPy_compatible_filename(self, add_series=True):
+
+        prefix = [('femto', 'f'), ('pico', 'p'), ('nano', 'n'), ('micro', 'mu'), ('milli', 'm'), ('', ''),
+                  ('kilo', 'k')]
+
+        if add_series:
+            series = [s.get_tuple() for s in self.series if not s.get_tuple() == ('none', np.nan, '')]
+        else:
+            series = None
+        mass = self.get_mtype_prior_to(mtype='mass')
+
+        # diameter = self.get_mtype_prior_to(mtype='diameter') #todo implement
+        # height = self.get_mtype_prior_to(mtype='height')
+
+        # convert the mass to the smallest possible exponent
+        if mass:
+            mass = mass.data['data']['mass'].v[0]
+            mass_exp = np.floor(np.log10(mass))  # exponent of mass
+            for i, pref in enumerate(range(-15, 3, 3)): # todo write function
+                if mass_exp < pref:
+                    mass /= np.power(10., pref-3)
+                    mass_unit = prefix[i][1]+'g'
+                    break
+                else:
+                    mass_unit = 'kg'
+        else:
+            mass, mass_unit = None, None
+
+        fname = RockPy3.get_fname_from_info(
+                samplegroup=self.sobj.samplegroups[0], sample_name = self.sobj.name,
+                mtype=self.mtype, ftype = self.ftype,
+                mass=mass, mass_unit=mass_unit,
+                series = series,
+                idx=self.idx)
+
+        return fname
+
+    def _rename_to_RockPy_compatible_filename(self, add_series=True, create_backup=True):
+        if self.fpath:
+            path = os.path.dirname(self.fpath)
+            backup_name = '#'+os.path.basename(self.fpath)
+            fname = self.get_RockPy_compatible_filename(add_series=add_series)
+            if create_backup:
+                import shutil
+                shutil.copy(self.fpath, os.path.join(path,backup_name))
+            os.rename(self.fpath, os.path.join(path,fname))
 
     def set_recipe(self, result, recipe):
         """
@@ -856,7 +901,7 @@ class Measurement(object):
         self.log.warning('Calculation parameter changed from:')
         self.log.warning('{}: {}'.format(old_recipe, self.calculation_parameter[direct_result]))
         self.calculation_parameter[direct_result] = deepcopy(
-            self.standards_calculate()[self.get_calculate_method(direct_result)])
+                self.standards_calculate()[self.get_calculate_method(direct_result)])
 
         # change the method that is called
         if recipe == 'default':
@@ -867,8 +912,8 @@ class Measurement(object):
 
         if indirect_result:
             self.log.warning(
-                'The result << {} >> is an indirect result and is calculated through the method << {} >>'.format(
-                    indirect_result, direct_result))
+                    'The result << {} >> is an indirect result and is calculated through the method << {} >>'.format(
+                            indirect_result, direct_result))
             self.log.warning('The recipe for all connected results has been changed to << {} >>'.format(recipe))
             # change the method that is called for the indirect result
             self.calculation_parameter[indirect_result] = self.calculation_parameter[direct_result]
@@ -1411,7 +1456,8 @@ class Measurement(object):
         variable. It then generates a list of new variables from the max(min) -> min(max) with the mean step size
         """
         cls.log.debug(
-            'Creating new variable list for %s measurement out of %i measurements' % (cls.__name__, len(rpdata_list)))
+                'Creating new variable list for %s measurement out of %i measurements' % (
+                cls.__name__, len(rpdata_list)))
         min_vars = []
         max_vars = []
         stepsizes = []
@@ -1695,7 +1741,7 @@ class Measurement(object):
                         dtype_data[ntype] = dtype_data[ntype].v / norm_factor
                     except KeyError:
                         self.log.warning(
-                            'CAN\'T normalize << %s, %s >> to %s' % (self.sobj.name, self.mtype, ntype))
+                                'CAN\'T normalize << %s, %s >> to %s' % (self.sobj.name, self.mtype, ntype))
 
                 if 'mag' in dtype_data.column_names:
                     try:
@@ -2007,7 +2053,7 @@ class Measurement(object):
     def plt_all(self, **plt_props):
         fig = RockPy3.Figure()
         calculation_parameter, non_calculation_parameter = core.utils.separate_calculation_parameter_from_kwargs(
-            self, **plt_props)
+                self, **plt_props)
         for visual in self.plottable:
             fig.add_visual(visual=visual, visual_input=self, **plt_props)
         fig.show(**non_calculation_parameter)
@@ -2167,8 +2213,8 @@ def result(func, *args, **kwargs):
         else:
             if not self.results or result_name not in self.results.column_names:
                 self.log.debug(
-                    'dependencies << {} >> successfully calculated, calculating << {} >>'.format(dependencies,
-                                                                                                 result_name))
+                        'dependencies << {} >> successfully calculated, calculating << {} >>'.format(dependencies,
+                                                                                                     result_name))
                 cpars = deepcopy(self.calculation_parameter[result_name])
                 cpars, unused_pars = update_dict(cpars, kwargs)
                 self.methods[result_name](result_name=result_name, **cpars)
@@ -2176,8 +2222,8 @@ def result(func, *args, **kwargs):
 
             else:
                 self.log.debug(
-                    'dependencies << {} >> successfully calcuated, << {} >> already calculated'.format(dependencies,
-                                                                                                       result_name))
+                        'dependencies << {} >> successfully calcuated, << {} >> already calculated'.format(dependencies,
+                                                                                                           result_name))
 
 
     # result is independent
@@ -2198,7 +2244,9 @@ def result(func, *args, **kwargs):
             # results that are dependent on the result have to be calculated again
             dependencies = self.standards_result()[result_name].get('base_for', [])
             if dependencies:
-                self.log.debug('Recalculating all results that are dependent on << {} >> and have been calculated already'.format(result_name))
+                self.log.debug(
+                    'Recalculating all results that are dependent on << {} >> and have been calculated already'.format(
+                        result_name))
                 for dep_res in dependencies:
                     # skip results that have not been calculated
                     if not dep_res in self.results.column_names:
@@ -2230,7 +2278,7 @@ def calculate(func, *args, **kwargs):
 
     # remove results that have their own calculate function and thus are not independent
     dependent_results = set(
-        res for res in dependent_results if not any(res in method for method in self.calculation_methods()))
+            res for res in dependent_results if not any(res in method for method in self.calculation_methods()))
 
     dependent_results.add(result_name)
 
@@ -2286,10 +2334,14 @@ if __name__ == '__main__':
     from pprint import pprint
 
     S = RockPy3.RockPyStudy()
-    s = S.add_sample(name='test')
+    s = S.add_sample(name='test', mass=50, mass_unit='mg')
+    s.add_to_samplegroup('TT')
+    m = s.add_measurement(mtype='hys', fpath='/Users/mike/Google Drive/__code/RockPy3/testing/test_data/hys_vsm.001',
+                          ftype='vsm')
+    m.add_series('mtime', 0, '3')
     # S.import_folder('/Users/mike/Google Drive/__code/RockPy3/mike_testing/auto_import')
     # S.info(sample_info=False)
     # m = S.get_measurement(mtype='hysteresis')[0]
     # m = RockPy3.Packages.Mag.Measurements.hysteresis.Hysteresis(sobj=s)
-    m = s.add_simulation(mtype='hysteresis', ms=1)
-    m.result_ms(saturation_percent=80)
+    # m = s.add_simulation(mtype='hysteresis', ms=1)
+    # m.result_ms(saturation_percent=80)
