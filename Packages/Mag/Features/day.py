@@ -30,12 +30,12 @@ def sd_md_mixline_1(ax, **plt_opt):
     text = {'texts': ['0%', '20%', '40%', '60%', '80%', '90%', '95%', '98%', '100%'],
             'positions': data[[0, 2, 4, 6, 8, 10, 11, 12, 13]]}
 
-    line_out = ax.plot(data[:, 0], data[:, 1], color=color, marker=marker, ls=ls, zorder=zorder, **plt_opt)
+    line_out = ax.plot(data[:, 0], data[:, 1], color=color, marker=marker, ls=ls, zorder=0, **plt_opt)
 
     for i, t in enumerate(text['texts']):
         text_out.append(ax.text(text['positions'][i][0], text['positions'][i][1], t,
                                 verticalalignment='top', horizontalalignment='right',
-                                color=color, fontsize=fontsize))
+                                color=color, fontsize=fontsize, zorder=0))
 
     return line_out, text_out
 
@@ -57,12 +57,12 @@ def sd_md_mixline_2(ax, **plt_opt):
     text = {'texts': ['0%', '20%', '40%', '60%', '80%', '90%', '95%', '100%'],
             'positions': data[[0, 2, 4, 6, 8, 10, 11, 12]]}
 
-    line_out = ax.plot(data[:, 0], data[:, 1], color=color, marker=marker, ls=ls, zorder=zorder, **plt_opt)
+    line_out = ax.plot(data[:, 0], data[:, 1], color=color, marker=marker, ls=ls, zorder=0, **plt_opt)
 
     for i, t in enumerate(text['texts']):
         text_out.append(ax.text(text['positions'][i][0] + 0.1, text['positions'][i][1] + 0.005, t,
                                 verticalalignment='bottom', horizontalalignment='left',
-                                color=color, fontsize=fontsize))
+                                color=color, fontsize=fontsize, zorder=0))
 
     return line_out, text_out
 
@@ -80,11 +80,11 @@ def sp_envelope(ax, **plt_opt):
             [[1.255, 0.498], [1.414, 0.473], [1.622, 0.450], [1.945, 0.426], [2.512, 0.402], [3.764, 0.376],
              [7.411, 0.352], [8.874, 0.350], [17.269, 0.343], [34.897, 0.338], [57.714, 0.336]])
 
-    line_out = ax.plot(data[:, 0], data[:, 1], color=color, marker=marker, ls=ls, zorder=zorder, **plt_opt)
+    line_out = ax.plot(data[:, 0], data[:, 1], color=color, marker=marker, ls=ls, zorder=0, **plt_opt)
 
     text_out.append(ax.text(3.8, 0.38, 'SP saturation envelope',
                             verticalalignment='bottom', horizontalalignment='left',
-                            color=color, fontsize=fontsize))
+                            color=color, fontsize=fontsize, zorder=0))
 
     return line_out, text_out
 
@@ -106,7 +106,7 @@ def sd_sp_10nm(ax, **plt_opt):
     text = {'texts': ['20%', '40%', '60%', '80%'],
             'positions': data[[1, 5, 9, 13]]}
 
-    line_out = ax.plot(data[:, 0], data[:, 1], color=color, marker=marker, ls=ls, zorder=zorder, **plt_opt)
+    line_out = ax.plot(data[:, 0], data[:, 1], color=color, marker=marker, ls=ls, zorder=0, **plt_opt)
 
     xmin, xmax = ax.get_xlim()
     ymin, ymax = ax.get_ylim()
@@ -115,11 +115,11 @@ def sd_sp_10nm(ax, **plt_opt):
         if xmin < x * 1.1 < xmax and ymin < y * 0.9 < ymax:
             ax.text(x, y, t,
                     verticalalignment='bottom', horizontalalignment='left',
-                    color=color, fontsize=fontsize)
+                    color=color, fontsize=fontsize, zorder=0)
 
     ax.text(xmax * 0.85, text['positions'][-1][1] - 0.005, '10 nm',
             verticalalignment='bottom', horizontalalignment='left',
-            color=color, fontsize=fontsize)
+            color=color, fontsize=fontsize, zorder=0)
 
     return line_out, text_out
 
@@ -210,6 +210,6 @@ def day_grid(ax, **options):
     ax.hlines(0.1, 0, 10)
     ax.vlines(5, 0, 0.6)
     ax.vlines(1.5, 0, 0.6)
-    ax.text(0.6, 0.55, 'SD', fontdict={'size': 14, 'color': '#909090'})
-    ax.text(2.6, 0.3, 'PSD', fontdict={'size': 14, 'color': '#909090'})
-    ax.text(5.9, 0.05, 'MD', fontdict={'size': 14, 'color': '#909090'})
+    ax.text(0.6, 0.55, 'SD', fontdict={'size': 18, 'color': '#909090'})
+    ax.text(2.6, 0.3, 'PSD', fontdict={'size': 18, 'color': '#909090'})
+    ax.text(5.9, 0.05, 'MD', fontdict={'size': 18, 'color': '#909090'})
