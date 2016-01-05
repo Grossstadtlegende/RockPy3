@@ -54,7 +54,7 @@ import subprocess
 RockPy3.core.utils.create_logger('RockPy3')
 logger = logging.getLogger('RockPy3')
 
-test_data_path = os.path.join(os.getcwd().split('RockPy3')[0], 'RockPy3', 'Tutorials', 'test_data')
+test_data_path = os.path.join(os.getcwd().split('RockPy3')[0], 'RockPy3', 'testing', 'test_data')
 installation_directory = os.path.dirname(RockPy3.__file__)
 
 dependencies = ['matplotlib', 'numpy', 'scipy', 'lmfit', 'pint', 'decorator', 'tabulate', 'basemap']

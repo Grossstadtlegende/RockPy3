@@ -786,7 +786,6 @@ class Hysteresis(measurement.Measurement):
                                           x=self.data['virgin']['field'].v))  # calulate area under virgin
 
         self.results['e_delta_t'] = abs(2 * (df_pos_area - msi_area))
-        self.calculation_parameter['e_delta_t'].update(parameter)
 
     @result
     def result_e_delta_t(self, recalc=False, **non_method_parameters):
