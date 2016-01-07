@@ -6,6 +6,7 @@ import logging
 # from RockPy3.utils import general
 
 log = logging.getLogger(__name__)
+from RockPy3.core.utils import _to_tuple
 from copy import deepcopy
 import numpy as np
 import scipy
@@ -28,16 +29,6 @@ from RockPy3.core import ureg
 from scipy import stats
 
 import xml.etree.ElementTree as etree
-
-
-
-def _to_tuple(oneormoreitems):
-    """
-    convert argument to tuple of elements
-       oneormoreitems: single number or string or list of numbers or strings
-    :return: tuple of elements
-    """
-    return tuple(oneormoreitems) if hasattr(oneormoreitems, '__iter__') and type(oneormoreitems) is not str else (oneormoreitems, )
 
 
 def condense(listofRPD, substfunc='mean'):
