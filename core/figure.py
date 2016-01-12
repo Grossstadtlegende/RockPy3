@@ -195,7 +195,8 @@ class Figure(object):
              equal_lims=False, center_lims=False,
              save_path=None,
              pad=0.4, w_pad=0.5, h_pad=1.0,
-             file_name=None,
+             file_name=None, format='.pdf',
+             legend=True, sort_labels = True,
              return_figure=False,
              **options):
         """
@@ -253,7 +254,14 @@ class Figure(object):
                     visual.ax.set_ylim(ylim)
 
         for name, type, visual in self._visuals:
-            visual.ax.legend(**visual.legend_options)
+            if not legend:
+                break
+            handles, labels = visual.ax.get_legend_handles_labels()
+            if not all(i for i in (handles, labels)):
+                continue
+            if sort_labels:
+                labels, handles = zip(*sorted(zip(labels, handles), key=lambda t: t[0]))
+            visual.ax.legend(handles, labels, **visual.legend_options)
 
         # check if two entries and each is float or int
         if set_xlim:
@@ -278,11 +286,13 @@ class Figure(object):
             return self._fig
 
         if save_path:
-            if save_path == 'Desktop':
+            if save_path.lower() == 'desktop':
                 if not file_name:
                     file_name = os.path.basename(inspect.stack()[-1][1])
                     file_name += options.get('append', '')
-                save_path = os.path.join(os.path.expanduser('~'), 'Desktop', file_name + '.pdf')
+                if not format in file_name:
+                    file_name *= format
+                save_path = os.path.join(os.path.expanduser('~'), 'Desktop', file_name)
             plt.savefig(save_path)
         else:
             with RockPy3.ignored(AttributeError):
