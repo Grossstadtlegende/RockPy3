@@ -124,25 +124,35 @@ class Vsm(io.ftype):
         takes the raw data and creates a dictionary with the measurement infos
         """
 
-        def separate(line):
-            if line:
-                if any(j in line for j in ('+', '-', '\"')):
-                    splitter = 30
-                else:
-                    splitter = 31
-                if line[splitter + 1:].rstrip():
-                    out = (line[:splitter].rstrip().lower(), self.convert2float_or_str(line[splitter + 1:].strip()))
+        # def separate(line):
+        #     if line:
+        #         if any(j in line for j in ('+', '-', '\"')):
+        #             splitter = 30
+        #         else:
+        #             splitter = 31
+        #         if line[splitter + 1:].rstrip():
+        #             out = (line[:splitter].rstrip().lower(), self.convert2float_or_str(line[splitter + 1:].strip()))
+        #
+        #             if out[1] == 'Yes':
+        #                 return (line[:splitter].rstrip().lower(), True)
+        #             if out[1] == 'No':
+        #                 return (line[:splitter].rstrip().lower(), False)
+        #             else:
+        #                 return out
 
-                    if out[1] == 'Yes':
-                        return (line[:splitter].rstrip().lower(), True)
-                    if out[1] == 'No':
-                        return (line[:splitter].rstrip().lower(), False)
-                    else:
-                        return out
-
-
-        data = self.info_header_raw
-        data = [i for i in map(separate, data) if i and i[1]]
+        t = [i.split('  ') for i in self.info_header_raw]
+        t = [[j for j in i if j] for i in t]
+        t = [tuple(i) for i in t if len(i)>1]
+        data = {i[0].lower():i[1] for i in t}
+        for k,v in data.items():
+            with RockPy3.ignored(ValueError):
+                data[k] = float(v)
+            if v == 'Yes':
+                data[k] = True
+            if v == 'No':
+                data[k] = False
+        # data = self.info_header_raw
+        # data = [i for i in map(separate, data) if i and i[1]]
         return dict(data)
 
     def check_calibration_factor(self):
