@@ -171,6 +171,7 @@ def get_fname_from_info(samplegroup='', sample_name='',
         length_unit = ''
     if not any(i for i in [mass]):
         mass_unit = ''
+        mass = ''
 
     sample_info = '_'.join(
         [add_unit(str(mass).replace('.', ','), mass_unit),
