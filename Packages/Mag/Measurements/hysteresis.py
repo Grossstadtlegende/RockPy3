@@ -288,14 +288,10 @@ class Hysteresis(measurement.Measurement):
             mdata.setdefault('down_field', None)
             mdata.setdefault('up_field', None)
 
-        with RockPy3.ignored(AttributeError):
-            mdata['virgin'].rename_column('moment', 'mag')
-
-        with RockPy3.ignored(AttributeError):
-            mdata['up_field'].rename_column('moment', 'mag')
-
-        with RockPy3.ignored(AttributeError):
-            mdata['down_field'].rename_column('moment', 'mag')
+        for dtype in mdata:
+            with RockPy3.ignored(AttributeError):
+                mdata[dtype].rename_column('moment', 'mag')
+                mdata[dtype].define_alias('variable', 'field')
 
         return mdata
 
@@ -496,8 +492,8 @@ class Hysteresis(measurement.Measurement):
             if check:
                 x = dir['field'].v
                 y_new = slope * x + intercept
-                plt.plot(dir['field'].v, dir['mag'].v, '.', color=Hysteresis.colors[i])
-                plt.plot(x, y_new, color=Hysteresis.colors[i])
+                plt.plot(dir['field'].v, dir['mag'].v, '.', color=RockPy3.colorscheme[i])
+                plt.plot(x, y_new, color=RockPy3.colorscheme[i])
 
         # check plot
         if check:
@@ -572,7 +568,7 @@ class Hysteresis(measurement.Measurement):
         return ms, slope, alpha
 
     @calculate
-    def calculate_ms_APP2SAT(self, saturation_percent=70., ommit_last_n=0, check=False, **non_method_parameters):
+    def calculate_ms_APP2SAT(self, saturation_percent=70., ommit_last_n=5, check=False, **non_method_parameters):
         """
         Calculates the high field susceptibility using approach to saturation
         :return:
@@ -595,13 +591,13 @@ class Hysteresis(measurement.Measurement):
             new_y = self.approach2sat_func(df_pos['field'].v, np.mean(ms), np.mean(chi), np.mean(alpha))
             plt.plot(df_pos['field'].v, df_pos['mag'].v, 'o', label='data')
             plt.plot(df_pos['field'].v, new_y, label='app2sat_function')
-            plt.plot(0, np.mean(ms), 'x', markeredgewidth=2, markersize=5, zorder=100)
+            plt.plot(0, self.results['ms'].v, 'x', markeredgewidth=2, markersize=5, zorder=100)
             plt.plot(df_pos['field'].v, df_pos['field'].v * np.mean(chi) + np.mean(ms), label='slope')
             plt.plot([saturation_percent * self.max_field / 100, saturation_percent * self.max_field / 100],
                      [min(new_y), max(new_y)], 'k--', label='assumed saturation %i %%' % saturation_percent)
             plt.legend(loc='best')
             plt.grid()
-            plt.ylim([0, max(new_y)])
+            plt.ylim([0, max(new_y)*1.1])
             plt.show()
 
     @calculate
@@ -882,10 +878,10 @@ class Hysteresis(measurement.Measurement):
     def result_m_b(self, recalc=False, **non_method_parameters):
         pass
 
-    ####################################################################################################################
-    # ''' Bcr/ Bc '''
+    ###################################################################################################################
+    ''' Bcr/ Bc '''
     #
-    # @calculate_new
+    # @calculate
     # def calculate_bcr_bc(self,
     #                      coe_obj=None, bcr_recipe='LINEAR', bcr_no_points=4,
     #                      bc_no_points=4, bc_recipe='LINEAR',
@@ -914,7 +910,7 @@ class Hysteresis(measurement.Measurement):
     #     bc = self.result_bc(recipe=bc_recipe, no_points=bc_no_points, **non_method_parameters)
     #     self.results['bcr_bc'] = [[[bcr[0] / bc[0], bcr[1] + bc[1]]]]
     #
-    # @result_new
+    # @result
     # def result_bcr_bc(self, secondary='backfield', recalc=False, **non_method_parameters):
     #     pass
 

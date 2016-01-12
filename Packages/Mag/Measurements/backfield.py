@@ -361,9 +361,12 @@ if __name__ == '__main__':
     S = RockPy3.Study
     s = S.add_sample(name='test')
     # m = s.add_measurement(fpath='/Users/mike/Dropbox/experimental_data/FeNiX/FeNi20J/FeNi_FeNi20-Jz000-G03_COE_VSM#50,3[mg]_[]_[]#mtime_000_min;GC_03_No;rpm_400_##.001')
-    m = s.add_measurement(fpath='/Users/Mike/Dropbox/experimental_data/001_PintP/LF4C/VFTB/P0-postTT/140310_1a.coe',
+    # m = s.add_measurement(fpath='/Users/Mike/Dropbox/experimental_data/001_PintP/LF4C/VFTB/P0-postTT/140310_1a.coe',
+    #                         mtype='backfield',
+    #                         ftype='vftb')
+    m = s.add_measurement(fpath='/Users/Mike/Dropbox/experimental_data/0915-LT_pyrrhtotite/LTPY_P15a_COE_VSM#[]_[]_[]#TEMP_020_K#STD001.001',
                             mtype='backfield',
-                            ftype='vftb')
+                            ftype='vsm')
     print(m.data)
     # fig = RockPy3.Figure(fig_input=S)
     # v = fig.add_visual('resultseries', result='bc', series='mtime', xscale='log')
