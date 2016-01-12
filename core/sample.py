@@ -1165,8 +1165,10 @@ if __name__ == '__main__':
     from pprint import pprint
 
     S = RockPy3.Study
-    s = S.add_sample(name='test')
-    for n in range(10):
-        m = s.add_simulation(mtype='hysteresis')
-    pprint(m.standards_result())
+    s = S.add_sample('1440')
+    s.add_measurement(fpyth = '/Users/mike/Dropbox/experimental_data/FeNiX/FeNi20K/FeNi_FeNi20-Ka2160\'-G03_HYS_VSM#50,3[mg]_[]_[]##STD030.001', mtype='hys', ftype='vsm')
+    # s = S.add_sample(name='test')
+    # for n in range(10):
+    #     m = s.add_simulation(mtype='hysteresis')
+    # pprint(m.standards_result())
     # print(s.get_result(result='ms', test=7, saturation_percent=80))
