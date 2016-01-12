@@ -38,7 +38,7 @@ from RockPy3.Packages.Generic.Measurements.parameters import Parameter
 from RockPy3.core.figure import Figure
 
 from RockPy3.core.utils import ignored
-from RockPy3.core.utils import to_list
+from RockPy3.core.utils import to_list, _to_tuple
 
 from RockPy3.core.data import condense
 

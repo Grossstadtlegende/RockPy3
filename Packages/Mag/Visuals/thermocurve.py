@@ -16,4 +16,8 @@ class Thermocurve(Visual):
 
     @plot(mtypes=['thermocurve'], overwrite_mobj_plt_props={'marker':''})
     def feature_thermocurve_data(self, mobj, plt_props=None):
-        RockPy3.Packages.Mag.Features.thermocurve.thermocurve_data(self.ax, mobj, **plt_props)
+        RockPy3.Packages.Mag.Features.thermocurve.thermocurve_data(self.ax, mobj, **plt_props)\
+
+    @plot(mtypes=['thermocurve'], overwrite_mobj_plt_props={'marker':''})
+    def feature_thermocurve_data_colored(self, mobj, plt_props=None):
+        RockPy3.Packages.Mag.Features.thermocurve.thermocurve_data_colored(self.ax, mobj, **plt_props)
