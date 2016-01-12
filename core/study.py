@@ -146,15 +146,15 @@ class Study(object):
 
         if not sobj:
             sobj = RockPy3.core.sample.Sample(
-                name=str(name),
-                comment=comment,
-                mass=mass, mass_unit=mass_unit,
-                height=height, diameter=diameter,
-                x_len=x_len, y_len=y_len, z_len=z_len,  # for cubic samples
-                length_unit=length_unit,
-                sample_shape=sample_shape,
-                samplegroup=samplegroup,
-                coord=coord,
+                    name=str(name),
+                    comment=comment,
+                    mass=mass, mass_unit=mass_unit,
+                    height=height, diameter=diameter,
+                    x_len=x_len, y_len=y_len, z_len=z_len,  # for cubic samples
+                    length_unit=length_unit,
+                    sample_shape=sample_shape,
+                    samplegroup=samplegroup,
+                    coord=coord,
             )
 
         self._samples.setdefault(sobj.name, sobj)
@@ -188,12 +188,12 @@ class Study(object):
         """
         if not slist:
             samples = self.get_sample(
-                sname=sname,
-                mtype=mtype,
-                series=series,
-                stype=stype, sval=sval, sval_range=sval_range,
-                mean=mean,
-                invert=invert,
+                    sname=sname,
+                    mtype=mtype,
+                    series=series,
+                    stype=stype, sval=sval, sval_range=sval_range,
+                    mean=mean,
+                    invert=invert,
             )
         else:
             samples = slist
@@ -204,6 +204,49 @@ class Study(object):
             s.add_to_samplegroup(gname=gname)
 
         return samples
+
+    def remove_samplegroup(self,
+                           gname=None,
+                           sname=None,
+                           mtype=None,
+                           series=None,
+                           stype=None, sval=None, sval_range=None,
+                           mean=False,
+                           invert=False,
+                           slist=None,
+                           ):
+        """
+        removes selected samples from a samplegroup
+
+        Parameter
+        ---------
+            gname: str
+                the name of the samplegroup that is supposed to be removed
+            slist: list
+                list of samples to be removed the sample_group
+
+        Returns
+        -------
+            list
+                list of samples in samplegroup
+        """
+        if not gname:
+            RockPy3.logger.error('NO sample group specified')
+            return
+
+        if not slist:
+            samples = self.get_sample(
+                    sname=sname,
+                    mtype=mtype,
+                    series=series,
+                    stype=stype, sval=sval, sval_range=sval_range,
+                    mean=mean,
+                    invert=invert,
+            )
+        else:
+            samples = slist
+
+        [s.remove_from_samplegroup(gname) for s in samples]
 
     def add_mean_sample(self,
                         gname=None,
@@ -244,9 +287,9 @@ class Study(object):
         """
         # get specified measurements
         slist = self.get_sample(
-            gname=gname, sname=sname, mtype=mtype,
-            series=series, stype=stype, sval=sval, sval_range=sval_range,
-            mean=mean, invert=invert)
+                gname=gname, sname=sname, mtype=mtype,
+                series=series, stype=stype, sval=sval, sval_range=sval_range,
+                mean=mean, invert=invert)
 
         samples = '_'.join(sobj.name for sobj in slist)
 
@@ -391,9 +434,9 @@ class Study(object):
             if groupmean:
                 mlist = filter(lambda x: isinstance(x.sobj, RockPy3.MeanSample), mlist)
 
-        return list(set(mlist))
+        return sorted(set(mlist))
 
-    def import_folder(self, folder): #todo specify samples, mtypes and series for selective import of folder
+    def import_folder(self, folder, gname=None):  # todo specify samples, mtypes and series for selective import of folder
         files = [os.path.join(folder, i) for i in os.listdir(folder)
                  if not i.startswith('#')
                  if not i.startswith(".")
@@ -402,16 +445,21 @@ class Study(object):
 
         sample_groups = set(os.path.basename(f).split('_')[0] for f in files)
         RockPy3.logger.debug(
-            'TRYING to import {} files for these samplegroups {}'.format(len(files), sorted(list(sample_groups))))
+                'TRYING to import {} files for these samplegroups {}'.format(len(files), sorted(list(sample_groups))))
 
         start = time.clock()
 
-        measurements = [self.import_file(file) for file in files]
+        measurements = [self.import_file(file) for file in sorted(files)]
 
         end = time.clock()
         measurements = [m for m in measurements if m]
+
+        if gname:
+            samples = set(m.sobj for m in measurements)
+            self.add_samplegroup(gname=gname, slist=samples)
+
         RockPy3.logger.debug(
-            'IMPORT generated {} measurements: finished in {:<3}s'.format(len(measurements), end - start))
+                'IMPORT generated {} measurements: finished in {:<3}s'.format(len(measurements), end - start))
         return measurements
 
     def import_file(self, fpath):
@@ -439,14 +487,13 @@ class Study(object):
         except ValueError:
             return
 
-    def info(self, sample_info = True, tablefmt='simple', parameters=True):
+    def info(self, sample_info=True, tablefmt='simple', parameters=True):
         formats = ['plain', 'simple', 'grid', 'fancy_grid', 'pipe', 'orgtbl', 'rst', 'mediawiki', 'html', 'latex',
                    'latex_booktabs']
 
         if not tablefmt in formats:
             RockPy3.logger.info('NO SUCH FORMAT')
             tablefmt = 'simple'
-
 
         table = [['{} samples'.format(len(self.samplelist)), ','.join(self.samplenames), '           ']]
         table.append([''.join(['--' for i in str(j)]) for j in table[0]])
@@ -507,7 +554,7 @@ class Study(object):
                     if isinstance(m.sobj, RockPy3.MeanSample):
                         samples = set(base.sobj.name for base in m.base_measurements)
                         mean = ''.join(['S' + sample + '{}'.format(
-                            [base.idx for base in m.base_measurements if base.sobj.name == sample]) for sample in
+                                [base.idx for base in m.base_measurements if base.sobj.name == sample]) for sample in
                                         samples])
                     else:
                         mean = 'mean{}'.format([base.idx for base in m.base_measurements])
