@@ -268,6 +268,7 @@ class plot(object):
                      'result_from_means',):
             if plt_input[info] is None:
                 plt_input[info] = True
+
         if not plt_input['base_alpha']:
             plt_input['base_alpha'] = 0.5
 
@@ -702,7 +703,7 @@ def sort_plt_input(plt_input):
 
     # get all measurements in plt_input
     mlist, meanlist = mlist_from_plt_input(plt_input)
-    # mlist = [m for m in mlist if not m.id in base_ids]
+
     if not any([mlist, meanlist]):
         RockPy3.logger.warning(
             'No input selected groupmean, samplemean, base and other will only work for the speecific input of figure visual or feature.')
@@ -726,6 +727,8 @@ def sort_plt_input(plt_input):
     other = set(m for m in mlist if not m.id in all_base_ids)
     out['other'] = other
 
+    for k in out:
+        out[k] = sorted(out[k])
     return deepcopy(out)
 
 
@@ -956,3 +959,12 @@ def range_to_tuple(range):
 #     v = fig.add_visual(visual='resultseries',result='bc', series='noise')
 #     v.add_feature('result_series_errorbars')
 #     fig.show()
+
+
+def _to_tuple(oneormoreitems):
+    """
+    convert argument to tuple of elements
+       oneormoreitems: single number or string or list of numbers or strings
+    :return: tuple of elements
+    """
+    return tuple(oneormoreitems) if hasattr(oneormoreitems, '__iter__') and type(oneormoreitems) is not str else (oneormoreitems, )
