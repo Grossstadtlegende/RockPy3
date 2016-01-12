@@ -208,7 +208,7 @@ class Measurement(object):
         if cls._sresult:
             return cls._sresult
 
-        scp = {r: {'recipe': False, 'secondary': False, 'dependent': False} for r in
+        scp = {r: {'recipe': False, 'secondary': False, 'dependent': False, 'indirect':False} for r in
                cls.result_methods()}
         dependent = []
         for res in scp:
@@ -808,6 +808,14 @@ class Measurement(object):
         else:
             self.set_plt_prop(prop='linestyle', value='-')
 
+    def __lt__(self, other):
+        """
+        for sorting measurements. They are sorted by their index
+        :param other:
+        :return:
+        """
+        return  self.idx < other.idx
+
     def get_RockPy_compatible_filename(self, add_series=True):
 
         prefix = [('femto', 'f'), ('pico', 'p'), ('nano', 'n'), ('micro', 'mu'), ('milli', 'm'), ('', ''),
@@ -887,9 +895,9 @@ class Measurement(object):
             self.log.info('RECIPE << %s, %s >> already set' % (result, recipe))
             return
 
-        # break if recipy not implemented
+        # break if recipe not implemented
         if not recipe in self.get_recipes(direct_result):
-            self.log.error('Recipe not found, these are implemented: %s' % self.get_recipes(direct_result))
+            self.log.error('Recipe %s not found in %s, these are implemented: %s' %(recipe, direct_result, self.get_recipes(direct_result)))
             return
 
         old_recipe = self.result_recipe[direct_result]
@@ -897,6 +905,14 @@ class Measurement(object):
 
         if indirect_result:
             self.result_recipe[indirect_result] = self.result_recipe[direct_result]
+
+        # if result is the base for other results, their methods have to be changed, too.
+        if self.standards_result()[result]['base_for']:
+            dependencies = self.standards_result()[result].get('base_for', [])
+            for dep_res in dependencies:
+                if not self.standards_result()[dep_res]['indirect']:
+                    self.set_recipe(dep_res, recipe=recipe)
+                    self.result_recipe[dep_res] = recipe.upper()
 
         self.log.warning('Calculation parameter changed from:')
         self.log.warning('{}: {}'.format(old_recipe, self.calculation_parameter[direct_result]))
@@ -1733,7 +1749,7 @@ class Measurement(object):
                     norm_dtypes = [i for i in norm_dtypes if not i == variable]
 
                 if dont_normalize:
-                    dont_normalize = RockPy3.core.utils._to_tuple(dont_normalize)
+                    dont_normalize = RockPy3._to_tuple(dont_normalize)
                     norm_dtypes = [i for i in norm_dtypes if not i in dont_normalize]
 
                 for ntype in norm_dtypes:  # else use norm_dtypes specified
@@ -2248,6 +2264,10 @@ def result(func, *args, **kwargs):
                     'Recalculating all results that are dependent on << {} >> and have been calculated already'.format(
                         result_name))
                 for dep_res in dependencies:
+                    # indirect results need not to be recalculated since they are calculated from the direct method
+                    if self.standards_result()[dep_res]['indirect']:
+                        continue
+                    self.log.debug('Recalculating << {} >> '.format(dep_res))
                     # skip results that have not been calculated
                     if not dep_res in self.results.column_names:
                         continue
@@ -2339,6 +2359,9 @@ if __name__ == '__main__':
     m = s.add_measurement(mtype='hys', fpath='/Users/mike/Google Drive/__code/RockPy3/testing/test_data/hys_vsm.001',
                           ftype='vsm')
     m.add_series('mtime', 0, '3')
+    m.set_recipe('ms', 'app2sat')
+
+    m.result_ms(check=True)
     # S.import_folder('/Users/mike/Google Drive/__code/RockPy3/mike_testing/auto_import')
     # S.info(sample_info=False)
     # m = S.get_measurement(mtype='hysteresis')[0]
