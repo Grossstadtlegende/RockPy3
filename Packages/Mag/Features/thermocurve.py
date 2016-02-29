@@ -41,7 +41,7 @@ if __name__ == '__main__':
     v.title = 'b-axis'
     v = fig.add_visual('thermocurve', features='thermocurve_data_colored', visual_input=S.get_measurement(stype='axis', sval=3))
     v.title = 'c-axis'
-    f = fig.show(set_xlim=[10, 100], equal_lims=True, return_figure=False, save_path='Desktop', file_name='LTPY_rmp_3axis')
+    f = fig.show(xlims=[10, 100], equal_lims=True, return_figure=False, save_path='Desktop', file_name='LTPY_rmp_3axis')
 
     # f.set_figwidth(15)
     # f.savefig('/Users/Mike/Dropbox/experimental_data/pyrrhotite/LTPY_FC_plots.pdf')

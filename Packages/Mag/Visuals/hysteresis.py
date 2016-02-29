@@ -33,6 +33,10 @@ class Hysteresis(Visual):
     def feature_irreversible_data(self, mobj, plt_props=None):
         RockPy3.Packages.Mag.Features.hysteresis.reversible(self.ax, mobj, **plt_props)
 
+    @plot(mtypes='hysteresis', overwrite_mobj_plt_props={'marker': ''})
+    def feature_hysteresis_derivative_data(self, mobj, plt_props=None):
+        RockPy3.Packages.Mag.Features.hysteresis.hysteresis_derivative(self.ax, mobj, **plt_props)
+
 
 class Fabian2003(Hysteresis, RockPy3.Packages.Mag.Visuals.backfield.Backfield):
     def init_visual(self):

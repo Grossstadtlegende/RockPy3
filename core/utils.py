@@ -10,7 +10,7 @@ import matplotlib.dates
 import datetime
 import decorator
 from pprint import pprint
-
+import numpy as np
 
 def colorscheme(scheme='simple'):
     colors = {'simple': ['r', 'g', 'b', 'c', 'm', 'y', 'k'] * 100,
@@ -239,8 +239,8 @@ class plot(object):
         types = ('figure', 'visual', 'feature')
         plt_input = {'in_type': None}
 
-        for idx, indict in enumerate([visual.visual_input, visual.features[name]['feature_input']]):
-                # [visual._RockPy_figure.fig_input, visual.visual_input, visual.features[name]['feature_input']]):
+        for idx, indict in enumerate([visual.data, visual.features[name]['data']]):
+                # [visual._RockPy_figure.fig_input, visual.data, visual.features[name]['data']]):
             if any(indict[i] for i in ('groupmean', 'samplemean', 'samplebase', 'groupbase', 'other')):
                 plt_input.update(indict)
                 plt_input.update({'in_type': types[idx]})
@@ -304,14 +304,14 @@ class plot(object):
                 return wrapped_feature
 
             ############################################################################################################
-            # determine input parameters hierachically from fig -> visual -> feature
-            # meaning if only fig input, plot fig_input
-            # if fig_input and visual_input -> fig_input is overwritten by visual_input etc.
+            # determine data parameters hierachically from fig -> visual -> feature
+            # meaning if only fig data, plot fig_input
+            # if fig_input and data -> fig_input is overwritten by data etc.
             plt_info = self.get_plt_infos(feature=feature, visual=visual, name=name)
-            RockPy3.logger.info('Input from:')
+            RockPy3.logger.debug('Input from:')
 
             for k, v in sorted(plt_info.items()):
-                RockPy3.logger.info('            {}:{}'.format(k, v))
+                RockPy3.logger.debug('            {}:{}'.format(k, v))
 
             ############################################################################################################
             # RESULT FEATURES
@@ -328,7 +328,6 @@ class plot(object):
                     # skip everything that should not be plotted
                     if not plt_info['plot_' + plt_type]:
                         continue
-
                     # get the list of measurements
                     mlist = plt_info[plt_type]
                     # initialize plot properties
@@ -422,7 +421,7 @@ class plot(object):
                 # cycle through possible inputs
                 for plt_type in ('groupmean', 'samplemean', 'groupbase', 'samplebase', 'other'):
                     # skip everything that should not be plotted
-                    if not plt_info['plot_' + plt_type]:
+                    if not plt_info['plot_' + plt_type] or not plt_type in plt_info:
                         continue
                     # get the list of measurements
                     mlist = plt_info[plt_type]
@@ -440,7 +439,7 @@ class plot(object):
                             mobj = [m for m in mlist if m.mtype == mtype[0]]
                         else:
                             visual.log.error(
-                                'FEATURE {} input doesnt match mtype requirements {}'.format(feature.__name__,
+                                'FEATURE {} data doesnt match mtype requirements {}'.format(feature.__name__,
                                                                                              mtype))
                         for mt_tuple in mobj:
                             try:
@@ -686,10 +685,10 @@ def kwargs_to_calculation_parameter(rpobj=None, mtype_list=None, result=None, **
     return calc_params, kwargs
 
 
-def sort_plt_input(plt_input):
+def sort_input(input):
     """
     sorts a inputlist into subcategories
-    :param plt_input:
+    :param input:
     :param groupmean:
     :param samplemean:
     :param base:
@@ -698,15 +697,15 @@ def sort_plt_input(plt_input):
     """
     out = dict(groupmean=set(), samplemean=set(), groupbase=set(), samplebase=set(), other=set())
 
-    if not plt_input:
+    if not input:
         return out
 
     # get all measurements in plt_input
-    mlist, meanlist = mlist_from_plt_input(plt_input)
+    mlist, meanlist = mlist_from_input(input)
 
     if not any([mlist, meanlist]):
         RockPy3.logger.warning(
-            'No input selected groupmean, samplemean, base and other will only work for the speecific input of figure visual or feature.')
+            'No data selected groupmean, samplemean, base and other will only work for the speecific data of figure visual or feature.')
 
     # group_means
     group_means = set(m for m in meanlist if isinstance(m.sobj, RockPy3.MeanSample))
@@ -732,16 +731,16 @@ def sort_plt_input(plt_input):
     return deepcopy(out)
 
 
-def add_to_plt_input(plt_input, to_add_to, groupmean=True, samplemean=True, base=True, other=True):
-    plt_input = sort_plt_input(plt_input=plt_input)
+def add_to_input(input, to_add_to, groupmean=True, samplemean=True, base=True, other=True):
+    input = sort_input(input=input)
     for k, v in to_add_to.items():
-        to_add_to[k].update(plt_input[k])
+        to_add_to[k].update(input[k])
     return to_add_to
 
 
-def mlist_from_plt_input(plt_input):
+def mlist_from_input(plt_input):
     """
-    takes arbitrary input and separates all measurements.
+    takes arbitrary data and separates all measurements.
 
     explanation:
         sample - measurement sorted to mlist
@@ -915,13 +914,13 @@ def tuple2list_of_tuples(item):
 
     Parameters
     ----------
-       input: list, tuple
+       data: list, tuple
 
     Returns
     -------
        list
-          Returns a list of tuples, if input is a tuple it converts it to a list of tuples
-          if input == a list of tuples will just return input
+          Returns a list of tuples, if data is a tuple it converts it to a list of tuples
+          if data == a list of tuples will just return data
     """
     if type(item) != tuple and type(item) != list:
         item = tuple([item])
@@ -968,3 +967,19 @@ def _to_tuple(oneormoreitems):
     :return: tuple of elements
     """
     return tuple(oneormoreitems) if hasattr(oneormoreitems, '__iter__') and type(oneormoreitems) is not str else (oneormoreitems, )
+
+def create_heat_color_map(value_list, reverse=False):
+    """
+    takes a list of values and creates a list of colors from blue to red (or reversed if reverse = True)
+
+    :param value_list:
+    :param reverse:
+    :return:
+    """
+    red = np.linspace(0, 255, len(value_list)).astype('int')
+    blue = red[::-1]
+    rgb = [(r, 0, blue[i]) for i, r in enumerate(red)]
+    out = ['#%02x%02x%02x' % val for val in rgb]
+    if reverse:
+        out = out[::-1]
+    return out

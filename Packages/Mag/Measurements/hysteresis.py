@@ -669,6 +669,20 @@ class Hysteresis(measurement.Measurement):
         self.results['hf_sus'] = [[(np.nanmean(hf_sus_result), np.nanstd(hf_sus_result))]]
         self.results['ms'] = [[(np.nanmean(ms_result), np.nanstd(ms_result))]]
 
+    @calculate
+    def calculate_ms_MAX(self, **non_method_parameters):
+        """
+        calculates Ms by simply taking the mean of the moments at max fields for all branches
+        :return:
+        """
+        ms_result = []
+        for dtype in ('down_field', 'up_field'):
+            ms_result.append(abs(max(self.data[dtype]['mag'].v)))
+            ms_result.append(abs(min(self.data[dtype]['mag'].v)))
+
+        self.results['hf_sus'] = [[(np.nan, np.nan)]]
+        self.results['ms'] = [[(np.nanmean(ms_result), np.nanstd(ms_result))]]
+
     @result
     def result_ms(self, recipe='DEFAULT', recalc=False, **non_method_parameters):
         """

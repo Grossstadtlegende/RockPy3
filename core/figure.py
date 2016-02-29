@@ -12,7 +12,7 @@ from RockPy3.core.visual import Visual
 
 class Figure(object):
     def __init__(self, title=None, figsize=(5, 5), columns=None, tightlayout=True,
-                 fig_input=None,
+                 data=None,
                  plot_groupmean=None, plot_samplemean=None, plot_samplebase=None, plot_groupbase=None,
                  plot_other=None,
                  base_alpha=None, ignore_samples=None, result_from_means=None,
@@ -42,9 +42,9 @@ class Figure(object):
         self._fig = None
         self.title = title
 
-        self.fig_input = RockPy3.core.utils.sort_plt_input(fig_input)
+        self.data = RockPy3.core.utils.sort_input(data)
 
-        mlist, mean_list = RockPy3.core.utils.mlist_from_plt_input(fig_input)
+        mlist, mean_list = RockPy3.core.utils.mlist_from_input(data)
 
         self.calculation_parameter, kwargs = RockPy3.core.utils.separate_calculation_parameter_from_kwargs(
             mlist=mlist.extend(mean_list), **kwargs)
@@ -57,10 +57,10 @@ class Figure(object):
         self.base_alpha = base_alpha
         self.ignore_samples = ignore_samples
 
-    def add_input(self, fig_input, groupmean=True, samplemean=True, base=True, other=True):
-        self.fig_input = RockPy3.core.utils.add_to_plt_input(plt_input=fig_input, to_add_to=self.fig_input,
-                                                             groupmean=groupmean, samplemean=samplemean, base=base,
-                                                             other=other)
+    def add_input(self, input, groupmean=True, samplemean=True, base=True, other=True):
+        self.data = RockPy3.core.utils.add_to_input(input=input, to_add_to=self.data,
+                                                    groupmean=groupmean, samplemean=samplemean, base=base,
+                                                    other=other)
 
     @property
     def visuals(self):
@@ -116,7 +116,7 @@ class Figure(object):
                 n = self._n_visuals
                 # create instance of visual by dynamically calling from implemented_visuals dictionary
                 visual_obj = RockPy3.implemented_visuals[visual](
-                    visual_input=visual_input, plt_index=n, fig=self, name=name,
+                    input=input, plt_index=n, fig=self, name=name,
                     plot_groupmean=plot_groupmean, plot_groupbase=plot_groupbase,
                     plot_samplemean=plot_samplemean, plot_samplebase=plot_samplebase,
                     plot_other=plot_other, base_alpha=base_alpha, result_from_means=result_from_means,
@@ -191,11 +191,11 @@ class Figure(object):
         return xlim, ylim
 
     def show(self,
-             set_xlim=None, set_ylim=None,
+             xlims=None, ylims=None,
              equal_lims=False, center_lims=False,
              save_path=None,
              pad=0.4, w_pad=0.5, h_pad=1.0,
-             file_name=None, format='.pdf',
+             file_name=None, format='pdf',
              legend=True, sort_labels = True,
              return_figure=False,
              **options):
@@ -236,22 +236,22 @@ class Figure(object):
             #     xlim = visual.ax.get_xlim()
             #     ylim = visual.ax.get_ylim()
 
-        if set_xlim == 'equal' or set_ylim == 'equal' or equal_lims:
+        if xlims == 'equal' or ylims == 'equal' or equal_lims:
             if equal_lims:
-                xlim, ylim = self.get_xylims()
+                xlims, ylims = self.get_xylims()
 
             if center_lims:
-                xl = max(np.abs(xlim))
-                yl = max(np.abs(ylim))
-                xlim = [-xl, xl]
-                ylim = [-yl, yl]
+                xl = max(np.abs(xlims))
+                yl = max(np.abs(ylims))
+                xlims = [-xl, xl]
+                ylims = [-yl, yl]
 
             # cycle through visuals to set
             for name, type, visual in self._visuals:
-                if set_xlim == 'equal' or equal_lims:
-                    visual.ax.set_xlim(xlim)
-                if set_ylim == 'equal' or equal_lims:
-                    visual.ax.set_ylim(ylim)
+                if xlims == 'equal' or equal_lims:
+                    visual.ax.set_xlim(xlims)
+                if ylims == 'equal' or equal_lims:
+                    visual.ax.set_ylim(ylims)
 
         for name, type, visual in self._visuals:
             if not legend:
@@ -264,15 +264,15 @@ class Figure(object):
             visual.ax.legend(handles, labels, **visual.legend_options)
 
         # check if two entries and each is float or int
-        if set_xlim:
-            if len(set_xlim) == 2 and any(isinstance(i, (float, int)) for i in set_xlim):
+        if xlims:
+            if len(xlims) == 2 and any(isinstance(i, (float, int)) for i in xlims):
                 for name, type, visual in self._visuals:
-                    visual.ax.set_xlim(set_xlim)
+                    visual.ax.set_xlim(xlims)
         # check if two entries and each is float or int
-        if set_ylim:
-            if len(set_ylim) == 2 and any(isinstance(i, (float, int)) for i in set_ylim):
+        if ylims:
+            if len(ylims) == 2 and any(isinstance(i, (float, int)) for i in ylims):
                 for name, type, visual in self._visuals:
-                    visual.ax.set_ylim(set_ylim)
+                    visual.ax.set_ylim(ylims)
 
         self._fig.set_tight_layout(tight={'pad': pad, 'w_pad': w_pad, 'h_pad': h_pad})
 
@@ -291,7 +291,8 @@ class Figure(object):
                     file_name = os.path.basename(inspect.stack()[-1][1])
                     file_name += options.get('append', '')
                 if not format in file_name:
-                    file_name *= format
+                    file_name +='.'
+                    file_name += format
                 save_path = os.path.join(os.path.expanduser('~'), 'Desktop', file_name)
             plt.savefig(save_path)
         else:

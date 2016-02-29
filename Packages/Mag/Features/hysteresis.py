@@ -8,6 +8,15 @@ def hysteresis(ax, mobj, **plt_props):
     plt_props.pop('label', None)
     uf_branch(ax, mobj, **plt_props)
 
+def hysteresis_derivative(ax, mobj, **plt_props):
+    for branch in ('down_field', 'up_field'):
+        data = mobj.data[branch].derivative('mag', 'field')
+        if branch == 'up_field':
+            plt_props.pop('label', None)
+
+        ax.plot(data['field'].v,
+            data['mag'].v,
+            **plt_props)
 
 def hysteresis_error(ax, mobj, **plt_props):
     plt_props.setdefault('marker', '')

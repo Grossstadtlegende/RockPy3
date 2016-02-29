@@ -9,7 +9,7 @@ import numpy as np
 
 
 class ResultSeries(Visual):
-    def __init__(self, visual_input=None, plt_index=None, fig=None, name=None, coord=None,
+    def __init__(self, data=None, plt_index=None, fig=None, name=None, coord=None,
                  plot_groupmean=None, plot_samplemean=None, plot_samplebase=None, plot_groupbase=None,
                  plot_other=None, base_alpha=None,
                  result=None, series=None,
@@ -26,7 +26,7 @@ class ResultSeries(Visual):
             title = '{} vs. {}'.format(result, series)
 
         super(ResultSeries, self).__init__(
-            visual_input=visual_input, plt_index=plt_index,
+            data=data, plt_index=plt_index,
             fig=fig, name=name, coord=coord,
             plot_groupmean=plot_groupmean, plot_groupbase=plot_groupbase,
             plot_samplemean=plot_samplemean, plot_samplebase=plot_samplebase,

@@ -5,7 +5,7 @@ log = logging.getLogger('RockPy3.utils.convert')
 def convert2(in_unit, out_unit, unit_type):
     """
 
-    :param in_unit: str the input unit
+    :param in_unit: str the data unit
     :param out_unit: str the desired output unit
     :param unit_type: what kind of units they are.
     :return: conversion factor

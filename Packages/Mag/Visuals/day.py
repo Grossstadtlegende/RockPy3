@@ -66,7 +66,7 @@ if __name__ == '__main__':
     hys = s.add_measurement(mtype='hysteresis', fpath='/Users/Mike/GitHub/RockPy_presentation/hys.001', ftype='vsm')
     coe = s.add_measurement(mtype='backfield', fpath='/Users/Mike/GitHub/RockPy_presentation/coe.001', ftype='vsm')
 
-    fig = RockPy3.Figure(fig_input=Study)
+    fig = RockPy3.Figure(data=Study)
     v = fig.add_visual(visual='day', color='r', markersize=10, xlims=[1, 6])
     # print(v.xlims)
     v.add_feature(feature='sd_md_mixline_1', marker='')
