@@ -777,6 +777,10 @@ class Measurement(object):
         self.idx = idx
         self.__class__.n_created += 1
 
+        self.set_standard_plt_props(color, marker, linestyle)
+        self.calc_all()
+
+    def set_standard_plt_props(self, color = None, marker=None, linestyle=None):
         #### automatically set the plt_props for the measurement according to the
         if color:
             self.set_plt_prop('color', color)
@@ -922,27 +926,6 @@ class Measurement(object):
             self.methods[indirect_result] = self.methods[direct_result]
 
         self.remove_result(result=direct_result)
-
-    def remove_result(self, result):
-        """
-        Removes a result from the results data object. If there are results that are dependent on this result,
-        they are also removed.
-
-        :param result:
-        :return:
-        """
-        # no need to to remove if result has not been calculated
-        if not self.results or not result in self.results.column_names:
-            self.log.debug('result << {} >> not calculated, yet. No need for removal'.format(result))
-            return
-        self.log.debug('removing result << {} >>'.format(result))
-        print(self.results.column_names, result)
-        self.results.delete_columns(result)
-        if self.standards_result()[result]['base_for']:
-            for res in self.standards_result()[result]['base_for']:
-                # remove the dependent result, if it has been calculated
-                if res in self.results.column_names:
-                    self.results.delete_columns(res)
 
     def get_recipes(self, result):
         """
@@ -1365,12 +1348,14 @@ class Measurement(object):
         # get possible calculation parameters and put them in a dictionary
         calculation_parameter, kwargs = RockPy3.core.utils.kwargs_to_calculation_parameter(rpobj=self, **parameter)
         for result_method in self.result_methods():
+            # get calculation parameter
             calc_param = calculation_parameter.get(self.mtype, {})
+            # get the calculation method
             calc_param = calc_param.get(result_method, {})
             getattr(self, 'result_' + result_method)(recalc=recalc, **calc_param)
         if kwargs:
             self.log.warning('--------------------------------------------------')
-            self.log.warning('| %46s |' % 'SOME PARAMETERS COULD NOT BE USED')
+            self.log.warning('| %46s |' % 'THESE PARAMETERS COULD NOT BE USED')
             self.log.warning('--------------------------------------------------')
             for i, v in kwargs.items():
                 self.log.warning('| %22s: %22s |' % (i, v))
@@ -2338,7 +2323,9 @@ def get_result_recipe_name(func_name):
 
 
 if __name__ == '__main__':
-    import RockPy3.Packages.Mag.Measurements.hysteresis
+    import RockPy3
+    import logging
+    RockPy3.logger.setLevel('DEBUG')
     from pprint import pprint
 
     S = RockPy3.RockPyStudy()
@@ -2346,6 +2333,7 @@ if __name__ == '__main__':
     s.add_to_samplegroup('TT')
     m = s.add_measurement(mtype='hys', fpath='/Users/mike/Google Drive/__code/RockPy3/testing/test_data/hys_vsm.001',
                           ftype='vsm')
+    print(m.result_ms())
     # m.set_recipe('ms', 'app2sat')
     #
     # m.result_ms(check=True)
