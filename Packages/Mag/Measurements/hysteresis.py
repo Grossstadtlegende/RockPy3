@@ -274,14 +274,14 @@ class Hysteresis(measurement.Measurement):
             mdata.setdefault('up_field', RockPyData(column_names=header, data=data[2],
                                                     units=ftype_data.units).sort('field'))
 
-        if len(segments['segment number']) == 2:
+        elif len(segments['segment number']) == 2:
             mdata.setdefault('virgin', None)
             mdata.setdefault('down_field', RockPyData(column_names=header, data=data[0],
                                                       units=ftype_data.units).sort('field'))
             mdata.setdefault('up_field', RockPyData(column_names=header, data=data[1],
                                                     units=ftype_data.units).sort('field'))
 
-        if len(segments['segment number']) == 1:
+        elif len(segments['segment number']) == 1:
             mdata.setdefault('virgin', RockPyData(column_names=header, data=data[0],
                                                   units=ftype_data.units
                                                   ).sort('field'))
