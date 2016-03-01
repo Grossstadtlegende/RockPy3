@@ -289,10 +289,9 @@ class Hysteresis(measurement.Measurement):
             mdata.setdefault('up_field', None)
 
         for dtype in mdata:
-            with RockPy3.ignored(AttributeError):
+            if mdata[dtype]:
                 mdata[dtype].rename_column('moment', 'mag')
                 mdata[dtype].define_alias('variable', 'field')
-
         return mdata
 
     @staticmethod
