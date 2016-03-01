@@ -450,15 +450,16 @@ class Study(object):
         start = time.clock()
 
         measurements = [self.import_file(file) for file in sorted(files)]
+        # measurements = map(self.import_file, files)
+        # measurements = [m for m in measurements if m]
 
         end = time.clock()
-        measurements = [m for m in measurements if m]
 
         if gname:
             samples = set(m.sobj for m in measurements)
             self.add_samplegroup(gname=gname, slist=samples)
 
-        RockPy3.logger.debug(
+        RockPy3.logger.info(
                 'IMPORT generated {} measurements: finished in {:<3}s'.format(len(measurements), end - start))
         return measurements
 
@@ -471,17 +472,14 @@ class Study(object):
         """
         try:
             info = RockPy3.get_info_from_fname(fpath)
-            sample_info = deepcopy(info)
+
             if not info['mtype'] in RockPy3.implemented_measurements:
                 return
-            # remove unnecessary info
-            for arg in ['series', 'idx', 'mtype', 'ftype', 'fpath']:
-                sample_info.pop(arg, None)
-            name = sample_info.pop('sample_name', None)
-            if not name in self._samples:
-                s = self.add_sample(name=name, **sample_info)
+
+            if not info['sample_name'] in self._samples:
+                s = self.add_sample(name=info['sample_name'], mass=info['mass'], mass_unit=info['mass_unit'])
             else:
-                s = self._samples[name]
+                s = self._samples[info['sample_name']]
             m = s.add_measurement(fpath=info['fpath'], series=info['series'])
             return m
         except ValueError:
@@ -749,3 +747,8 @@ class Study(object):
         root = tree.getroot()
 
         return cls.from_etree(root)
+
+if __name__ == '__main__':
+    S400J = RockPy3.RockPyStudy()
+    S.import_folder('/Users/mike/Dropbox/experimental_data/FeNiX/FeNi20K');
+    S400J.info()
