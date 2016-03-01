@@ -127,9 +127,9 @@ Study = RockPy3.core.study.Study(name='MasterStudy')
 implemented_measurements = {m.__name__.lower(): m for m in Measurement.inheritors()}
 implemented_visuals = RockPy3.core.visual.Visual.implemented_visuals()
 
-logger.debug('IMPLEMENTED MEASUREMENT TYPES: \tFTYPES')
-for m, obj in sorted(RockPy3.implemented_measurements.items()):
-    logger.debug('\t{:<26}: \t{}'.format(m, ', '.join(obj.measurement_formatters().keys())))
+print('IMPLEMENTED MEASUREMENT TYPES     : \tFTYPES')
+print('---------------------------------------------------------------------------')
+print('\n'.join(['\t{:<26}: \t{}'.format(m, ', '.join(obj.measurement_formatters().keys())) for m, obj in sorted(RockPy3.implemented_measurements.items())]))
 
 mtype_ftype_abbreviations_inversed, mtype_ftype_abbreviations = RockPy3.core.file_operations.mtype_ftype_abbreviations()
 
