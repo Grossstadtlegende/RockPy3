@@ -66,8 +66,9 @@ class Measurement(object):
     _mpcp = None  # all possible parameters for each method of a specific mtype as a dict(method:parameters)
 
     _scp = None  # standard_calculation parameter
-    _rm = None  # result methods
+    _rm = None  # result methods #needed 1.3.16
 
+    _cm = None # calculation methods
     _sresult = None
     _scalculate = None
 
@@ -86,160 +87,167 @@ class Measurement(object):
         return cls.__name__.lower()
 
     ####################################################################################################################
-    ''' calculation parameter methods '''
+    # ''' calculation parameter methods '''
+    #
+    # @classmethod
+    # def collected_mtype_calculation_parameter(cls):
+    #     """
+    #     searches through all implemented calculation methods and collects the parameters used in the method.
+    #
+    #     Returns
+    #     -------
+    #         dictionary
+    #          key == mtype
+    #          value == a sorted list of unique parameters
+    #     """
+    #     if not cls._cmcp:
+    #         cls._cmcp = {}
+    #         for mname, measurement in RockPy3.implemented_measurements.items():
+    #             cls._cmcp.setdefault(
+    #                     mname,
+    #                     sorted(
+    #                             list(set(
+    #                                     [i for j in measurement.mtype_possible_calculation_parameter().values() for i in
+    #                                      j]))))
+    #     return cls._cmcp
+    #
+    # @classmethod
+    # def mtype_calculation_parameter(cls):
+    #     """
+    #     searches through all implemented calculation methods and collects the parameters used in the method.
+    #
+    #     Returns
+    #     -------
+    #         a sorted list of unique parameters
+    #     """
+    #     if not cls._mcp:
+    #         cls._mcp = {}
+    #         for mname, measurement in RockPy3.implemented_measurements.items():
+    #             cls._mcp.setdefault(mname, measurement.mtype_possible_calculation_parameter())
+    #     return cls._mcp
+    #
+    # @classmethod
+    # def method_calculation_parameter_list(cls):
+    #     """
+    #     searches through all implemented calculation methods and collects the parameters used in the method.
+    #
+    #     Returns
+    #     -------
+    #         a dictionary with:
+    #         key: calculation_method name
+    #         value: list of unique parameters
+    #     """
+    #     if not cls._pcp:
+    #         cls.pcp = {}
+    #         for mname, measurement in RockPy3.implemented_measurements.items():
+    #             for method, parameters in measurement.mtype_possible_calculation_parameter().items():
+    #                 cls.pcp.setdefault(method, parameters)
+    #     return cls.pcp
+    #
+    # @classmethod
+    # def global_calculation_parameter(cls):
+    #     """
+    #     searches through all implemented calculation methods and collects the parameters used in the method.
+    #
+    #     Returns
+    #     -------
+    #         a sorted list of unique parameters
+    #     """
+    #     if not cls._gcp:
+    #         gpcp = []
+    #         for mname, measurement in RockPy3.implemented_measurements.items():
+    #             for method, parameters in measurement.collected_mtype_calculation_parameter().items():
+    #                 gpcp.extend(parameters)
+    #     return sorted(list(set(gpcp)))
+    #
+    # @classmethod
+    # def mtype_possible_calculation_parameter(cls):
+    #     """
+    #     All possible calculation methods of a measurement. It first creates a dictionary of all calculate_methods and
+    #     their signature.
+    #     Then it looks through all result_ methods and checks if any is not added yet and needs a recipe
+    #     Note
+    #     ----
+    #         This adds a pseudo_method to the dictionary for each result_method with a recipe.
+    #         Therefor this dict can not be used to check for methods!
+    #     """
+    #
+    #     if not cls._mpcp:
+    #         # get all parameters from all measurements
+    #         cls._mpcp = {
+    #             i: set(arg for arg, value in inspect.signature(getattr(cls, 'calculate_' + i)).parameters.items()
+    #                    if not arg in ['self', 'non_method_parameters'])
+    #             for i in cls.calculate_methods()}
+    #
+    #         # methods with recipe need 'recipe' to be added to the calculation_parameters
+    #         for res in cls.result_methods():
+    #             if res not in cls._mpcp:
+    #                 methods = cls.get_calculate_methods(res)
+    #                 if cls.result_category(res) == 'indirect':
+    #                     cls._mpcp.setdefault(res, set())
+    #                     cls._mpcp[res].update(set(param for recipe in methods for param in cls._mpcp[recipe]))
+    #                 if 'recipe' in cls.result_category(res):
+    #                     cls._mpcp.setdefault(res, set())
+    #                     cls._mpcp[res].update(set(param for recipe in methods for param in cls._mpcp[recipe]))
+    #                     cls._mpcp[res].update(['recipe'])
+    #     return cls._mpcp
 
     @classmethod
-    def collected_mtype_calculation_parameter(cls):
-        """
-        searches through all implemented calculation methods and collects the parameters used in the method.
-
-        Returns
-        -------
-            dictionary
-             key == mtype
-             value == a sorted list of unique parameters
-        """
-        if not cls._cmcp:
-            cls._cmcp = {}
-            for mname, measurement in RockPy3.implemented_measurements.items():
-                cls._cmcp.setdefault(
-                        mname,
-                        sorted(
-                                list(set(
-                                        [i for j in measurement.mtype_possible_calculation_parameter().values() for i in
-                                         j]))))
-        return cls._cmcp
-
-    @classmethod
-    def mtype_calculation_parameter(cls):
-        """
-        searches through all implemented calculation methods and collects the parameters used in the method.
-
-        Returns
-        -------
-            a sorted list of unique parameters
-        """
-        if not cls._mcp:
-            cls._mcp = {}
-            for mname, measurement in RockPy3.implemented_measurements.items():
-                cls._mcp.setdefault(mname, measurement.mtype_possible_calculation_parameter())
-        return cls._mcp
-
-    @classmethod
-    def method_calculation_parameter_list(cls):
-        """
-        searches through all implemented calculation methods and collects the parameters used in the method.
-
-        Returns
-        -------
-            a dictionary with:
-            key: calculation_method name
-            value: list of unique parameters
-        """
-        if not cls._pcp:
-            cls.pcp = {}
-            for mname, measurement in RockPy3.implemented_measurements.items():
-                for method, parameters in measurement.mtype_possible_calculation_parameter().items():
-                    cls.pcp.setdefault(method, parameters)
-        return cls.pcp
-
-    @classmethod
-    def global_calculation_parameter(cls):
-        """
-        searches through all implemented calculation methods and collects the parameters used in the method.
-
-        Returns
-        -------
-            a sorted list of unique parameters
-        """
-        if not cls._gcp:
-            gpcp = []
-            for mname, measurement in RockPy3.implemented_measurements.items():
-                for method, parameters in measurement.collected_mtype_calculation_parameter().items():
-                    gpcp.extend(parameters)
-        return sorted(list(set(gpcp)))
-
-    @classmethod
-    def mtype_possible_calculation_parameter(cls):
-        """
-        All possible calculation methods of a measurement. It first creates a dictionary of all calculate_methods and
-        their signature.
-        Then it looks through all result_ methods and checks if any is not added yet and needs a recipe
-        Note
-        ----
-            This adds a pseudo_method to the dictionary for each result_method with a recipe.
-            Therefor this dict can not be used to check for methods!
-        """
-
-        if not cls._mpcp:
-            # get all parameters from all measurements
-            cls._mpcp = {
-                i: set(arg for arg, value in inspect.signature(getattr(cls, 'calculate_' + i)).parameters.items()
-                       if not arg in ['self', 'non_method_parameters'])
-                for i in cls.calculate_methods()}
-
-            # methods with recipe need 'recipe' to be added to the calculation_parameters
-            for res in cls.result_methods():
-                if res not in cls._mpcp:
-                    methods = cls.get_calculate_methods(res)
-                    if cls.result_category(res) == 'indirect':
-                        cls._mpcp.setdefault(res, set())
-                        cls._mpcp[res].update(set(param for recipe in methods for param in cls._mpcp[recipe]))
-                    if 'recipe' in cls.result_category(res):
-                        cls._mpcp.setdefault(res, set())
-                        cls._mpcp[res].update(set(param for recipe in methods for param in cls._mpcp[recipe]))
-                        cls._mpcp[res].update(['recipe'])
-        return cls._mpcp
-
-    def calculation_methods(self):
+    def calculation_methods(cls):
         # dynamically generating the calculation and standard parameters for each calculation method.
-        # This just sets the values to non, the values have to be specified in the class itself
-        return {i: getattr(self, i) for i in dir(self)
+        # This just sets the values to non, the values have to be specified in the class itcls
+
+        if not cls._cm:
+            cls._cm = {i: getattr(cls, i) for i in dir(cls)
                 if i.startswith('calculate_')
                 if not i.endswith('generic')
                 if not i.endswith('result')
                 }
+        return cls._cm
 
     @classmethod
     def standards_result(cls):
         """
         generates a dictionary of results:calculate_methods
         """
-        if cls._sresult:
-            return cls._sresult
+        if not cls._sresult:
+            # initialize
+            scp = {res: {'recipe': False, 'secondary': False, 'dependent': False, 'indirect':False, 'base_for': set()}
+                   for res in cls.result_methods()}
+            dependent = []
 
-        scp = {r: {'recipe': False, 'secondary': False, 'dependent': False, 'indirect':False} for r in
-               cls.result_methods()}
-        dependent = []
-        for res in scp:
-            res_method = getattr(cls, 'result_' + res)
-            result_sig = {k.name: k.default for k in inspect.signature(res_method).parameters.values() if
-                          not k.name == 'self' if not k.name == 'non_method_parameters'}
+            for res in scp:
+                res_method = getattr(cls, 'result_' + res)
+                result_sig = {k.name: k.default for k in inspect.signature(res_method).parameters.values() if
+                              not k.name == 'self' if not k.name == 'non_method_parameters'}
 
-            if 'recipe' in result_sig:
-                scp[res]['recipe'] = True
+                if 'recipe' in result_sig:
+                    scp[res]['recipe'] = True
 
-            if not any(res in method for method in cls.calculate_methods()):
-                scp[res]['indirect'] = True
+                if not any(res in method for method in cls.calculate_methods()):
+                    scp[res]['indirect'] = True
 
-            if 'secondary' in result_sig:
-                scp[res]['secondary'] = True
-            if 'dependent' in result_sig:
-                scp[res]['dependent'] = True
-                if not type(result_sig['dependent']) == tuple:
-                    result_sig['dependent'] = (result_sig['dependent'],)
-            scp[res].setdefault('signature', result_sig)
-            result_sig.setdefault('recipe', 'default')
+                if 'secondary' in result_sig:
+                    scp[res]['secondary'] = True
 
-            if scp[res]['dependent']:
-                for dep_on in result_sig['dependent']:
-                    dependent.append((res, dep_on))
+                if 'dependent' in result_sig:
+                    scp[res]['dependent'] = True
 
-        for dep, base in dependent:
-            scp[base].setdefault('base_for', set())
-            scp[base]['base_for'].add(dep)
-        cls._sresult = scp
-        return scp
+                    # convert to tuple for convenience
+                    if not type(result_sig['dependent']) == tuple:
+                        result_sig['dependent'] = (result_sig['dependent'],)
+
+                scp[res].setdefault('signature', result_sig)
+                result_sig.setdefault('recipe', 'default')
+
+                if scp[res]['dependent']:
+                    for dep_on in result_sig['dependent']:
+                        dependent.append((res, dep_on))
+
+            for dep, base in dependent:
+                scp[base]['base_for'].add(dep)
+            cls._sresult = scp
+        return cls._sresult
 
     @classmethod
     def standards_calculate(cls):
@@ -255,49 +263,42 @@ class Measurement(object):
     RESULT/CALCULATE METHOD RELATED
     """
 
-    @classmethod
-    def has_recipe(cls, res):
+    def has_recipe(self, res):
         """
         checks if result has parameter recipe in signature. if it does this means that the result_method has
         different
         """
-        if 'recipe' in cls.standards_result()[res]:
-            return True
-        else:
-            return False
+        return self.standards_result()[res]['recipe']
 
-    @classmethod
-    def has_calculation_method(cls, res):
+
+    def has_calculation_method(self, res):
         """
-        checks if result has parameter calculation_method in argspec. if it does this means that the result_method has
+        checks if result is indirect.
+        If it is an indirect result the calculation is not done in calculate_[res] but indirectly in a different method.
         different
 
         Returns
         -------
             bool
         """
-        if 'calculation_method' in inspect.signature(getattr(cls, 'result_' + res)).parameters:
-            return True
-        else:
-            return False
+        return self.standards_result()[res]['indirect']
 
-    @classmethod
-    def has_secondary(cls, res):
+    def has_secondary(self, res):
         """
-        checks if result has parameter calculation_method in argspec. if it does this means that the result_method has
-        different
+        checks if result has parameter has a secondary measurement necessary. If it does this means that the
+        result_method relies on a different measurement.
+
+        Example
+        -------
+            bcr/bc relies on a backfield measurement when called from hysteresis
 
         Returns
         -------
             bool
         """
-        if 'secondary' in inspect.signature(getattr(cls, 'result_' + res)).parameters:
-            return True
-        else:
-            return False
+        return self.standards_result()[res]['secondary']
 
-    @classmethod
-    def result_category(cls, res):
+    def result_category(self, res):
         """
         Takes a result_method name as argument and checks which category it belongs to.
 
@@ -336,39 +337,18 @@ class Measurement(object):
         """
         res = res.replace('result_', '')
         out = None
-        if cls.has_recipe(res) and cls.has_calculation_method(res):
+        if self.has_recipe(res) and self.has_calculation_method(res):
             out = 'indirect_recipe'
-        elif cls.has_calculation_method(res) and not cls.has_recipe(res):
+        elif self.has_calculation_method(res) and not self.has_recipe(res):
             out = 'indirect'
-        elif cls.has_recipe(res) and not cls.has_calculation_method(res):
+        elif self.has_recipe(res) and not self.has_calculation_method(res):
             out = 'direct_recipe'
-        elif res in cls.calculate_methods():
+        elif res in self.calculate_methods():
             out = 'direct'
-        if cls.has_secondary(res):
+        if self.has_secondary(res):
             out += '_dependent'
 
         return out
-
-    @classmethod
-    def get_calculate_methods(cls, res):
-        """
-        takes a result_method name as input and returns list of matching calculate_methods
-        """
-
-        if cls.result_category(res) == 'direct':
-            return [res]
-        elif cls.result_category(res) == 'direct_recipe':
-            return [i for i in cls.calculate_methods()
-                    if i.split('_')[-1].isupper
-                    if ''.join(i.split('_')[:-1]) == res]
-
-        calculation_method = inspect.signature(getattr(cls, 'result_' + res)).parameters['calculation_method'].default
-        if cls.result_category(res) == 'indirect':
-            return [calculation_method]
-        elif cls.result_category(res) == 'indirect_recipe':
-            return [i for i in cls.calculate_methods()
-                    if i.split('_')[-1].isupper
-                    if ''.join(i.split('_')[:-1]) == calculation_method]
 
     @classmethod
     def implemented_ftypes(cls):
@@ -700,6 +680,7 @@ class Measurement(object):
                  initial_state=None,
                  ismean=False, base_measurements=None,
                  color=None, marker=None, linestyle=None, mid=None,
+                 calculate_results = True,
                  **options
                  ):
         """
@@ -730,8 +711,11 @@ class Measurement(object):
             initial_state:
                 RockPy3.Measurement obj
 
+        Note
+        ----
+            when creating a new measurement it automatically calculates all results using the standard aprameter set
         """
-        self._cm = None
+        # self._cm = None
 
         if mid is None:
             self.id = id(self)
@@ -777,9 +761,10 @@ class Measurement(object):
         self.is_normalized = False  # normalized flag for visuals, so its not normalized twice
         self.norm = None  # the actual parameters
 
-        # add series if provided
         ''' series '''
         self._series = []
+
+        # add series if provided
         if series:
             self.add_series(series=series)
         else:
@@ -900,6 +885,7 @@ class Measurement(object):
             self.log.error('Recipe %s not found in %s, these are implemented: %s' %(recipe, direct_result, self.get_recipes(direct_result)))
             return
 
+        # setting the recipe
         old_recipe = self.result_recipe[direct_result]
         self.result_recipe[direct_result] = recipe.upper()
 
@@ -949,8 +935,8 @@ class Measurement(object):
         if not self.results or not result in self.results.column_names:
             self.log.debug('result << {} >> not calculated, yet. No need for removal'.format(result))
             return
-
         self.log.debug('removing result << {} >>'.format(result))
+        print(self.results.column_names, result)
         self.results.delete_columns(result)
         if self.standards_result()[result]['base_for']:
             for res in self.standards_result()[result]['base_for']:
@@ -1140,13 +1126,14 @@ class Measurement(object):
 
         self.calculation_parameter = {
             result: self.standards_calculate()[self.get_calculate_method(result)] for result in self.result_recipe
-            if not self.standards_result()[result]['secondary']}
+            # if not self.standards_result()[result]['secondary']
+            }
 
         for k in self.calculation_parameter:
             self.calculation_parameter[k].update(dict(recalc=True))
 
         self.methods = {result: getattr(self, 'calculate_' + self.get_calculate_method(result)) for result in
-                        self.result_recipe if not self.standards_result()[result]['secondary']}
+                        self.result_recipe}
 
         self._info_dict = self.__create_info_dict()
 
@@ -2203,6 +2190,7 @@ def result(func, *args, **kwargs):
     recalc = signature.get('recalc', False)
 
     dependencies = signature.get('dependent', None)  # get dependencies of method
+    secondaries = signature.get('secondary', None)  # get secondary measurements needed for method
 
     # if the result has dependencies, check if they are calculated already
     if dependencies:
@@ -2358,10 +2346,9 @@ if __name__ == '__main__':
     s.add_to_samplegroup('TT')
     m = s.add_measurement(mtype='hys', fpath='/Users/mike/Google Drive/__code/RockPy3/testing/test_data/hys_vsm.001',
                           ftype='vsm')
-    m.add_series('mtime', 0, '3')
-    m.set_recipe('ms', 'app2sat')
-
-    m.result_ms(check=True)
+    # m.set_recipe('ms', 'app2sat')
+    #
+    # m.result_ms(check=True)
     # S.import_folder('/Users/mike/Google Drive/__code/RockPy3/mike_testing/auto_import')
     # S.info(sample_info=False)
     # m = S.get_measurement(mtype='hysteresis')[0]

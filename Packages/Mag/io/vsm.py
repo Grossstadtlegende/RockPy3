@@ -64,6 +64,8 @@ class Vsm(io.ftype):
                                1:self.segment_start_idx + 1]  # [self.raw_data.pop(0) for i in range(0, self.segment_start_idx)][1:]
 
         raw_data = raw_data[self.segment_start_idx:]  # remove header from raw_data
+
+        # micromag header with all the settings
         self.info_header = self.get_measurement_infos()
 
         # check the calibration factor
@@ -84,9 +86,6 @@ class Vsm(io.ftype):
         self._data = raw_data[self.data_idx:-1]  # [self.raw_data.pop(self.data_idx) for i in range(self.data_idx, len(self.raw_data) - 1)]
 
         self.header, self.units = self.get_header(raw_data[len(self.segment_raw):self.data_idx])
-
-        # micromag header with all the settings
-        self.measurement_info = self.get_measurement_infos()
 
     # @property
     # def temperature(self):
@@ -116,7 +115,7 @@ class Vsm(io.ftype):
         seg_nums = list(map(list, zip(*seg_nums)))
 
         # quick check if this makes sense
-        if len(seg_nums[0]) != self.measurement_info['number of segments']:
+        if len(seg_nums[0]) != self.info_header['number of segments']:
             self.log.error('NUMBER OF SEGMENTS IS WRONG')
 
         return dict(zip(seg_text, seg_nums))
@@ -140,13 +139,21 @@ class Vsm(io.ftype):
 
     @staticmethod
     def get_header(data):
-        data = [[j for j in i.split(' ') if j] for i in data if i]
 
+        #+396.9015E-06,+210.9332E-06,+396.9015E-06,+210.9332E-06
+        splits = ((0, 14),(14, 27),(27, 41), (41, 55))
+        data = [[d[i[0]: i[1]].strip() for i in splits] for d in data if d]
+        # data = [[j for j in i.split(' ') if j] for i in data if i]
+
+        units = [i.replace('(','').replace(')','') for i in data[-1]]
         # correct Am^2 sign
-        for i, v in enumerate(data[1]):
+        for i, v in enumerate(units):
             if 'Am' in v:
-                data[1][i] = 'A m^2'
-        return [i.lower() for i in data[0]], data[1]
+                units[i] = 'A m^2'
+        header = [' '.join([d[n] for d in data[:-1] if d[n]]).lower() for n,v in enumerate(data[0])]
+        header = [i for i in header if i]
+        units = [i for i in units if i]
+        return header, units
 
     @staticmethod
     def split_comma_float(item):
@@ -195,9 +202,6 @@ class Vsm(io.ftype):
 
 
 if __name__ == '__main__':
-    # wrong_exp = RockPy3.test_data_path+'/hys_vsm_wrong_exponent.001'
-    correct_exp = RockPy3.test_data_path + '/FeNi_FeNi20-Jz000\'-G03_HYS_VSM#50,3[mg]_[]_[]##STD020.003'
-    # correct = Vsm(dfile=correct_exp)
-    # vsm = Vsm(dfile=correct_exp)
+
     s = RockPy3.Sample()
-    s.add_measurement(fpath=correct_exp)
+    s.add_measurement(fpath='/Users/mike/Dropbox/experimental_data/FeNiX/FeNi20K/FeNi_FeNi20-Ka2160\'-G01_HYS_VSM#69,8[mg]_[]_[]##STD028.001')

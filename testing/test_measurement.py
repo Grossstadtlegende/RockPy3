@@ -57,14 +57,6 @@ class TestMeasurement(TestCase):
         self.assertEqual('indirect_recipe', m.result_category('hf_sus'))
         # self.assertEqual('indirect_recipe', m.result_category('hf_sus'))#todo add the direct_recipe
 
-    def test_get_calculate_methods(self):
-        import RockPy3.Packages.Mag.Measurements.hysteresis
-        s = RockPy3.Sample()
-        m = RockPy3.Packages.Mag.Measurements.hysteresis.Hysteresis.from_simulation(sobj=s)
-        self.assertEqual(sorted(['ms_DEFAULT', 'ms_APP2SAT']), sorted(m.get_calculate_methods('hf_sus')))
-        self.assertEqual(sorted(['mrs']), sorted(m.get_calculate_methods('mrs')))
-        self.assertEqual(sorted(['bc_LINEAR', 'bc_NONLINEAR']), sorted(m.get_calculate_methods('bc')))
-
     def test_implemented_ftypes(self):
         self.fail()
 
@@ -82,8 +74,11 @@ class TestMeasurement(TestCase):
         self.fail()
 
     def test_result_methods(self):
-        print(RockPy3.core.measurement.Measurement.result_methods())
-        self.fail()
+        import RockPy3.Packages.Mag.Measurements.hysteresis
+        s = RockPy3.Sample()
+        m = RockPy3.Packages.Mag.Measurements.hysteresis.Hysteresis.from_simulation(sobj=s)
+        results = sorted(m.result_methods().keys())
+        self.assertAlmostEqual(['bc', 'bcr_bc', 'e_delta_t', 'e_hys', 'hf_sus', 'm_b', 'mrs', 'mrs_ms', 'ms'], results)
 
     def test_calculate_methods(self):
         self.fail()
@@ -114,7 +109,8 @@ class TestMeasurement(TestCase):
 
     def test_fname(self):
         s = RockPy3.Sample()
-        s.add_measurement(fpath='/Users/mike/Google Drive/RockPy3/testing/test_data/FeNi_FeNi20-Jz000\'-G03_HYS_VSM#50,3[mg]_[]_[]##STD020.003')
+        s.add_measurement(
+            fpath='/Users/mike/Google Drive/RockPy3/testing/test_data/FeNi_FeNi20-Jz000\'-G03_HYS_VSM#50,3[mg]_[]_[]##STD020.003')
 
     def test_import_data(self):
         self.fail()
@@ -308,5 +304,29 @@ class TestMeasurement(TestCase):
         mean = RockPy3.Study.add_sample(name='mean')
         mm = RockPy3.Packages.Mag.Measurements.hysteresis.Hysteresis.from_measurements_create_mean(mean, s.measurements)
         for other in s.measurements:
-                self.assertTrue(all(mm.data['down_field']['mag'].v == other.data['down_field']['mag'].v))
-                self.assertTrue(all(mm.data['up_field']['mag'].v == other.data['up_field']['mag'].v))
+            self.assertTrue(all(mm.data['down_field']['mag'].v == other.data['down_field']['mag'].v))
+            self.assertTrue(all(mm.data['up_field']['mag'].v == other.data['up_field']['mag'].v))
+
+
+    def test_set_recipe(self):
+        study = RockPy3.core.study.Study()
+        s = study.add_sample(name='test')
+        m0 = s.add_simulation(mtype='hysteresis')
+        m0.result_bc(no_points=8, check=False)
+        print(m0.results)
+        # direct
+        self.assertEqual('direct', m0.result_category('mrs'))
+        m0.set_recipe(result='mrs', recipe='nonlinear')
+        self.assertEqual('default'.upper(), m0.result_recipe['mrs'])
+        # direct_recipe
+        self.assertEqual('direct_recipe', m0.result_category('bc'))
+        m0.set_recipe(result='bc', recipe='nonlinear')
+        self.assertEqual('nonlinear'.upper(), m0.result_recipe['bc'])
+        print(m0.results)
+        # indirect
+
+        # indirect_recipe
+        self.assertEqual('indirect_recipe', m0.result_category('hf_sus'))
+        m0.set_recipe(result='hf_sus', recipe='app2sat')
+        self.assertEqual('app2sat'.upper(), m0.result_recipe['ms'])
+        self.assertEqual('app2sat'.upper(), m0.result_recipe['hf_sus'])

@@ -572,8 +572,8 @@ class RockPyData(object):
             # delete empty aliases
             if len(self._column_dict[key]) == 0:
                 del self._column_dict[key]
-
-            self._column_dict[key] = tuple(self._column_dict[key])
+            else:
+                self._column_dict[key] = tuple(self._column_dict[key])
 
         return self
 

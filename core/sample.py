@@ -104,7 +104,7 @@ class Sample(object):
 
         RockPy3.logger.info('CREATING\t new sample << %s >>' % self.name)
 
-        self.raw_measurements = []
+        # self.raw_measurements = []
         self.measurements = []
         self.results = None
 
@@ -304,7 +304,7 @@ class Sample(object):
     def _add_mobj(self, mobj):
         if mobj not in self.measurements:
             self.measurements.append(mobj)
-            self.raw_measurements.append(deepcopy(mobj))
+            # self.raw_measurements.append(deepcopy(mobj))
             if mobj.is_mean:
                 self._add_m2_mdict(mobj, mdict_type='mean_mdict')
             else:

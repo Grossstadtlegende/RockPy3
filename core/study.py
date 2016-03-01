@@ -1,7 +1,6 @@
 import time
 import tabulate
 import xml.etree.ElementTree as etree
-from copy import deepcopy
 import os
 from os.path import join
 from multiprocessing import Pool
@@ -45,6 +44,7 @@ class Study(object):
         self._samples = dict()  # {'sname':'sobj'}
 
         self._series = {'none': []}  # {series_obj: measurement}
+        self.imported_files = []
 
     def __repr__(self):
         if self == RockPy3.Study:
@@ -444,23 +444,29 @@ class Study(object):
                  ]
 
         sample_groups = set(os.path.basename(f).split('_')[0] for f in files)
-        RockPy3.logger.debug(
-                'TRYING to import {} files for these samplegroups {}'.format(len(files), sorted(list(sample_groups))))
+        samples = set(os.path.basename(f).split('_')[1] for f in files)
+
+        measurements = []
 
         start = time.clock()
+        # create all samples:
+        for s in sorted(samples):
+            sfiles = [f for f in files if s in f]
 
-        measurements = [self.import_file(file) for file in sorted(files)]
-        # measurements = map(self.import_file, files)
-        # measurements = [m for m in measurements if m]
+            if not s in self.samplenames and sfiles:
+                info = RockPy3.get_info_from_fname(sfiles[0])
+                s = self.add_sample(name=s, mass=info['mass'], mass_unit=info['mass_unit'])
+            else:
+                s = self._samples[s]
 
+            for f in sfiles:
+                fname = os.path.basename(f)
+                if fname not in self.imported_files:
+                    m = s.add_measurement(fpath=f)
+                    measurements.append(m)
+                    self.imported_files.append(fname)
         end = time.clock()
-
-        if gname:
-            samples = set(m.sobj for m in measurements)
-            self.add_samplegroup(gname=gname, slist=samples)
-
-        RockPy3.logger.info(
-                'IMPORT generated {} measurements: finished in {:<3}s'.format(len(measurements), end - start))
+        print('IMPORT generated {} measurements: finished in {:<3}s'.format(len(measurements), end - start))
         return measurements
 
     def import_file(self, fpath):
@@ -750,5 +756,7 @@ class Study(object):
 
 if __name__ == '__main__':
     S400J = RockPy3.RockPyStudy()
-    S.import_folder('/Users/mike/Dropbox/experimental_data/FeNiX/FeNi20K');
-    S400J.info()
+    ms = S400J.import_folder('/Users/mike/Desktop/test')
+    for m in ms:
+        m.calc_all()
+    # S400J.info()

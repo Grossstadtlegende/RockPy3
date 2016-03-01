@@ -99,7 +99,6 @@ class Backfield(measurement.Measurement):
         else:
             if ftype_data.info_header['include irm?']:
                 idx +=1
-
         mdata = {}
         mdata['data'] = RockPyData(column_names=header, data=data[idx])
         mdata['data'].define_alias('mag', 'remanence')
