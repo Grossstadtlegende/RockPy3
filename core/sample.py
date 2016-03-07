@@ -1170,5 +1170,5 @@ if __name__ == '__main__':
     # s = S.add_sample(name='test')
     # for n in range(10):
     #     m = s.add_simulation(mtype='hysteresis')
-    # pprint(m.standards_result())
+    # pprint(m.res_signature())
     # print(s.get_result(result='ms', test=7, saturation_percent=80))

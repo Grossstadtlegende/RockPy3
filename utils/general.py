@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 
 from math import degrees, radians
 from math import sin, cos, tan, asin, atan2
+import os
 
 
 def get_date_str():
@@ -451,3 +452,20 @@ def check_coordinate_system(coord):
     return coord
 
 
+def io_standard_cparams(reset = True):
+    scp_file = os.path.join(RockPy3.installation_directory, 'calculation_parameter_setup.txt')
+
+    if not os.path.exists(scp_file) or reset:
+        with open(scp_file, 'w+') as f:
+            for mtype, cls in sorted(RockPy3.implemented_measurements.items()):
+                for result in cls.result_methods():
+                    if result == 'b_anc':
+                        print(cls.res_signature()[result])
+                    if not cls.res_signature()[result]['indirect']:
+                        standard_method = '_'.join([result, cls.result_recipe()[result]]).replace('_DEFAULT', '')
+                        for param, value in cls.calc_signature()[standard_method].items():
+                            line = ', '.join([mtype, result, cls.result_recipe()[result].lower(), param, str(value), '\n'])
+                            f.write(line)
+
+if __name__ == '__main__':
+    io_standard_cparams()

@@ -102,8 +102,7 @@ class Visual(object):
         '''
 
         plt_props, txt_props, options = self.separate_plt_props_from_kwargs(**options)
-        calc_params, no_calc_params = RockPy3.core.utils.separate_calculation_parameter_from_kwargs(rpobj=None,
-                                                                                                    **options)
+        calc_params = options
         self.log = logging.getLogger('RockPy3.VISUALIZE.' + self.get_subclass_name())
         self.log.info('CREATING new Visual')
 
@@ -118,7 +117,7 @@ class Visual(object):
         self._RockPy_figure = fig
 
         # set the title: default is the name of the visual
-        self.title = no_calc_params.pop('title', self.get_subclass_name())
+        self.title = options.pop('title', self.get_subclass_name())
 
         self.linedict = {}
         self.calculation_parameter = calc_params

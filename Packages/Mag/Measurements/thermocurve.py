@@ -17,7 +17,6 @@ import datetime
 from RockPy3.core import measurement
 from RockPy3.core.measurement import calculate, result, correction
 from RockPy3.core.data import RockPyData
-from pprint import pprint
 
 
 class Thermocurve(measurement.Measurement):

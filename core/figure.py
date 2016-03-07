@@ -46,8 +46,7 @@ class Figure(object):
 
         mlist, mean_list = RockPy3.core.utils.mlist_from_input(data)
 
-        self.calculation_parameter, kwargs = RockPy3.core.utils.separate_calculation_parameter_from_kwargs(
-            mlist=mlist.extend(mean_list), **kwargs)
+        self.calculation_parameter = []
 
         self.plot_groupmean, self.plot_samplemean = plot_groupmean, plot_samplemean
         self.plot_groupbase, self.plot_samplebase = plot_groupbase, plot_samplebase

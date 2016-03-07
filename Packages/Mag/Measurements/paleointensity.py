@@ -20,7 +20,6 @@ import RockPy3.Packages.Mag.Measurements.demagnetization
 import RockPy3.Packages.Mag.Measurements.acquisition
 from RockPy3.core.measurement import calculate, result, correction
 from RockPy3.core.data import RockPyData
-from pprint import pprint
 
 
 class Paleointensity(measurement.Measurement):
@@ -58,7 +57,7 @@ class Paleointensity(measurement.Measurement):
     """ RESULTS CALCULATED USING CALCULATE_SLOPE  METHODS """
 
     @calculate
-    def calculate_slope(self, var_min=20, var_max=90, component='mag',
+    def calculate_slope(self, var_min=20, var_max=700, component='mag',
                         **non_method_parameters):
         """
         calculates the least squares slope for the specified temperature interval
@@ -66,7 +65,6 @@ class Paleointensity(measurement.Measurement):
         :param parameter:
 
         """
-        print(var_min, var_max)
 
         # get equal temperature steps for both demagnetization and acquisition measurements
         equal_steps = list(set(self.data['demagnetization']['variable'].v) & set(self.data['acquisition']['variable'].v))
@@ -108,16 +106,14 @@ class Paleointensity(measurement.Measurement):
 
 
     @result
-    def result_slope(self, recalc=False, **non_method_parameters):
+    def result_slope(self, var_min=20, var_max=700, component='mag', **non_method_parameters):
         """
         Gives result for calculate_slope(var_min, var_max), returns slope value if not calculated already
         """
         pass
 
     @result
-    def result_n(self, var_min=20, var_max=700, component='mag',
-                 recalc=False,
-                 calculation_method='slope',
+    def result_n(self, var_min=20, var_max=700, component='mag', dependent='slope',
                  **non_method_parameters):
         """
         Number of steps used for the calculation of the best fit line
@@ -125,9 +121,7 @@ class Paleointensity(measurement.Measurement):
         pass
 
     @result
-    def result_sigma(self, var_min=20, var_max=700, component='mag',
-                     recalc=False,
-                     calculation_method='slope',
+    def result_sigma(self, var_min=20, var_max=700, component='mag', dependent='slope',
                      **non_method_parameters):
         """
         Standard deviation of the best fit line
@@ -135,18 +129,14 @@ class Paleointensity(measurement.Measurement):
         pass
 
     @result
-    def result_x_int(self, var_min=20, var_max=700, component='mag',
-                     recalc=False,
-                     calculation_method='slope',
+    def result_x_int(self, var_min=20, var_max=700, component='mag', dependent='slope',
                      **non_method_parameters):
         """
         """  # todo write doc
         pass
 
     @result
-    def result_y_int(self, var_min=20, var_max=700, component='mag',
-                     recalc=False,
-                     calculation_method='slope',
+    def result_y_int(self, var_min=20, var_max=700, component='mag', dependent='slope',
                      **non_method_parameters):
         """
         """  # todo write doc
@@ -169,19 +159,18 @@ class Paleointensity(measurement.Measurement):
             calculation_parameters, it will not influence this result. Therfore you have to be careful when calling
             this.
         """
-        b_anc = self.result_slope(var_min=var_min, var_max=var_max, component=component, **non_method_parameters)
-        self.results['b_anc'] = [[[abs(b_lab * b_anc[0]), abs(b_lab * b_anc[1])]]]
-        self.results['sigma_b_anc'] = abs(b_lab * b_anc[1])
+        slope = self.result_slope(var_min=var_min, var_max=var_max, component=component, **non_method_parameters)
+        self.results['b_anc'] = [[[abs(b_lab * slope[0]), abs(b_lab * slope[1])]]]
+        self.results['sigma_b_anc'] = abs(b_lab * slope[1])
 
     @result
-    def result_b_anc(self, var_min=20, var_max=700, component='mag', b_lab=35.0, dependent='slope',
-                     recalc=False,
+    def result_b_anc(self, var_min=20, var_max=700, component='mag', b_lab=35.0,
                      **non_method_parameters):  # todo write comment
         pass
 
     @result
     def result_sigma_b_anc(self, var_min=20, var_max=700, component='mag', b_lab=35.0,
-                           recalc=False, calculation_method='b_anc',
+                           dependent='b_anc',
                            **non_method_parameters):  # todo write comment
         pass
 
@@ -189,7 +178,7 @@ class Paleointensity(measurement.Measurement):
     """ F """
 
     @calculate
-    def calculate_f(self, **parameter):
+    def calculate_f(self, var_min=20, var_max=700, **non_method_parameters):
         """
 
         The remanence fraction, f, was defined by Coe et al. (1978) as:
@@ -205,12 +194,12 @@ class Paleointensity(measurement.Measurement):
         :return:
 
         """
-        delta_y_dash = self.delta_y_dash(**parameter)
+        delta_y_dash = self.delta_y_dash(**non_method_parameters)
         y_int = self.results['y_int'].v
         self.results['f'] = delta_y_dash / abs(y_int)
 
     @result
-    def result_f(self, var_min=20, var_max=700, recalc=False, **options):
+    def result_f(self, var_min=20, var_max=700, **options):
         # todo write comment for this method
         pass
 
@@ -237,7 +226,7 @@ class Paleointensity(measurement.Measurement):
         self.results['f_vds'] = delta_y / VDS
 
     @result
-    def result_f_vds(self, var_min=20, var_max=700, recalc=False, **non_method_parameters):
+    def result_f_vds(self, var_min=20, var_max=700, **non_method_parameters):
         pass
 
     ####################################################################################################################
@@ -264,7 +253,7 @@ class Paleointensity(measurement.Measurement):
         self.results['frac'] = NRM_sum / VDS
 
     @result
-    def result_frac(self, var_min=20, var_max=700, recalc=False, **options):
+    def result_frac(self, var_min=20, var_max=700, **options):
         # todo write comment for this method
         pass
 
@@ -294,7 +283,7 @@ class Paleointensity(measurement.Measurement):
         self.results['beta'] = sigma / abs(slope)
 
     @result
-    def result_beta(self, var_min=20, var_max=700, recalc=False, **non_method_parameters):
+    def result_beta(self, var_min=20, var_max=700, **non_method_parameters):
         # todo write comment for this method
         pass
 
@@ -318,7 +307,7 @@ class Paleointensity(measurement.Measurement):
         self.results['g'] = 1 - y_sum_dash_diff_sq / delta_y_dash ** 2
 
     @result
-    def result_g(self, var_min=20, var_max=700, component='mag', recalc=False, **non_method_parameters):
+    def result_g(self, var_min=20, var_max=700, component='mag', **non_method_parameters):
         # todo write comment for this method
         pass
 
@@ -345,7 +334,7 @@ class Paleointensity(measurement.Measurement):
         self.results['gap_max'] = max_vd / sum_vd
 
     @result
-    def result_gap_max(self, var_min=20, var_max=700, recalc=False, **non_method_parameters):
+    def result_gap_max(self, var_min=20, var_max=700, **non_method_parameters):
         # todo write comment for this method
         pass
 
@@ -374,7 +363,7 @@ class Paleointensity(measurement.Measurement):
         self.results['q'] = (f * gap) / beta
 
     @result
-    def result_q(self, var_min=20, var_max=700, component='mag', recalc=False, **non_method_parameters):
+    def result_q(self, var_min=20, var_max=700, component='mag', **non_method_parameters):
         # todo write comment for this method
         pass
 
@@ -411,7 +400,7 @@ class Paleointensity(measurement.Measurement):
         self.results['w'] = q / np.sqrt((n - 2))
 
     @result
-    def result_w(self, var_min=20, var_max=700, component='mag', recalc=False, **options):
+    def result_w(self, var_min=20, var_max=700, component='mag', **options):
         # todo write comment for this method
         pass
 
@@ -562,9 +551,10 @@ if __name__ == '__main__':
     NRM_AF = s.add_measurement(mtype='afdemag', fpath=step1B, ftype='sushibar', series=[('NRM', 0, '')])
 
     m = s.add_measurement(mtype='paleointensity', mobj=(pARM_acq, NRM_AF))
-    print(m.standards_result()['b_anc'])
-    m.result_slope(var_max=90, var_min=10)
-    m.result_b_anc()
+    # print(m.results)
+    # print(m.res_signature()['b_anc'])
+    # m.result_slope(var_max=90, var_min=10)
+    # print(m.result_beta())
     # m.calc_all(var_max=90, var_min=10)
     # print(m.results)
     # fig = RockPy3.Figure(fig_input=S)

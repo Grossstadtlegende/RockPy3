@@ -15,7 +15,6 @@ import RockPy3
 from RockPy3.core import measurement
 from RockPy3.core.measurement import calculate, result, correction
 from RockPy3.core.data import RockPyData
-from pprint import pprint
 import matplotlib.pyplot as plt
 
 

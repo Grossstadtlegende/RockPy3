@@ -135,7 +135,7 @@ class Backfield(measurement.Measurement):
         self.results['mrs'] = [[[np.nanmean([abs(start), abs(end)]), np.nanstd([abs(start), abs(end)])]]]
 
     @result
-    def result_mrs(self, recalc=False, **non_method_parameters):
+    def result_mrs(self, **non_method_parameters):
         pass
 
     ####################################################################################################################
@@ -231,7 +231,7 @@ class Backfield(measurement.Measurement):
         self.results['bcr'] = [[(np.nanmean(result), np.nanstd(result))]]
 
     @result
-    def result_bcr(self, recipe='DEFAULT', recalc=False, **non_calculation_parameters):
+    def result_bcr(self, recipe='DEFAULT', **non_calculation_parameters):
         """
         calculates :math:`B_{cr}`
         """
@@ -366,7 +366,6 @@ if __name__ == '__main__':
     m = s.add_measurement(fpath='/Users/Mike/Dropbox/experimental_data/0915-LT_pyrrhtotite/LTPY_P15a_COE_VSM#[]_[]_[]#TEMP_020_K#STD001.001',
                             mtype='backfield',
                             ftype='vsm')
-    print(m.data)
     # fig = RockPy3.Figure(fig_input=S)
     # v = fig.add_visual('resultseries', result='bc', series='mtime', xscale='log')
     # fig.show()

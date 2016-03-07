@@ -459,7 +459,7 @@ class Hysteresis(measurement.Measurement):
         self.results['bc'] = [[(np.nanmean(result), np.nanstd(result))]]
 
     @result
-    def result_bc(self, recipe='LINEAR', recalc=False, **non_method_parameters):
+    def result_bc(self, recipe='LINEAR', **non_method_parameters):
         """
         Calculates :math:`B_c` using a linear interpolation between the points closest to zero.
 
@@ -739,22 +739,22 @@ class Hysteresis(measurement.Measurement):
 
     ####################################################################################################################
     ''' Brh'''
-    #
-    # @calculate_new
-    # def calculate_brh(self, **non_method_parameters):
-    #     pass  # todo implement
-    #
-    # @result_new
-    # def result_brh(self, recalc=False, **non_method_parameters):
-    #     """
-    #     By definition, Brh is the median destructive field of the vertical hysteresis difference:
-    #
-    #     .. math::
-    #
-    #        M_{rh}(B) = \\frac{M^+(B)-M^-(B)}{2}
-    #
-    #     """
-    #     pass
+
+    @calculate
+    def calculate_brh(self, **non_method_parameters):
+        pass  # todo implement
+
+    @result
+    def result_brh(self, recalc=False, **non_method_parameters):
+        """
+        By definition, Brh is the median destructive field of the vertical hysteresis difference:
+
+        .. math::
+
+           M_{rh}(B) = \\frac{M^+(B)-M^-(B)}{2}
+
+        """
+        pass
     ####################################################################################################################
     ''' E_delta_t'''
 
@@ -899,16 +899,16 @@ class Hysteresis(measurement.Measurement):
         '''
 
         if not coe_obj:
-            self.log.info('NO backfield/coe measurement specified: searching through sample')
+            self.log.debug('NO backfield/coe measurement specified: searching through sample')
             coe_objs = [m for m in self.sobj.get_measurement(mtype='backfield') if m.series == self.series]
             if len(coe_objs) == 0:
-                self.log.error('CANT find measurement with << backfield, %s >>' % self.stype_sval_tuples)
+                self.log.warning('CANT find measurement with << backfield, %s >>' % self.stype_sval_tuples)
                 return
             elif len(coe_objs) == 1:
-                self.log.info('FOUND exactly one measurement with << backfield, %s >>' % self.stype_sval_tuples)
+                self.log.debug('FOUND exactly one measurement with << backfield, %s >>' % self.stype_sval_tuples)
                 coe_obj = coe_objs[0]
             else:
-                self.log.info('MULTIPLE find backfield/coe measurement found with same stypes/svals using first')
+                self.log.debug('MULTIPLE find backfield/coe measurement found with same stypes/svals using first')
                 coe_obj = coe_objs[0]
 
         bcr = coe_obj.result_bcr(recipe=bcr_recipe, no_points=bcr_no_points, **non_method_parameters)

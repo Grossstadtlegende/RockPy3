@@ -37,8 +37,8 @@ class TestMeasurement(TestCase):
         import RockPy3.Packages.Mag.Measurements.hysteresis
         s = RockPy3.Sample()
         m = RockPy3.Packages.Mag.Measurements.hysteresis.Hysteresis.from_simulation(sobj=s)
-        self.assertTrue(m.has_calculation_method('hf_sus'))
-        self.assertFalse(m.has_calculation_method('ms'))
+        self.assertTrue(m.has_master_method('hf_sus'))
+        self.assertFalse(m.has_master_method('ms'))
 
     def test_has_secondary(self):
         import RockPy3.Packages.Mag.Measurements.hysteresis

@@ -5,6 +5,7 @@ import inspect
 import itertools
 import xml.etree.ElementTree as etree
 from copy import deepcopy
+from collections import OrderedDict
 import numpy as np
 import os
 import os.path
@@ -60,17 +61,24 @@ class Measurement(object):
                           'zorder']
 
     _mcp = None  # mtype calculation parameter cache for all measurements implemented as a dict(measurement:method:parameter)
-    _cmcp = None  # mtype calculation parameter cache for all measurements implemented as a dict(measurement: parameter)
-    _pcp = None  # possible calculation parameters cache for a single measurement
-    _gcp = None  # all possible parameters combined for all measurements and all methods
-    _mpcp = None  # all possible parameters for each method of a specific mtype as a dict(method:parameters)
+    # _cmcp = None  # mtype calculation parameter cache for all measurements implemented as a dict(measurement: parameter)
+    # _pcp = None  # possible calculation parameters cache for a single measurement
+    # _gcp = None  # all possible parameters combined for all measurements and all methods
+    # _mpcp = None  # all possible parameters for each method of a specific mtype as a dict(method:parameters)
+    #
+    _rm = None  # result methods #needed 1.3.16
+    _cm = None  # calculation methods
+
+    _sresult = None
 
     _scp = None  # standard_calculation parameter
-    _rm = None  # result methods #needed 1.3.16
-
-    _cm = None # calculation methods
-    _sresult = None
     _scalculate = None
+
+    @classmethod
+    def result_recipe(cls):
+        # calculate the standards for results, calculation and the appropriate methods
+        return {result: cls.res_signature()[result]['signature']['recipe'].upper() for result in
+                cls.res_signature()}
 
     # xml tags
     MEASUREMENT = 'measurement'
@@ -86,112 +94,6 @@ class Measurement(object):
     def _mtype(cls):
         return cls.__name__.lower()
 
-    ####################################################################################################################
-    # ''' calculation parameter methods '''
-    #
-    # @classmethod
-    # def collected_mtype_calculation_parameter(cls):
-    #     """
-    #     searches through all implemented calculation methods and collects the parameters used in the method.
-    #
-    #     Returns
-    #     -------
-    #         dictionary
-    #          key == mtype
-    #          value == a sorted list of unique parameters
-    #     """
-    #     if not cls._cmcp:
-    #         cls._cmcp = {}
-    #         for mname, measurement in RockPy3.implemented_measurements.items():
-    #             cls._cmcp.setdefault(
-    #                     mname,
-    #                     sorted(
-    #                             list(set(
-    #                                     [i for j in measurement.mtype_possible_calculation_parameter().values() for i in
-    #                                      j]))))
-    #     return cls._cmcp
-    #
-    # @classmethod
-    # def mtype_calculation_parameter(cls):
-    #     """
-    #     searches through all implemented calculation methods and collects the parameters used in the method.
-    #
-    #     Returns
-    #     -------
-    #         a sorted list of unique parameters
-    #     """
-    #     if not cls._mcp:
-    #         cls._mcp = {}
-    #         for mname, measurement in RockPy3.implemented_measurements.items():
-    #             cls._mcp.setdefault(mname, measurement.mtype_possible_calculation_parameter())
-    #     return cls._mcp
-    #
-    # @classmethod
-    # def method_calculation_parameter_list(cls):
-    #     """
-    #     searches through all implemented calculation methods and collects the parameters used in the method.
-    #
-    #     Returns
-    #     -------
-    #         a dictionary with:
-    #         key: calculation_method name
-    #         value: list of unique parameters
-    #     """
-    #     if not cls._pcp:
-    #         cls.pcp = {}
-    #         for mname, measurement in RockPy3.implemented_measurements.items():
-    #             for method, parameters in measurement.mtype_possible_calculation_parameter().items():
-    #                 cls.pcp.setdefault(method, parameters)
-    #     return cls.pcp
-    #
-    # @classmethod
-    # def global_calculation_parameter(cls):
-    #     """
-    #     searches through all implemented calculation methods and collects the parameters used in the method.
-    #
-    #     Returns
-    #     -------
-    #         a sorted list of unique parameters
-    #     """
-    #     if not cls._gcp:
-    #         gpcp = []
-    #         for mname, measurement in RockPy3.implemented_measurements.items():
-    #             for method, parameters in measurement.collected_mtype_calculation_parameter().items():
-    #                 gpcp.extend(parameters)
-    #     return sorted(list(set(gpcp)))
-    #
-    # @classmethod
-    # def mtype_possible_calculation_parameter(cls):
-    #     """
-    #     All possible calculation methods of a measurement. It first creates a dictionary of all calculate_methods and
-    #     their signature.
-    #     Then it looks through all result_ methods and checks if any is not added yet and needs a recipe
-    #     Note
-    #     ----
-    #         This adds a pseudo_method to the dictionary for each result_method with a recipe.
-    #         Therefor this dict can not be used to check for methods!
-    #     """
-    #
-    #     if not cls._mpcp:
-    #         # get all parameters from all measurements
-    #         cls._mpcp = {
-    #             i: set(arg for arg, value in inspect.signature(getattr(cls, 'calculate_' + i)).parameters.items()
-    #                    if not arg in ['self', 'non_method_parameters'])
-    #             for i in cls.calculate_methods()}
-    #
-    #         # methods with recipe need 'recipe' to be added to the calculation_parameters
-    #         for res in cls.result_methods():
-    #             if res not in cls._mpcp:
-    #                 methods = cls.get_calculate_methods(res)
-    #                 if cls.result_category(res) == 'indirect':
-    #                     cls._mpcp.setdefault(res, set())
-    #                     cls._mpcp[res].update(set(param for recipe in methods for param in cls._mpcp[recipe]))
-    #                 if 'recipe' in cls.result_category(res):
-    #                     cls._mpcp.setdefault(res, set())
-    #                     cls._mpcp[res].update(set(param for recipe in methods for param in cls._mpcp[recipe]))
-    #                     cls._mpcp[res].update(['recipe'])
-    #     return cls._mpcp
-
     @classmethod
     def calculation_methods(cls):
         # dynamically generating the calculation and standard parameters for each calculation method.
@@ -199,20 +101,20 @@ class Measurement(object):
 
         if not cls._cm:
             cls._cm = {i: getattr(cls, i) for i in dir(cls)
-                if i.startswith('calculate_')
-                if not i.endswith('generic')
-                if not i.endswith('result')
-                }
+                       if i.startswith('calculate_')
+                       if not i.endswith('generic')
+                       if not i.endswith('result')
+                       }
         return cls._cm
 
     @classmethod
-    def standards_result(cls):
+    def res_signature(cls):
         """
         generates a dictionary of results:calculate_methods
         """
         if not cls._sresult:
             # initialize
-            scp = {res: {'recipe': False, 'secondary': False, 'dependent': False, 'indirect':False, 'base_for': set()}
+            scp = {res: {'recipe': False, 'secondary': False, 'dependent': False, 'indirect': False, 'subjects': set()}
                    for res in cls.result_methods()}
             dependent = []
 
@@ -224,7 +126,8 @@ class Measurement(object):
                 if 'recipe' in result_sig:
                     scp[res]['recipe'] = True
 
-                if not any(res in method for method in cls.calculate_methods()):
+                if not res in [cls.remove_recipe_from_name(m) for m in cls.calculate_methods()]:
+                # if not any(res in method for method in cls.calculate_methods()):
                     scp[res]['indirect'] = True
 
                 if 'secondary' in result_sig:
@@ -245,33 +148,73 @@ class Measurement(object):
                         dependent.append((res, dep_on))
 
             for dep, base in dependent:
-                scp[base]['base_for'].add(dep)
+                scp[base]['subjects'].add(dep)
             cls._sresult = scp
         return cls._sresult
 
     @classmethod
-    def standards_calculate(cls):
-        scp = {}
-        for c, method in cls.calculate_methods().items():
-            method_sig = {k.name: k.default for k in inspect.signature(method).parameters.values() if
-                          not k.name == 'self' if not k.name == 'non_method_parameters'}
-            scp[c] = method_sig
-        return scp
+    def calc_signature(cls):
+        if not cls._scalculate:
+            scp = {}
+            for c, method in cls.calculate_methods().items():
+                method_sig = OrderedDict()
+                for k in inspect.signature(method).parameters.values():
+                    if not k.name == 'self' and not k.name == 'non_method_parameters':
+                        method_sig[k.name] = k.default
+                # method_sig = {k.name: k.default for k in inspect.signature(method).parameters.values() if
+                #               not k.name == 'self' if not k.name == 'non_method_parameters'}
+                scp[c] = method_sig
+            cls._scalculate = scp
+        return cls._scalculate
+
+    @classmethod
+    def res2calc(cls):
+        results = cls.res_signature().keys()
+        methods = cls.calc_signature().keys()
+
+        for r in results:
+            print([i for i in methods if r == cls.remove_recipe_from_name(i)])
+
+    @staticmethod
+    def remove_recipe_from_name(method):
+        """
+        removes the recipe suffix from the method name if it exists
+
+        Parameter
+        ---------
+            method: str
+                the name of the calculation method
+
+        Returns
+        -------
+            out: str
+                the name of the result
+
+        Example
+        -------
+            remove_recipe_from_name('bc_NONLINEAR') = 'bc'
+        """
+        splits = method.split('_')
+        splits = [i for i in splits if not i.upper() == i]
+        return '_'.join(splits)
 
     """
     ####################################################################################################################
     RESULT/CALCULATE METHOD RELATED
     """
 
-    def has_recipe(self, res):
+
+    @classmethod
+    def has_recipe(cls, res):
         """
         checks if result has parameter recipe in signature. if it does this means that the result_method has
         different
         """
-        return self.standards_result()[res]['recipe']
+        return cls.res_signature()[res]['recipe']
 
 
-    def has_calculation_method(self, res):
+    @classmethod
+    def has_master_method(cls, res):
         """
         checks if result is indirect.
         If it is an indirect result the calculation is not done in calculate_[res] but indirectly in a different method.
@@ -281,9 +224,10 @@ class Measurement(object):
         -------
             bool
         """
-        return self.standards_result()[res]['indirect']
+        return cls.res_signature()[res]['indirect']
 
-    def has_secondary(self, res):
+    @classmethod
+    def has_secondary(cls, res):
         """
         checks if result has parameter has a secondary measurement necessary. If it does this means that the
         result_method relies on a different measurement.
@@ -296,9 +240,10 @@ class Measurement(object):
         -------
             bool
         """
-        return self.standards_result()[res]['secondary']
+        return cls.res_signature()[res]['secondary']
 
-    def result_category(self, res):
+    @classmethod
+    def result_category(cls, res):
         """
         Takes a result_method name as argument and checks which category it belongs to.
 
@@ -337,18 +282,38 @@ class Measurement(object):
         """
         res = res.replace('result_', '')
         out = None
-        if self.has_recipe(res) and self.has_calculation_method(res):
+        if cls.has_recipe(res) and cls.has_master_method(res):
             out = 'indirect_recipe'
-        elif self.has_calculation_method(res) and not self.has_recipe(res):
+        elif cls.has_master_method(res) and not cls.has_recipe(res):
             out = 'indirect'
-        elif self.has_recipe(res) and not self.has_calculation_method(res):
+        elif cls.has_recipe(res) and not cls.has_master_method(res):
             out = 'direct_recipe'
-        elif res in self.calculate_methods():
+        elif res in cls.calculate_methods():
             out = 'direct'
-        if self.has_secondary(res):
+        if cls.has_secondary(res):
             out += '_dependent'
 
         return out
+
+    def get_calculate_methods(cls, res):
+        """
+        takes a result_method name as input and returns list of matching calculate_methods
+        """
+
+        if cls.result_category(res) == 'direct':
+            return [res]
+        elif cls.result_category(res) == 'direct_recipe':
+            return [i for i in cls.calculate_methods()
+                    if i.split('_')[-1].isupper
+                    if ''.join(i.split('_')[:-1]) == res]
+
+        calculation_method = inspect.signature(getattr(cls, 'result_' + res)).parameters['dependent'].default
+        if cls.result_category(res) == 'indirect':
+            return [calculation_method]
+        elif cls.result_category(res) == 'indirect_recipe':
+            return [i for i in cls.calculate_methods()
+                    if i.split('_')[-1].isupper
+                    if ''.join(i.split('_')[:-1]) == calculation_method]
 
     @classmethod
     def implemented_ftypes(cls):
@@ -411,6 +376,7 @@ class Measurement(object):
             cls._rm = {i[7:]: getattr(cls, i) for i in dir(cls) if i.startswith('result_')
                        if not i.endswith('generic')
                        if not i.endswith('methods')
+                       if not i.endswith('recipe')
                        if not i.endswith('category')
                        }
         return cls._rm
@@ -423,6 +389,7 @@ class Measurement(object):
                              if i.startswith('calculate_')
                              if not i.endswith('generic')
                              if not i.endswith('result')
+                             if not i.endswith('recipe')
                              if not i.endswith('methods')
                              }
         return calculate_methods
@@ -680,7 +647,7 @@ class Measurement(object):
                  initial_state=None,
                  ismean=False, base_measurements=None,
                  color=None, marker=None, linestyle=None, mid=None,
-                 calculate_results = True,
+                 calculate_results=True,
                  **options
                  ):
         """
@@ -754,7 +721,11 @@ class Measurement(object):
         self.holder = None
         self._correction = []
 
-        self.results = None
+
+        # initialize the calculation_parameter dictionary  and results data
+        self.results = self.results = RockPy3.Data(column_names=self.result_methods().keys())
+        self.calculation_parameter = {result: {} for result in self.result_methods()}
+
         self.__initialize()
 
         # normalization
@@ -780,7 +751,7 @@ class Measurement(object):
         self.set_standard_plt_props(color, marker, linestyle)
         self.calc_all()
 
-    def set_standard_plt_props(self, color = None, marker=None, linestyle=None):
+    def set_standard_plt_props(self, color=None, marker=None, linestyle=None):
         #### automatically set the plt_props for the measurement according to the
         if color:
             self.set_plt_prop('color', color)
@@ -803,7 +774,7 @@ class Measurement(object):
         :param other:
         :return:
         """
-        return  self.idx < other.idx
+        return self.idx < other.idx
 
     def get_RockPy_compatible_filename(self, add_series=True):
 
@@ -823,10 +794,10 @@ class Measurement(object):
         if mass:
             mass = mass.data['data']['mass'].v[0]
             mass_exp = np.floor(np.log10(mass))  # exponent of mass
-            for i, pref in enumerate(range(-15, 3, 3)): # todo write function
+            for i, pref in enumerate(range(-15, 3, 3)):  # todo write function
                 if mass_exp < pref:
-                    mass /= np.power(10., pref-3)
-                    mass_unit = prefix[i][1]+'g'
+                    mass /= np.power(10., pref - 3)
+                    mass_unit = prefix[i][1] + 'g'
                     break
                 else:
                     mass_unit = 'kg'
@@ -834,10 +805,10 @@ class Measurement(object):
             mass, mass_unit = None, None
 
         fname = RockPy3.get_fname_from_info(
-                samplegroup=self.sobj.samplegroups[0], sample_name = self.sobj.name,
-                mtype=self.mtype, ftype = self.ftype,
+                samplegroup=self.sobj.samplegroups[0], sample_name=self.sobj.name,
+                mtype=self.mtype, ftype=self.ftype,
                 mass=mass, mass_unit=mass_unit,
-                series = series,
+                series=series,
                 idx=self.idx)
 
         return fname
@@ -845,12 +816,12 @@ class Measurement(object):
     def _rename_to_RockPy_compatible_filename(self, add_series=True, create_backup=True):
         if self.fpath:
             path = os.path.dirname(self.fpath)
-            backup_name = '#'+os.path.basename(self.fpath)
+            backup_name = '#' + os.path.basename(self.fpath)
             fname = self.get_RockPy_compatible_filename(add_series=add_series)
             if create_backup:
                 import shutil
-                shutil.copy(self.fpath, os.path.join(path,backup_name))
-            os.rename(self.fpath, os.path.join(path,fname))
+                shutil.copy(self.fpath, os.path.join(path, backup_name))
+            os.rename(self.fpath, os.path.join(path, fname))
 
     def set_recipe(self, result, recipe):
         """
@@ -866,78 +837,60 @@ class Measurement(object):
             both
 
         """
-        direct_result = result
-        indirect_result = None
-
         # break if the result does not exist
-        if not direct_result in self.result_recipe:
-            self.log.error('Measurement << %s >> has no result << %s >>' % (self.mtype, direct_result))
+        if not result in self.result_recipe():
+            self.log.error('Measurement << %s >> has no result << %s >>' % (self.mtype, result))
             return
 
         # for dependent results, the recipe has to be set for the method the result is dependent on
-        if self.standards_result()[direct_result].get('indirect', False):
-            direct_result = self.standards_result()[direct_result]['signature']['dependent'][0]
-            indirect_result = result
+        if self.res_signature()[result].get('indirect', False):
+            result = self.res_signature()[result]['signature']['dependent'][0]
 
         # break if the recipe is already set
-        if self.result_recipe[direct_result].upper() == recipe.upper():
+        if self.selected_recipe[result].upper() == recipe.upper():
             self.log.info('RECIPE << %s, %s >> already set' % (result, recipe))
             return
 
         # break if recipe not implemented
-        if not recipe in self.get_recipes(direct_result):
-            self.log.error('Recipe %s not found in %s, these are implemented: %s' %(recipe, direct_result, self.get_recipes(direct_result)))
+        if not recipe in self.get_recipes(result):
+            self.log.error('Recipe %s not found in %s, these are implemented: %s' % (
+                recipe, result, self.get_recipes(result)))
             return
 
         # setting the recipe
-        old_recipe = self.result_recipe[direct_result]
-        self.result_recipe[direct_result] = recipe.upper()
-
-        if indirect_result:
-            self.result_recipe[indirect_result] = self.result_recipe[direct_result]
+        old_recipe = self.result_recipe()[result]
+        self.selected_recipe[result] = recipe.upper()
 
         # if result is the base for other results, their methods have to be changed, too.
-        if self.standards_result()[result]['base_for']:
-            dependencies = self.standards_result()[result].get('base_for', [])
-            for dep_res in dependencies:
-                if not self.standards_result()[dep_res]['indirect']:
-                    self.set_recipe(dep_res, recipe=recipe)
-                    self.result_recipe[dep_res] = recipe.upper()
+        if self.res_signature()[result]['subjects']:
+            for dep_res in self.res_signature()[result]['subjects']:
+                self.set_recipe(dep_res, recipe=recipe)
+                # self.selected_recipe[dep_res] = recipe.upper()
 
         self.log.warning('Calculation parameter changed from:')
-        self.log.warning('{}: {}'.format(old_recipe, self.calculation_parameter[direct_result]))
-        self.calculation_parameter[direct_result] = deepcopy(
-                self.standards_calculate()[self.get_calculate_method(direct_result)])
+        self.log.warning('{}: {}'.format(old_recipe, self.calculation_parameter[result]))
+        self.calculation_parameter[result] = {}
 
         # change the method that is called
         if recipe == 'default':
             recipe = ''
 
-        self.methods[direct_result] = getattr(self, '_'.join(['calculate', self.get_calculate_method(result)]))
-        self.log.warning('{}: {}'.format(self.result_recipe[direct_result], self.calculation_parameter[direct_result]))
+        self.cmethods[result] = getattr(self, '_'.join(['calculate', self.get_cmethod_name(result)]))
 
-        if indirect_result:
-            self.log.warning(
-                    'The result << {} >> is an indirect result and is calculated through the method << {} >>'.format(
-                            indirect_result, direct_result))
-            self.log.warning('The recipe for all connected results has been changed to << {} >>'.format(recipe))
-            # change the method that is called for the indirect result
-            self.calculation_parameter[indirect_result] = self.calculation_parameter[direct_result]
-            self.methods[indirect_result] = self.methods[direct_result]
+        self.calculate_result(result=result)
+        self.log.warning('{}: {}'.format(self.result_recipe()[result], self.calculation_parameter[result]))
 
-        self.remove_result(result=direct_result)
-
-    def get_recipes(self, result):
+    def get_recipes(self, res):
         """
         returns all result recipes for a given result
-        :param result:
+        :param res:
         :return:
         """
-        recipes = ['default'] + [r.split('_')[-1].lower() for r in self.standards_calculate() if
-                                 result in r and r.split('_')[-1].isupper()]
+        recipes = ['default'] + [r.split('_')[-1].lower() for r in self.calc_signature() if
+                                 res in r and r.split('_')[-1].isupper()]
         return set(recipes)
 
-    def get_calculate_method(self, result):
+    def get_cmethod_name(self, res):
         """
         Takes a result, looks up the defined method and returns the calculation_method_name
 
@@ -956,20 +909,25 @@ class Measurement(object):
 
         """
         # check for indirect methods
-        if self.standards_result()[result]['dependent']:
-            # the result is truly dependent if there is no calculate method with its name in it
-            if not any(result in i for i in self.calculate_methods()):
-                result = self.standards_result()[result]['signature']['dependent'][0]
+        if self.res_signature()[res]['dependent']:
+            # the result is truly indirect if there is no calculate method with its name in it
+            # it needs to be specified what method is used to calculate (dependent)
+            if not res in self.calculate_methods():
+                res = self.res_signature()[res]['signature']['dependent'][0]
 
         # get the recipe
-        recipe = self.result_recipe[result]
+        recipe = self.selected_recipe[res]
         # add the suffix for non-default methods
         if recipe != 'DEFAULT':
-            method_name = '_'.join([result, recipe.upper()])
+            method_name = '_'.join([res, recipe.upper()])
         # default recipes do not need a suffix
         else:
-            method_name = result
+            method_name = res
         return method_name
+
+    def get_cmethod(self, res):
+        cmethod_name = self.get_cmethod_name(res)
+        return self.calculate_methods()[cmethod_name]
 
     def get_dependent_results(self, result):
         """
@@ -985,20 +943,20 @@ class Measurement(object):
         :return:
         """
 
-        # if not self.standards_result()[result]['indirect'] and not self.standards_result()[result]['dependent']:
+        # if not self.res_signature()[result]['indirect'] and not self.res_signature()[result]['dependent']:
         #     return [result]
 
-        if 'calculation_method' in self.standards_result()[result]['signature']:
-            cm = self.standards_result()[result]['signature']['calculation_method']
+        if 'calculation_method' in self.res_signature()[result]['signature']:
+            cm = self.res_signature()[result]['signature']['calculation_method']
         else:
             cm = result
 
-        indirect_methods = [res for res in self.standards_result() if self.standards_result()[res]['dependent']]
+        indirect_methods = [res for res in self.res_signature() if self.res_signature()[res]['dependent']]
         dependent_on_cm = [res for res in indirect_methods if
-                           self.standards_result()[res]['signature']['dependent'][0] == cm]
+                           self.res_signature()[res]['signature']['dependent'][0] == cm]
 
-        if self.standards_result()[result]['dependent']:
-            for res in self.standards_result()[result]['signature']['dependent']:
+        if self.res_signature()[result]['dependent']:
+            for res in self.res_signature()[result]['signature']['dependent']:
                 dependent_on_cm.extend(self.get_dependent_results(res))
 
         return sorted(set([cm] + dependent_on_cm))
@@ -1102,22 +1060,9 @@ class Measurement(object):
 
         :return:
         """
-
-        # calculate the standards for results, calculation and the appropriate methods
-        self.result_recipe = {result: self.standards_result()[result]['signature']['recipe'].upper() for result in
-                              self.standards_result()}
-
-        self.calculation_parameter = {
-            result: self.standards_calculate()[self.get_calculate_method(result)] for result in self.result_recipe
-            # if not self.standards_result()[result]['secondary']
-            }
-
-        for k in self.calculation_parameter:
-            self.calculation_parameter[k].update(dict(recalc=True))
-
-        self.methods = {result: getattr(self, 'calculate_' + self.get_calculate_method(result)) for result in
-                        self.result_recipe}
-
+        self.selected_recipe = deepcopy(self.result_recipe())
+        self.cmethods = {result: getattr(self, 'calculate_' + self.get_cmethod_name(result)) for result in
+                         self.result_recipe()}
         self._info_dict = self.__create_info_dict()
 
     @property
@@ -1338,21 +1283,20 @@ class Measurement(object):
             self.log.warning('%s does not have result << %s >>' % self.mtype, result)
             return
         else:
-            # todo figure out why log wrong when called from Visualize
             self.log = logging.getLogger('RockPy3.MEASURMENT.' + self.mtype + '[%s]' % self.sobj.name)
             self.log.info('CALCULATING << %s >>' % result)
             out = getattr(self, 'result_' + result)(**parameter)
         return out
 
-    def calc_all(self, recalc=False, **parameter):
+    def calc_all(self, **parameter):
         # get possible calculation parameters and put them in a dictionary
         calculation_parameter, kwargs = RockPy3.core.utils.kwargs_to_calculation_parameter(rpobj=self, **parameter)
-        for result_method in self.result_methods():
+        for result_method in sorted(self.result_methods()):
             # get calculation parameter
             calc_param = calculation_parameter.get(self.mtype, {})
             # get the calculation method
             calc_param = calc_param.get(result_method, {})
-            getattr(self, 'result_' + result_method)(recalc=recalc, **calc_param)
+            getattr(self, 'result_' + result_method)(**calc_param)
         if kwargs:
             self.log.warning('--------------------------------------------------')
             self.log.warning('| %46s |' % 'THESE PARAMETERS COULD NOT BE USED')
@@ -1445,7 +1389,7 @@ class Measurement(object):
         """
         cls.log.debug(
                 'Creating new variable list for %s measurement out of %i measurements' % (
-                cls.__name__, len(rpdata_list)))
+                    cls.__name__, len(rpdata_list)))
         min_vars = []
         max_vars = []
         stepsizes = []
@@ -2135,6 +2079,7 @@ def update_dict(dic1, dic2):
         the dictionary that is returned has been updated with the values from dict2
         all unused keys are returned as a set
     """
+    dic1 = deepcopy(dic1)
     for k in dic1:
         if k in dic2:
             dic1[k] = dic2[k]
@@ -2165,92 +2110,94 @@ def result(func, *args, **kwargs):
         3. base calculated with different parameters
             -> calculate slope with changed parameters from 'dependent'
     """
-    # get the name of the result
-    result_name = '_'.join(func.__name__.split('_')[1:])
 
+    def check_parameters(res, **kwargs):
+        oldpars = self.calculation_parameter[res]  # previous calculation_parameter
+        # print('old parameters: {}'.format(oldpars))
+
+        # if there are no oldpars -> has not been calculated -> force recalc
+        if not oldpars:
+            # print('   no old parameters')
+            method_name = self.get_cmethod_name(res)
+            return self.calc_signature()[method_name], set()
+
+        # otherwise the oldpars has to be updated with the kwargs
+        cpars, unused_pars = update_dict(oldpars, kwargs)
+        # print('new parameters: {}'.format(cpars))
+        # print([cpars.get(k, vold) == vold for k, vold in oldpars.items()])
+        if all(cpars.get(k, vold) == vold for k, vold in oldpars.items()):
+            # print('   parameters of %s did not change' %res)
+            # print('   returning values')
+            return None, None
+
+        else:
+            return cpars, unused_pars
+
+    # get the name of the result: e.g. hf_sus
+
+    res = func.__name__.replace('result_','')
     self = args[0]
 
     # get the signature of the function: meaning all parameters that have been passed and the variable names
-    signature = self.standards_result()[result_name]['signature']
-    recalc = signature.get('recalc', False)
+    signature = self.res_signature()[res]['signature']
+    # print(res)
+    # print('-------')
+    cpars, unused_pars = check_parameters(res, **kwargs)
 
-    dependencies = signature.get('dependent', None)  # get dependencies of method
-    secondaries = signature.get('secondary', None)  # get secondary measurements needed for method
+    if not cpars:
+        # print('unchanged parameters {}'.format(kwargs))
+        return self.results[res].v[0], self.results[res].e[0]
 
-    # if the result has dependencies, check if they are calculated already
-    if dependencies:
-        self.log.debug('result << {} >> has dependencies << {} >>'.format(result_name, dependencies))
-        # check each dependency
-        for dep_res in dependencies:
-            self.log.debug('checking dependency << {} >>'.format(dep_res))
-
-            # if no results have been calcuted or the result is not calculated
-            cpars = deepcopy(self.calculation_parameter[dep_res])
-            cpars, unused_pars = update_dict(cpars, kwargs)
-
-            if not self.results or dep_res not in self.results.column_names:
-                self.log.debug('dependency << {} >> has to be calculated'.format(dep_res))
-                self.methods[dep_res](result_name=dep_res, **cpars)
-
-            # check if calculation parameter of dependent result have changed
-            if self.calculation_parameter[dep_res] != cpars:
-                self.log.debug('dependency << {} >> parameters have changed, has to be calculated'.format(dep_res))
-                self.methods[dep_res](result_name=dep_res, **cpars)
-
-            self.calculation_parameter[dep_res] = cpars
-
-        else:
-            if not self.results or result_name not in self.results.column_names:
-                self.log.debug(
-                        'dependencies << {} >> successfully calculated, calculating << {} >>'.format(dependencies,
-                                                                                                     result_name))
-                cpars = deepcopy(self.calculation_parameter[result_name])
-                cpars, unused_pars = update_dict(cpars, kwargs)
-                self.methods[result_name](result_name=result_name, **cpars)
-                self.calculation_parameter[result_name] = cpars
-
-            else:
-                self.log.debug(
-                        'dependencies << {} >> successfully calcuated, << {} >> already calculated'.format(dependencies,
-                                                                                                           result_name))
-
-
-    # result is independent
+    # print('parameters changed or no old parameters')
+    if not self.res_signature()[res]['indirect']:
+        # print('%s is direct'%res)
+        # if self.has_recipe(res):
+            # print('%   s has recipes'%res)
+        method = self.get_cmethod(res)
+        # print('   getting cmethod', method)
+        # print('   calling', method)
+        method(self, result_name=res, **cpars)
+        if self.res_signature()[res]['dependent']:
+            # print('%   s has root methods'% res)
+            for mmethod in self.res_signature()[res]['signature']['dependent']:
+                if check_parameters(mmethod):
+                    method = self.get_cmethod(mmethod)
+                    method(self, result_name=mmethod, **cpars)
+                    # print('      getting root cmethod', method)
+                    # print('      calling', method)
+        if self.res_signature()[res]['subjects']:
+            # print('%   s is root for:'%res, self.res_signature()[res]['subjects'])
+            for subj in self.res_signature()[res]['subjects']:
+                if check_parameters(subj):
+                    method = self.get_cmethod(subj)
+                    method(self, result_name=subj, **cpars)
+                    # print('      getting subject cmethod', method)
+                    # print('      calling', subj)
     else:
-        self.log.debug('result << {} >> is indepedent'.format(result_name))
-        cpars = deepcopy(self.calculation_parameter[result_name])
-        cpars, unused_pars = update_dict(cpars, kwargs)
-        if not self.results or result_name not in self.results.column_names:
-            self.log.debug('result << {} >> no calculated yet, has to be calculated'.format(result_name))
-            recalc = True
-        elif self.calculation_parameter[result_name] != cpars:
-            self.log.debug('result << {} >> parameters have changed, has to be calculated'.format(result_name))
-            recalc = True
+        # print('%s is indirect'%res)
+        # if self.has_recipe(res):
+            # print('%   s has recipes'%res)
+        if self.res_signature()[res]['dependent']:
+            # print('%   s has master methods'% res)
+            for mmethod in self.res_signature()[res]['signature']['dependent']:
+                if check_parameters(mmethod):
+                    method = self.get_cmethod(mmethod)
+                    method(self, result_name=mmethod, **cpars)
+                    # print('      getting master cmethod', method)
+                    # print('      calling', method)
+        if self.res_signature()[res]['subjects']:
+            # print('%   s is root for:'%res, self.res_signature()[res]['subjects'])
+            for subj in self.res_signature()[res]['subjects']:
+                if check_parameters(subj):
+                    method = self.get_cmethod(subj)
+                    method(self, result_name=subj, **cpars)
+                    # print('      getting subject cmethod', method)
+                    # print('      calling', subj)
 
-        if recalc:
-            self.methods[result_name](result_name=result_name, **cpars)
+    if 'check' in self.calculation_parameter[res]:
+        self.calculation_parameter[res]['check'] = False
+    return self.results[res].v[0], self.results[res].e[0]
 
-            # results that are dependent on the result have to be calculated again
-            dependencies = self.standards_result()[result_name].get('base_for', [])
-            if dependencies:
-                self.log.debug(
-                    'Recalculating all results that are dependent on << {} >> and have been calculated already'.format(
-                        result_name))
-                for dep_res in dependencies:
-                    # indirect results need not to be recalculated since they are calculated from the direct method
-                    if self.standards_result()[dep_res]['indirect']:
-                        continue
-                    self.log.debug('Recalculating << {} >> '.format(dep_res))
-                    # skip results that have not been calculated
-                    if not dep_res in self.results.column_names:
-                        continue
-                    dpars = self.calculation_parameter[dep_res]
-                    dpars, unused_pars = update_dict(dpars, kwargs)
-                    self.methods[dep_res](result_name=dep_res, **dpars)
-                    self.calculation_parameter[dep_res] = dpars
-            self.calculation_parameter[result_name] = cpars
-
-    return self.results[result_name].v[0], self.results[result_name].e[0]
 
 
 @decorator.decorator
@@ -2262,29 +2209,17 @@ def calculate(func, *args, **kwargs):
     :param kwargs:
     :return:
     """
+    # get self from args
     self = args[0]
+
+    # transform the args into parameters
+    params = {p: args[i+1] for i,p in enumerate(self.calc_signature()[func.__name__.replace('calculate_', '')])}
+
     result_name = kwargs.pop('result_name')
-    signature = {k: args[i] for i, k in enumerate(inspect.signature(func).parameters) if 0 < i < len(args)}
-
-    # get all results that are dependent of or a dependency of result_name
-    dependent_results = self.standards_result()[result_name].get('base_for', set())
-
-    # remove results that have their own calculate function and thus are not independent
-    dependent_results = set(
-            res for res in dependent_results if not any(res in method for method in self.calculation_methods()))
-
-    dependent_results.add(result_name)
-
-    # if no Results have been calculated - create a new RPdata object
-    if self.results is None:
-        self.results = RockPy3.Data(column_names='measurement id', data=self.id)
-
-    # create new columns for all dependent results
-    for result in dependent_results:
-        if not result in self.results.column_names:
-            self.results = self.results.append_columns(column_names=result, data=[[[np.nan, np.nan]]])
-
-    return func(self, **signature)
+    # print('calculating %s using %s '%(result_name, func.__name__))
+    # print(('   using parmeters: {}'.format(params)))
+    self.calculation_parameter[result_name] = params
+    return func(*args, **kwargs)
 
 
 @decorator.decorator
@@ -2323,23 +2258,18 @@ def get_result_recipe_name(func_name):
 
 
 if __name__ == '__main__':
-    import RockPy3
-    import logging
     RockPy3.logger.setLevel('DEBUG')
     from pprint import pprint
 
     S = RockPy3.RockPyStudy()
     s = S.add_sample(name='test', mass=50, mass_unit='mg')
     s.add_to_samplegroup('TT')
-    m = s.add_measurement(mtype='hys', fpath='/Users/mike/Google Drive/__code/RockPy3/testing/test_data/hys_vsm.001',
-                          ftype='vsm')
-    print(m.result_ms())
-    # m.set_recipe('ms', 'app2sat')
-    #
-    # m.result_ms(check=True)
-    # S.import_folder('/Users/mike/Google Drive/__code/RockPy3/mike_testing/auto_import')
-    # S.info(sample_info=False)
-    # m = S.get_measurement(mtype='hysteresis')[0]
-    # m = RockPy3.Packages.Mag.Measurements.hysteresis.Hysteresis(sobj=s)
-    # m = s.add_simulation(mtype='hysteresis', ms=1)
-    # m.result_ms(saturation_percent=80)
+    m = s.add_simulation(mtype='hys')
+    m.result_bc(check=True)
+    m.result_bc(check=True)
+    m.result_bc()
+    # print(m.results)
+    # print(m.results)
+    # print(m.result_recipe()['ms'])
+    # print(m.selected_recipe['ms'])
+    # print(m.res_signature()['bcr'])
