@@ -643,7 +643,7 @@ class Sample(object):
         self.log.debug('setting recipe = {} for result = {} for {} measuremnts'.format(recipe, result, len(mlist)))
 
         for m in mlist:
-            m.set_recipe(result=result, recipe=recipe)
+            m.set_recipe(res=result, recipe=recipe)
 
     def get_measurement_new(self, mtype=None, stype=None, sval=None, result=None, mean=False, base=False, all_types=False):
 

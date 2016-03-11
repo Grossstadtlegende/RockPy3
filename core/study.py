@@ -440,6 +440,8 @@ class Study(object):
         files = [os.path.join(folder, i) for i in os.listdir(folder)
                  if not i.startswith('#')
                  if not i.startswith(".")
+                 if not i.endswith("pynb")
+                 if not i.endswith("log")
                  if not os.path.isdir(os.path.join(folder, i))
                  ]
 

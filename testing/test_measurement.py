@@ -316,17 +316,17 @@ class TestMeasurement(TestCase):
         print(m0.results)
         # direct
         self.assertEqual('direct', m0.result_category('mrs'))
-        m0.set_recipe(result='mrs', recipe='nonlinear')
+        m0.set_recipe(res='mrs', recipe='nonlinear')
         self.assertEqual('default'.upper(), m0.result_recipe['mrs'])
         # direct_recipe
         self.assertEqual('direct_recipe', m0.result_category('bc'))
-        m0.set_recipe(result='bc', recipe='nonlinear')
+        m0.set_recipe(res='bc', recipe='nonlinear')
         self.assertEqual('nonlinear'.upper(), m0.result_recipe['bc'])
         print(m0.results)
         # indirect
 
         # indirect_recipe
         self.assertEqual('indirect_recipe', m0.result_category('hf_sus'))
-        m0.set_recipe(result='hf_sus', recipe='app2sat')
+        m0.set_recipe(res='hf_sus', recipe='app2sat')
         self.assertEqual('app2sat'.upper(), m0.result_recipe['ms'])
         self.assertEqual('app2sat'.upper(), m0.result_recipe['hf_sus'])

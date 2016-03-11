@@ -1415,6 +1415,37 @@ class Measurement(object):
             series = RockPy3.Series(stype='none', value=np.nan, unit='')
             return [series]
 
+    def has_series(self, stype=None, method='all'):
+        """
+        Checks if a measurement has all of the specified series
+
+        Parameters
+        ----------
+            stype: str, list, tuple
+                stypes to test for
+            method: 'all' or 'any' or 'none'
+                defines the check method:
+                    all: all series need to exist
+                    any: any series needs to exist
+                    none: no series can exist
+
+        Returns
+        -------
+            True if all stypes exist, False if not
+            If stype = None : returns True if no series else True
+        """
+
+        if stype is not None:
+            stype = RockPy3.core.utils.to_list(stype)
+            if method == 'all':
+                return True if all(i in self.stypes for i in stype) else False
+            if method == 'any':
+                return True if any(i in self.stypes for i in stype) else False
+            if method == 'none':
+                return True if not any(i in self.stypes for i in stype) else False
+        else:
+            return True if not self.stypes else False
+
     def get_series(self, stype=None, sval=None, series=None):
         """
         searches for given stypes and svals in self.series and returns them
@@ -2144,7 +2175,7 @@ def result(func, *args, **kwargs):
     # print('-------')
     cpars, unused_pars = check_parameters(res, **kwargs)
 
-    if not cpars:
+    if cpars is None:
         # print('unchanged parameters {}'.format(kwargs))
         return self.results[res].v[0], self.results[res].e[0]
 
@@ -2211,7 +2242,6 @@ def calculate(func, *args, **kwargs):
     """
     # get self from args
     self = args[0]
-
     # transform the args into parameters
     params = {p: args[i+1] for i,p in enumerate(self.calc_signature()[func.__name__.replace('calculate_', '')])}
 
@@ -2230,6 +2260,8 @@ def correction(func, *args, **kwargs):
     self = args[0]
     if func.__name__ in self.correction:
         self.log.warning('CORRECTION {} has already been applied'.format(func.__name__))
+    else:
+        self.log.info('APPLYING correction {}'.format(func.__name__))
     self.correction.append(func.__name__)
     return func(*args, **kwargs)
 

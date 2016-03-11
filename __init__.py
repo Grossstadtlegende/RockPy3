@@ -1,10 +1,10 @@
 import os
 import logging
 import matplotlib
+import RockPy3
 matplotlib.use('Qt4Agg')
 # matplotlib.use('rtes')
 
-import RockPy3
 installation_directory = os.path.dirname(RockPy3.__file__)
 
 # automatic import of all subpackages in Packages and core
