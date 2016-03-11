@@ -27,6 +27,12 @@ class Sample(object):
     def __lt__(self, other):
         return self.name < other.name
 
+    def __iter__(self):
+        return iter(self.measurements)
+
+    def __getitem__(self, i):
+        return self.measurements[i]
+
     @property
     def samplegroups(self):
         if self._samplegroups:
@@ -542,7 +548,7 @@ class Sample(object):
             file_info = RockPy3.core.file_operations.get_info_from_fname(path=fpath)
         if not file_info:
             self.log.warning(
-                'CANNOT readin fpath automatically. See RockPy naming conventions for proper naming scheme.')
+                'CANNOT readin fpath automatically.',extra= 'See RockPy naming conventions for proper naming scheme.')
             fname = RockPy3.get_fname_from_info(samplegroup='SG', sample_name=self.name, mtype=mtype, ftype=ftype,
                                                 series=series)
             self.log.info('FILE NAME proposition:')

@@ -42,7 +42,7 @@ class Paleointensity(measurement.Measurement):
                     acquisition_data = m.data['data']
 
         if not any([acquisition_data, demagnetization_data]):
-            cls.log.error(
+            cls.clslog.error(
                 'ONE of the measurements does not match. A demagnetization and a acquisition object is needed')
             return
 

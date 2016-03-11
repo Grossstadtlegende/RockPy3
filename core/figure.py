@@ -139,7 +139,14 @@ class Figure(object):
             self.log.info('-'.join('' for i in range(70)))
             self.log.info('IMPLEMENTED \tVISUALS: features')
             for n, v in sorted(RockPy3.implemented_visuals.items()):
-                self.log.info('\t{}:\t{}'.format(n.upper(), ', '.join(v.implemented_features().keys())))
+                x = len(v.implemented_features().keys())-1
+                implemented = sorted(v.implemented_features().keys())
+                for line in range(x%4):
+                    if line == 0:
+                        self.log.info('\t{:20}:\t{}'.format(n.upper(), ', '.join(implemented[:4])))
+                    else:
+                        end = (line+1)*4 if (line+1)*4 < x else x
+                        self.log.info('\t{:20} \t{}'.format('', ', '.join(implemented[line*4:end])))
             self.log.info('-'.join('' for i in range(70)))
             if not ignore_once:
                 self.logged_implemented = True

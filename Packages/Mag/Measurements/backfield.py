@@ -52,7 +52,7 @@ class Backfield(measurement.Measurement):
         G:  G describes the standard deviation or half-width of the distribution.
 
         """
-        cls.log.info('CREATING simulation measurement with {}'.format(locals()))
+        cls.clslog.info('CREATING simulation measurement with {}'.format(locals()))
 
         calculation = np.arange(0, 2, 1e-6)
         fields = np.round(np.linspace(1e-9, bmax, steps), 4)

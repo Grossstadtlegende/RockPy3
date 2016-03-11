@@ -770,26 +770,7 @@ def mlist_from_input(plt_input):
     return mlist, meanlist
 
 
-def compare_measurement_series(m1, m2):
-    """
-    returns True if both series have exactly the same series.
 
-    Parameter
-    ---------
-        m1: RockPy3.Measeurement
-        m2: RockPy3.Measeurement
-
-    Note
-    ----
-        ignores multiples of the same series
-    """
-    s1 = m1.series
-    s2 = m2.series
-
-    if all(s in s2 for s in s1) and all(s in s1 for s in s2):
-        return True
-    else:
-        return False
 
 
 def MlistToTupleList(mlist, mtypes):

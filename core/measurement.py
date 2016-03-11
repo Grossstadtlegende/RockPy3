@@ -50,8 +50,9 @@ class Measurement(object):
 
     """
     n_created = 0
-    log = logging.getLogger('RockPy3.MEASUREMENT')
-    _plt_props = {'label': ''}
+
+    clslog = logging.getLogger('RockPy3.MEASUREMENT')
+
 
     possible_plt_props = ['agg_filter', 'alpha', 'animated', 'antialiased', 'axes', 'clip_box', 'clip_on', 'clip_path',
                           'color', 'contains', 'dash_capstyle', 'dash_joinstyle', 'dashes', 'drawstyle', 'figure',
@@ -75,6 +76,11 @@ class Measurement(object):
     _scp = None  # standard_calculation parameter
     _scalculate = None
 
+    @property
+    def log(self):
+        return RockPy3.core.utils.set_get_attr(self, '_log',
+                                               value=logging.getLogger(
+                                                   'RockPy3.[%s].[%i]%s' % (self.sobj.name, self._idx, self.mtype)))
     @classmethod
     def result_recipe(cls):
         # calculate the standards for results, calculation and the appropriate methods
@@ -444,6 +450,7 @@ class Measurement(object):
         if prop not in Measurement.possible_plt_props:
             raise KeyError
         old_prop = self._plt_props[prop] if prop in self._plt_props else None
+
         self._plt_props[prop] = value
         self.log.debug('SETTING {:10}: {} -> {}'.format(prop, old_prop, self._plt_props[prop]))
 
@@ -490,16 +497,16 @@ class Measurement(object):
         if ftype in cls.implemented_ftypes():
             ftype_data = cls.implemented_ftypes()[ftype](fpath, sobj.name)
         else:
-            cls.log.error('CANNOT IMPORT ')
+            cls.clslog.error('CANNOT IMPORT ')
 
         if ftype in cls.measurement_formatters():
-            cls.log.debug('ftype_formatter << %s >> implemented' % ftype)
+            cls.clslog.debug('ftype_formatter << %s >> implemented' % ftype)
             mdata = cls.measurement_formatters()[ftype](ftype_data, sobj_name=sobj.name)
             if not mdata:
                 return
         else:
-            cls.log.error('UNKNOWN ftype: << %s >>' % ftype)
-            cls.log.error(
+            cls.clslog.error('UNKNOWN ftype: << %s >>' % ftype)
+            cls.clslog.error(
                     'most likely cause is the \"format_%s\" method is missing in the measurement << %s >>' % (
                         ftype, cls.__name__))
             return
@@ -532,7 +539,7 @@ class Measurement(object):
         # convert to single measurement
         mlist = RockPy3.core.utils.to_list(mlist)
         if any(m.mtype != cls.__name__.lower() for m in mlist):
-            cls.log.error('Some measurements have wrong mtype. They will be ignored')
+            cls.clslog.error('Some measurements have wrong mtype. They will be ignored')
             mlist = [m for m in mlist if m.mtype == cls.__name__.lower()]
 
         # use first measurement as base
@@ -692,7 +699,7 @@ class Measurement(object):
 
         self.sobj = sobj
 
-        self.log = logging.getLogger('RockPy3.MEASURMENT.' + self.get_subclass_name())
+        # self.log = logging.getLogger('RockPy3.MEASURMENT.' + self.get_subclass_name())
 
         if mdata is None:
             mdata = {}
@@ -749,6 +756,7 @@ class Measurement(object):
         self.idx = idx # user index
         self.__class__.n_created += 1
 
+        self._plt_props = {'label': ''}
         self.set_standard_plt_props(color, marker, linestyle)
         self.calc_all()
 
@@ -773,8 +781,11 @@ class Measurement(object):
         """
         Resets the plt_props to the standard value
         """
-        self._plt_props = deepcopy(self.__class__._plt_props)
         self.set_standard_plt_props()
+        self.plt_props['label'] = ''
+        for prop in self.plt_props:
+            if prop not in ('marker', 'color', 'linestyle', 'label'):
+                self.plt_props.remove(prop)
 
     def __lt__(self, other):
         """
@@ -1399,7 +1410,7 @@ class Measurement(object):
         takes a list of rpdata objects. it checks for all steps, the size of the step and min and max values of the
         variable. It then generates a list of new variables from the max(min) -> min(max) with the mean step size
         """
-        cls.log.debug(
+        cls.clslog.debug(
                 'Creating new variable list for %s measurement out of %i measurements' % (
                     cls.__name__, len(rpdata_list)))
         min_vars = []
@@ -2085,7 +2096,7 @@ class Measurement(object):
         :return:
         """
         if et_element.tag != cls.MEASUREMENT:
-            log.error('XML Import: Need {} node to construct object.'.format(cls.MEASUREMENT))
+            clslog.error('XML Import: Need {} node to construct object.'.format(cls.MEASUREMENT))
             return None
 
         # readin data
@@ -2307,13 +2318,8 @@ if __name__ == '__main__':
 
     S = RockPy3.RockPyStudy()
     s = S.add_sample(name='test')
-    m = s.add_simulation(mtype='hys')
-    m = s.add_simulation(mtype='hys')
-    print(m.plt_props)
-    m.reset_plt_prop()
-    print(m.plt_props)
-    # print(m.results)
-    # print(m.results)
-    # print(m.result_recipe()['ms'])
-    # print(m.selected_recipe['ms'])
-    # print(m.res_signature()['bcr'])
+    m1 = s.add_simulation(mtype='hys')
+
+    f = RockPy3.Figure(data=s)
+    v = f.add_visual('hysteresis')
+    f.show()

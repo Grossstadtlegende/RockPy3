@@ -110,7 +110,7 @@ class Hysteresis(measurement.Measurement):
         Increasing the Mrs/Ms ratio to more then 0.5 results in weird looking hysteresis loops
 
         """
-        cls.log.info('CREATING simulation measurement with {}'.format(locals()))
+        cls.clslog.info('CREATING simulation measurement with {}'.format(locals()))
 
         data = {'up_field': None,
                 'down_field': None,
