@@ -436,7 +436,8 @@ class Study(object):
 
         return sorted(set(mlist))
 
-    def import_folder(self, folder, gname=None):  # todo specify samples, mtypes and series for selective import of folder
+    def import_folder(self, folder,
+                      gname=None):  # todo specify samples, mtypes and series for selective import of folder
         files = [os.path.join(folder, i) for i in os.listdir(folder)
                  if not i.startswith('#')
                  if not i.startswith(".")
@@ -607,6 +608,21 @@ class Study(object):
             color = RockPy3.colorscheme[i]
             s.set_plt_prop('color', color)
 
+    def reset_plt_prop(self,
+                       gname=None,
+                       sname=None,
+                       mtype=None,
+                       series=None,
+                       stype=None, sval=None, sval_range=None,
+                       mean=False, groupmean=False,
+                       invert=False,
+                       id=None,
+                       ):
+        mlist = self.get_measurement(gname, sname, mtype, series, stype, sval, sval_range, mean, groupmean, invert, id)
+
+        for m in mlist:
+            m.reset_plt_prop()
+
     def set_color(self, color, stypes=None, add_stype=True, add_sval=True, add_unit=True,
                   gname=None,
                   sname=None,
@@ -756,9 +772,10 @@ class Study(object):
 
         return cls.from_etree(root)
 
+
 if __name__ == '__main__':
     S400J = RockPy3.RockPyStudy()
     ms = S400J.import_folder('/Users/mike/Desktop/test')
     for m in ms:
         m.calc_all()
-    # S400J.info()
+        # S400J.info()
