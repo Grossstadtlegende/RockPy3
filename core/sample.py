@@ -1029,6 +1029,7 @@ class Sample(object):
         for m in self.get_measurement(mtype, series, stype, sval, sval_range, mean, invert, id):
             m.reset_plt_prop()
 
+
     def set_plt_prop(self, prop, value):
         for m in self.measurements + self.mean_measurements:
             m.set_plt_prop(prop, value)

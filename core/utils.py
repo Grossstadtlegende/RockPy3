@@ -41,8 +41,8 @@ def create_heat_color_map(value_list, reverse=False):
 def create_logger(name):
     log = logging.getLogger(name=name)
     log.setLevel(logging.DEBUG)
-    formatter = logging.Formatter('%(asctime)s: %(levelname)-10s %(name)-20s %(message)s')
-    #formatter = logging.Formatter('%(levelname)-10s %(name)-15s %(message)s')
+    # formatter = logging.Formatter('%(asctime)s: %(levelname)-10s %(name)-20s %(message)s')
+    formatter = logging.Formatter('%(levelname)-8s %(name)-15s %(message)s')
     #fh = logging.FileHandler('RPV3.log')
     # fh.setFormatter(formatter)
     # fh.setLevel(logging.INFO)

@@ -443,9 +443,9 @@ class Measurement(object):
             return
         if prop not in Measurement.possible_plt_props:
             raise KeyError
-        self._plt_props.setdefault(prop, None)
-        self.log.debug('SETTING {} from {} -> {}'.format(prop, self._plt_props[prop], value))
+        old_prop = self._plt_props[prop] if prop in self._plt_props else None
         self._plt_props[prop] = value
+        self.log.debug('SETTING {:10}: {} -> {}'.format(prop, old_prop, self._plt_props[prop]))
 
     ####################################################################################################################
 
@@ -691,7 +691,6 @@ class Measurement(object):
             self.id = int(mid)
 
         self.sobj = sobj
-        self._plt_props = {'label': ''}
 
         self.log = logging.getLogger('RockPy3.MEASURMENT.' + self.get_subclass_name())
 
@@ -746,7 +745,8 @@ class Measurement(object):
         if not idx:
             idx = len(self.sobj.measurements)
 
-        self.idx = idx
+        self._idx = len(self.sobj.measurements)# internal index
+        self.idx = idx # user index
         self.__class__.n_created += 1
 
         self.set_standard_plt_props(color, marker, linestyle)
@@ -757,7 +757,7 @@ class Measurement(object):
         if color:
             self.set_plt_prop('color', color)
         else:
-            self.set_plt_prop(prop='color', value=RockPy3.colorscheme[len(self.sobj.measurements)])
+            self.set_plt_prop(prop='color', value=RockPy3.colorscheme[self._idx])
 
         if marker or marker == '':
             self.set_plt_prop('marker', marker)
@@ -773,7 +773,7 @@ class Measurement(object):
         """
         Resets the plt_props to the standard value
         """
-        self._plt_props = self.__class__._plt_props
+        self._plt_props = deepcopy(self.__class__._plt_props)
         self.set_standard_plt_props()
 
     def __lt__(self, other):
@@ -999,6 +999,8 @@ class Measurement(object):
         first = deepcopy(self)
 
         for dtype in first.data:
+            if first.data[dtype] is None or other.data[dtype] is None:
+                continue
             vars1 = set(first.data[dtype]['variable'].v)
             vars2 = set(other.data[dtype]['variable'].v)
             diff = vars1 ^ vars2
@@ -1015,6 +1017,8 @@ class Measurement(object):
         first = deepcopy(self)
 
         for dtype in first.data:
+            if first.data[dtype] is None or other.data[dtype] is None:
+                continue
             vars1 = set(first.data[dtype]['variable'].v)
             vars2 = set(other.data[dtype]['variable'].v)
             diff = vars1 ^ vars2
@@ -2302,10 +2306,12 @@ if __name__ == '__main__':
     from pprint import pprint
 
     S = RockPy3.RockPyStudy()
-    s = S.add_sample(name='test', mass=50, mass_unit='mg')
-    s.add_to_samplegroup('TT')
+    s = S.add_sample(name='test')
     m = s.add_simulation(mtype='hys')
-    print(m.reset_plt_prop())
+    m = s.add_simulation(mtype='hys')
+    print(m.plt_props)
+    m.reset_plt_prop()
+    print(m.plt_props)
     # print(m.results)
     # print(m.results)
     # print(m.result_recipe()['ms'])
