@@ -51,6 +51,7 @@ class Measurement(object):
     """
     n_created = 0
     log = logging.getLogger('RockPy3.MEASUREMENT')
+    _plt_props = {'label': ''}
 
     possible_plt_props = ['agg_filter', 'alpha', 'animated', 'antialiased', 'axes', 'clip_box', 'clip_on', 'clip_path',
                           'color', 'contains', 'dash_capstyle', 'dash_joinstyle', 'dashes', 'drawstyle', 'figure',
@@ -767,6 +768,13 @@ class Measurement(object):
             self.set_plt_prop('linestyle', linestyle)
         else:
             self.set_plt_prop(prop='linestyle', value='-')
+
+    def reset_plt_prop(self):
+        """
+        Resets the plt_props to the standard value
+        """
+        self._plt_props = self.__class__._plt_props
+        self.set_standard_plt_props()
 
     def __lt__(self, other):
         """
@@ -2297,9 +2305,7 @@ if __name__ == '__main__':
     s = S.add_sample(name='test', mass=50, mass_unit='mg')
     s.add_to_samplegroup('TT')
     m = s.add_simulation(mtype='hys')
-    m.result_bc(check=True)
-    m.result_bc(check=True)
-    m.result_bc()
+    print(m.reset_plt_prop())
     # print(m.results)
     # print(m.results)
     # print(m.result_recipe()['ms'])
