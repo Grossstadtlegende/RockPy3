@@ -1007,6 +1007,18 @@ class Measurement(object):
         return self.id == other.id
 
     def __add__(self, other):
+        """
+        Adds one measurement to another. First the measurements are interpolated to the same variables, then
+        the interpolated numbers are subtracted.
+
+        Parameters
+        ----------
+        other
+
+        Returns
+        -------
+
+        """
         first = deepcopy(self)
 
         for dtype in first.data:
@@ -1049,7 +1061,7 @@ class Measurement(object):
         """
         pickle_me = {k: v for k, v in self.__dict__.items() if k in
                      (
-                         'id',
+                         'id', '_idx',
                          'ftype', 'fpath',
                          # plotting related
                          '_plt_props',
@@ -1438,7 +1450,7 @@ class Measurement(object):
             series = RockPy3.Series(stype='none', value=np.nan, unit='')
             return [series]
 
-    def has_series(self, stype=None, method='all'):
+    def has_stype(self, stype=None, method='all'):
         """
         Checks if a measurement has all of the specified series
 
@@ -1469,6 +1481,10 @@ class Measurement(object):
         else:
             return True if not self.stypes else False
 
+    def has_series(self, series=None):
+        series = RockPy3.core.utils.tuple2list_of_tuples(series)
+        return True if self.get_series(series=series) else False
+
     def get_series(self, stype=None, sval=None, series=None):
         """
         searches for given stypes and svals in self.series and returns them
@@ -1495,20 +1511,20 @@ class Measurement(object):
             m.get_series('pressure', 0) -> [<RockPy3.series> pressure, 0.00, [GPa]]
             m.get_series(0) -> [<RockPy3.series> pressure, 0.00, [GPa], <RockPy3.series> temperature, 0.00, [C]]
         """
-        out = self.series
+        # out = self.series
+
+        slist = self.series
+
         if stype is not None:
             stype = RockPy3.core.utils.to_list(stype)
-            stype = [stype.lower() for stype in stype]
-            out = [i for i in out if i.stype in stype]
+            slist = filter(lambda x: x.stype in stype, slist)
         if sval is not None:
             sval = RockPy3.core.utils.to_list(sval)
-            out = [i for i in out if i.value in sval]
-
-        if series:  # todo series
-
-            out = [i for i in out if i.data in sval]
-
-        return out
+            slist = filter(lambda x: x.sval in sval, slist)
+        if series:
+            series = RockPy3.core.utils.to_list(series)
+            slist = filter(lambda x: (x.stype, x.sval) in series, slist)
+        return list(slist)
 
     def get_sval(self, stype):
         """
@@ -1887,6 +1903,7 @@ class Measurement(object):
                 self.log.warning('CANT find series << %s >>' % stype)
                 self.log.warning('\tonly one of these are possible:\t%s' % self.stypes)
         return '; '.join(out)
+
 
     def has_mtype_stype_sval(self, mtype=None, stype=None, sval=None):
         """
