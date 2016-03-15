@@ -702,7 +702,7 @@ class Measurement(object):
         # self.log = logging.getLogger('RockPy3.MEASURMENT.' + self.get_subclass_name())
 
         if mdata is None:
-            mdata = {}
+            mdata = OrderedDict()
 
         # the data that is used for calculations and corrections
         self._data = mdata
@@ -1241,15 +1241,14 @@ class Measurement(object):
         """
         list of all stypes
         """
-        stypes = set(s.stype for s in self.series)
-        return list(stypes)
+        return sorted(set(s.stype for s in self.series))
 
     @property
     def svals(self):
         """
-        list of all stypes
+        list of all svalues
         """
-        return self.info_dict['sval'].keys()
+        return sorted(set(s.sval for s in self.series))
 
     @property
     def data(self):
@@ -1642,14 +1641,11 @@ class Measurement(object):
            values:
         :return:
         """
-        return sorted(list(set(values)))
+        return sorted(set(values))
 
     def _get_idx_dtype_var_val(self, dtype, var, val):
         """
         returns the index of the closest value with the variable(var) and the step(step) to the value(val)
-
-        option: inverse:
-           returns all indices except this one
 
         """
         out = [np.argmin(abs(self.data[dtype][var].v - val))]
@@ -1712,6 +1708,7 @@ class Measurement(object):
         # separate the calc from non calc parameters
         calculation_parameter, options = RockPy3.core.utils.separate_calculation_parameter_from_kwargs(rpobj=self,
                                                                                                        **options)
+        NoNormVar = ['temperature', 'time', 'field']
 
         # getting normalization factor
         if not norm_factor:  # if norm_factor specified
@@ -1749,7 +1746,7 @@ class Measurement(object):
                     try:
                         self.data[dtype]['mag'] = self.data[dtype].magnitude(('x', 'y', 'z'))
                     except KeyError:
-                        self.log.debug('no (x,y,z) data found keeping << mag >>')
+                        self.log.debug('no (x,y,z) data found in {} keeping << mag >>'.format(dtype))
 
         self.log.debug('NORMALIZING << %s >> with << %.2e >>' % (', '.join(norm_dtypes), norm_factor))
 
@@ -1758,6 +1755,7 @@ class Measurement(object):
                 self.initial_state.data[dtype] = dtype_rpd / norm_factor
                 if 'mag' in self.initial_state.data[dtype].column_names:
                     self.initial_state.data[dtype]['mag'] = self.initial_state.data[dtype].magnitude(('x', 'y', 'z'))
+
         return self
 
     def _get_norm_factor(self, reference, rtype, vval, norm_method, result, **calculation_parameter):
