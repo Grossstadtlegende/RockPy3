@@ -59,24 +59,67 @@ class Thermocurve(measurement.Measurement):
             RockPy3.logger.error('LENGTH of machine.out_thermocurve < 2.')
         return mdata
 
-    def get_tc(self):
-        for idx, dtype in enumerate(('warming', 'cooling')):
-            self.data[dtype].find_peaks()
+    @staticmethod
+    def format_vsm(ftype_data, sobj_name=None):
+
+        header = ftype_data.header
+        segments = ftype_data.get_segments_from_data()
+        data = ftype_data.get_data()
+
+        mdata = {}
+
+        aux = np.array([j for i in data for j in i])  # combine all data arrays
+        a = np.array([(i, v) for i, v in enumerate(np.diff(aux, axis=0)[:, 0])])
+
+        sign = np.sign(np.diff(aux, axis=0)[:, 1])
+
+        threshold = 3
+        zero_crossings = [i + 1 for i in range(len(a[:, 1]) - 1)
+                          if a[i, 1] > 0 > a[i + 1, 1] and a[i, 1] > 0 > a[i + 2, 1]
+                          or a[i, 1] < 0 < a[i + 1, 1] and a[i, 1] < 0 < a[i + 2, 1]]
+        zero_crossings = [0] + zero_crossings  # start with zero index
+        zero_crossings += [len(aux)]  # append last index
+
+        ut = 0  # running number warming
+        dt = 0  # running number cooling
+
+        for i, v in enumerate(zero_crossings):
+            if v < zero_crossings[-1]:  # prevents index Error
+                if sum(a[v:zero_crossings[i + 1], 1]) < 0:  # cooling
+                    name = 'cooling%02i' % (ut)
+                    ut += 1
+                else:
+                    name = 'warming%02i' % (dt)
+                    dt += 1
+                data = aux[v:zero_crossings[i + 1] + 1]
+                rpd = RockPyData(column_names=header, data=data)
+                rpd.rename_column('temperature', 'temp')
+                rpd.rename_column('moment', 'mag')
+                mdata.update({name: rpd})
+
+        return mdata
+    # def get_tc(self):
+    #     for idx, dtype in enumerate(('warming', 'cooling')):
+    #         self.data[dtype].find_peaks()
+
+
 if __name__ == '__main__':
-    file = '/Users/Mike/Dropbox/XXXOLD_BACKUPS/__PHD/__Projects/002 Hematite Nanoparticles, Morin Transition/04 data/MPMS/S3M2/S3M2_IRM7T_0T_60_300K_Cooling.rso.dat'
-    file = '/Users/Mike/Dropbox/experimental_data/pyrrhotite/Pyrr17591-a_Ms_1T_300K_10K_Cooling.rso.dat'
-    vftb_rmp = '/Users/Mike/Dropbox/experimental_data/pyrrhotite/VFTB/msm17591final.rmp'
-    RockPy3.logger.setLevel('ERROR')
+
     S = RockPy3.Study
 
-    #vftb sample
-    s = S.add_sample(name='MSM17591')
-    s.add_measurement(mtype='thermocurve', fpath=vftb_rmp, ftype='vftb')
+    """ vftb sample """
+    # s = S.add_sample(name='MSM17591')
+    # s.add_measurement(mtype='thermocurve', fpath=vftb_rmp, ftype='vftb')
 
-    # mpms sample
+    """ mpms sample """
     # s = S.add_sample(name='pyrr17591_a')
     # s.add_measurement(mtype='thermocurve', fpath=file, ftype='mpms')
-    #
+
+    """ vsm sample """
+    s = S.add_sample('167a', sgroup='LTPY')
+    s.add_measurement(fpath='/Users/mike/Dropbox/experimental_data/RMP/LTPY/LTPY_167a_RMP_VSM#[]_[]_[]##STD001.000')
+
+
     fig = RockPy3.Figure()
-    v = fig.add_visual(visual='thermocurve', visual_input=s)
+    v = fig.add_visual(visual='thermocurve', data=s)
     fig.show()
