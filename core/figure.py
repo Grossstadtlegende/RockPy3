@@ -236,8 +236,8 @@ class Figure(object):
                 visual.ax.set_yscale(visual.yscale)
 
             # prevent scientific notation for x axis
-            if type in ('thermocurve'):
-                visual.ax.ticklabel_format(style='plain', axis='x')
+            # if type in ('thermocurve', ):
+            visual.ax.ticklabel_format(style='plain', axis='x')
             # else:
             #     xlim = visual.ax.get_xlim()
             #     ylim = visual.ax.get_ylim()
@@ -296,10 +296,14 @@ class Figure(object):
                 if not file_name:
                     file_name = os.path.basename(inspect.stack()[-1][1])
                     file_name += options.get('append', '')
-                if not format in file_name:
-                    file_name +='.'
-                    file_name += format
                 save_path = os.path.join(os.path.expanduser('~'), 'Desktop', file_name)
+            else:
+                save_path = os.path.join(save_path, file_name)
+
+            if not format in file_name:
+                save_path +='.'
+                save_path += format
+
             plt.savefig(save_path)
         else:
             with RockPy3.ignored(AttributeError):
