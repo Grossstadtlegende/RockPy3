@@ -26,8 +26,11 @@ class Jr6(io.ftype):
         non_decimal = re.compile(r'[^\d.]+')
         out = []
         for var in self.modes:
-            if var == 'NRM':
-                out.append(20)
+            if var.upper() == 'NRM':
+                if any('a' in i for i in self.modes):
+                    out.append(0)
+                else:
+                    out.append(20)
             else:
                 out.append(float(non_decimal.sub('', var)))
         return out
