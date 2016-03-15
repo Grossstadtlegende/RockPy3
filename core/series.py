@@ -57,3 +57,7 @@ class Series(object):
     @property
     def u(self):
         return self.unit
+
+    @property
+    def stype_sval_tuple(self):
+        return (self.stype, self.sval)
