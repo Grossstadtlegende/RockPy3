@@ -1,4 +1,5 @@
-__author__ = 'volk'
+import RockPy3
+
 from copy import deepcopy
 from math import tanh, cosh
 
@@ -11,7 +12,6 @@ from scipy.interpolate import UnivariateSpline
 from lmfit import minimize, Parameters, report_fit
 import datetime
 
-import RockPy3
 from RockPy3.core import measurement
 from RockPy3.core.measurement import calculate, result, correction
 from RockPy3.core.data import RockPyData
@@ -64,6 +64,28 @@ class Demagnetization(measurement.Measurement):
         out = {'data': data}
         return out
 
+    @staticmethod
+    def format_jr6(ftype_data, sobj_name=None):
+        """
+        Import of a JR6 ftype_data object
+        
+        Parameters
+        ----------
+        ftype_data
+        sobj_name
+
+        Returns
+        -------
+
+        """
+        data = RockPy3.Data(data=ftype_data.data, column_names=ftype_data.header)
+        data.define_alias('m', ('x', 'y', 'z'))
+        data = data.append_columns(column_names='mag', data=data.magnitude(key='m'))
+        data = data.sort()
+        data.define_alias('step', 'variable')
+        out = {'data': data}
+        return out
+
     ####################################################################################################################
     """ M1/2 """
 
@@ -86,15 +108,19 @@ class Demagnetization(measurement.Measurement):
         else:
             min_idx = ind - no_points / 2
             max_idx = min_idx + no_points
+
         variables = self.data['data']['variable'].v[min_idx:max_idx]
         data_points = dnorm[min_idx:max_idx]
 
-        # generate new x from variables
-        x = np.linspace(min(variables), max(variables), 10000)
-        spl = UnivariateSpline(variables, data_points)
-        y_new = spl(x)
-        idx = np.argmin(abs(y_new - 0.5))
-        result = abs(x[idx])
+        try:
+            # generate new x from variables
+            x = np.linspace(min(variables), max(variables), 10000)
+            spl = UnivariateSpline(variables, data_points)
+            y_new = spl(x)
+            idx = np.argmin(abs(y_new - 0.5))
+            result = abs(x[idx])
+        except:
+            result = np.nan
 
         if check:
             plt.plot(self.data['data']['variable'].v, dnorm, '.')
@@ -141,6 +167,11 @@ class Demagnetization(measurement.Measurement):
 
 
 class AfDemagnetization(Demagnetization):
+    def __init__(self, **kwargs):
+        super(AfDemagnetization, self).__init__(**kwargs)
+        for dtype in self.data:
+            self.data[dtype].define_alias('field', 'variable')
+
     def format_cryomag(ftype_data, sobj_name=None):
         out = super(AfDemagnetization, AfDemagnetization).format_cryomag(ftype_data, sobj_name=sobj_name)
         if not out:
@@ -150,11 +181,19 @@ class AfDemagnetization(Demagnetization):
             out[dtype].define_alias('variable', 'step')
         return out
 
+    class ThermalDemagnetization(Demagnetization):
+        def format_cryomag(ftype_data, sobj_name=None):
+            out = super(ThermalDemagnetization, ThermalDemagnetization).format_cryomag(ftype_data, sobj_name=sobj_name)
+            for dtype in out:
+                out[dtype].define_alias('temp', 'step')
+                out[dtype].define_alias('variable', 'step')
+            return out
 
-class ThermalDemagnetization(Demagnetization):
-    def format_cryomag(ftype_data, sobj_name=None):
-        out = super(ThermalDemagnetization, ThermalDemagnetization).format_cryomag(ftype_data, sobj_name=sobj_name)
-        for dtype in out:
-            out[dtype].define_alias('temp', 'step')
-            out[dtype].define_alias('variable', 'step')
-        return out
+    if __name__ == '__main__':
+        # test JR6 afdemag import
+        S = RockPy3.Study
+        s = S.add_sample('IXD')
+        m=s.add_measurement(fpath='/Users/mike/Dropbox/experimental_data/006_HT-ARM-AF/AF/High_T_AF-demag_020.jr6',
+                          mtype='af', ftype='jr6', series=[('at', 0, 'C')])
+        print(m.get_series(stype='at'))
+        print(m.get_series(stype='at'))

@@ -210,7 +210,6 @@ class Sample(object):
         -------
             RockPy3.measurement object
         '''
-
         # lookup abbreviations of mtypes and ftypes
         import_info = {}
         import_info.update(options)
@@ -300,6 +299,8 @@ class Sample(object):
                 return
             self.log.info('ADDING\t << %s, %s >>' % (mobj.ftype, mobj.mtype))
             if series:
+                for s in series:
+                    mobj.add_series(series=s)
                 self.log.info(
                     '\t\t WITH series << %s >>' % ('; '.join(', '.join(str(j) for j in i) for i in series)))
             self._add_mobj(mobj)
@@ -337,7 +338,7 @@ class Sample(object):
         if mtype in RockPy3.implemented_measurements:
             mobj = RockPy3.implemented_measurements[mtype].from_simulation(sobj=self, idx=idx, **sim_param)
             if mobj:
-                self.add_measurement(mtype=mtype, ftype='simulation', mobj=mobj)
+                self.add_measurement(mtype=mtype, ftype='simulation', mobj=mobj, series=sim_param.get('series', None))
                 return mobj
             else:
                 self.log.info('CANT ADD simulated measurement << %s >>' % mtype)
@@ -1045,7 +1046,7 @@ class Sample(object):
         adds corresponding color to each measurement with the stype
         """
         for m in self.measurements:
-            if m.has_series(stype=stype.lower()):
+            if m.has_stype(stype=stype.lower()):
                 m.series_to_color(stype=stype.lower())
 
     ####################################################################################################################

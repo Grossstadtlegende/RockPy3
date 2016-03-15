@@ -11,7 +11,7 @@ import inspect
 
 class Demagnetization(Visual):
     def init_visual(self):
-        self.standard_features = ['zero_lines', 'grid', 'demagnetization_data']
+        self.standard_features = ['zero_lines', 'demagnetization_data']
         self.xlabel = 'Step'
         self.ylabel = 'Moment'
 

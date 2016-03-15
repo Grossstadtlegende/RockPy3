@@ -61,7 +61,7 @@ class Hysteresis(measurement.Measurement):
                         ms=250., mrs_ms=0.3, bc=0.1, hf_sus=1., bmax=.8, b_sat=0.35, steps=100,
                         b_offset=0, m_offest=0,
                         noise=None, field_noise=0,
-                        color=None, marker=None, linestyle=None):
+                        color=None, marker=None, linestyle=None, **kwargs):
         """
         Simple Simulation of hysteresis loop using single tanh and sech functions. This is more for testing purposes.
         Not to be used for simulating data
