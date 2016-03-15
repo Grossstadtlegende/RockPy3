@@ -1098,7 +1098,6 @@ class Measurement(object):
         self.selected_recipe = deepcopy(self.result_recipe())
         self.cmethods = {result: getattr(self, 'calculate_' + self.get_cmethod_name(result)) for result in
                          self.result_recipe()}
-        self._info_dict = self.__create_info_dict()
 
     @property
     def stype_sval_tuples(self):
@@ -1129,112 +1128,6 @@ class Measurement(object):
         """
         return True if self.initial_state else False
 
-    ####################################################################################################################
-    ''' INFO DICTIONARY '''
-
-    @property
-    def info_dict(self):
-        if not hasattr(self, '_info_dict'):
-            self._info_dict = self.__create_info_dict()
-        if not all(i in self._info_dict['series'] for i in self.series):
-            self._populate_info_dict()
-        return self._info_dict
-
-    def __create_info_dict(self):
-        """
-        creates all info dictionaries
-
-        Returns
-        -------
-           dict
-              Dictionary with a permutation of ,type, stype and sval.
-        """
-        d = ['stype', 'sval']
-        keys = ['_'.join(i) for n in range(3) for i in itertools.permutations(d, n) if not len(i) == 0]
-        out = {i: {} for i in keys}
-        out.update({'series': []})
-        return out
-
-    def _populate_info_dict(self):
-        """
-        Removes old info_dict and then Re-calculates the info_dictionary for the measurement
-        """
-        self._info_dict = self.__create_info_dict()
-        map(self.add_s2_info_dict, self.series)
-
-    def add_s2_info_dict(self, series):
-        """
-        adds a measurement to the info dictionary.
-
-        Parameters
-        ----------
-           series: RockPy3.Series
-              Series to be added to the info_dictionary
-        """
-
-        if not series in self._info_dict['series']:
-            self._info_dict['stype'].setdefault(series.stype, []).append(self)
-            self._info_dict['sval'].setdefault(series.value, []).append(self)
-
-            self._info_dict['sval_stype'].setdefault(series.value, {})
-            self._info_dict['sval_stype'][series.value].setdefault(series.stype, []).append(self)
-            self._info_dict['stype_sval'].setdefault(series.stype, {})
-            self._info_dict['stype_sval'][series.stype].setdefault(series.value, []).append(self)
-
-            self._info_dict['series'].append(series)
-
-    def remove_s_from_info_dict(self, series):
-        """
-        removes a measurement to the info dictionary.
-
-        Parameters
-        ----------
-           series: RockPy3.Series
-              Series to be removed from the info_dictionary
-        """
-        if series in self._info_dict['series']:
-            self.series.remove(series)
-            self._info_dict['stype'].setdefault(series.stype, []).remove(self)
-            self._info_dict['sval'].setdefault(series.value, []).remove(self)
-            self._info_dict['sval_stype'][series.value].setdefault(series.stype, []).remove(self)
-            self._info_dict['stype_sval'][series.stype].setdefault(series.value, []).remove(self)
-            self._info_dict['series'].remove(series)
-        self._info_dict_cleanup()
-
-    def remove_all_series(self):
-        """
-        removes all series from the measurement
-        """
-        for s in self.series:
-            self.series.remove(s)
-            self.remove_s_from_info_dict(s)
-
-    def _info_dict_cleanup(self):
-        """
-        recursively removes all empty lists from dictionary
-        :param empties_list:
-        :return:
-        """
-
-        mdict = getattr(self, 'info_dict')
-
-        # cycle through level 0
-        for k0, v0 in sorted(mdict.items()):
-            if isinstance(v0, dict):
-                # cycle through level 1
-                for k1, v1 in sorted(v0.items()):
-                    if isinstance(v1, dict):
-                        for k2, v2 in sorted(v1.items()):
-                            if not v2:
-                                v1.pop(k2)
-                            if not v1:
-                                v0.pop(k1)
-                            else:
-                                if not v1:
-                                    v0.pop(k1)
-                    else:
-                        if not v1:
-                            v0.pop(k1)
 
     @property
     def stypes(self):
@@ -1901,7 +1794,6 @@ class Measurement(object):
                 self.log.warning('CANT find series << %s >>' % stype)
                 self.log.warning('\tonly one of these are possible:\t%s' % self.stypes)
         return '; '.join(out)
-
 
     def has_mtype_stype_sval(self, mtype=None, stype=None, sval=None):
         """
