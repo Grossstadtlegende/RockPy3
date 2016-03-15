@@ -211,7 +211,15 @@ class TestMeasurement(TestCase):
         self.fail()
 
     def test_get_series(self):
-        self.fail()
+        study = RockPy3.core.study.Study()
+        s = study.add_sample(name='test')
+        m0 = s.add_simulation(mtype='hysteresis', noise=5, series=[('s1', 1, 'A'), ('s2', 1, 'b')])
+        m1 = s.add_simulation(mtype='hysteresis', noise=5, series=[('s1', 3, 'A'), ('s2', 4, 'b')])
+        self.assertEqual([1], [s.sval for s in m0.get_series(stype='s1')])
+        self.assertEqual([3], [s.sval for s in m1.get_series(stype='s1')])
+        self.assertEqual(['s1', 's2'], [s.stype for s in m0.get_series(sval=1)])
+        self.assertEqual(['s1'], [s.stype for s in m1.get_series(sval=3)])
+        self.assertEqual(['s1'], [s.stype for s in m1.get_series(series=[('s1', 3), ('s2', 1)])])
 
     def test_get_sval(self):
         self.fail()

@@ -21,20 +21,28 @@ irm: irm
 arm: arm
 nrm: nrm
 
+# acqisition measurements
+acquisition:: acq
 irm_acquisition: irmacq
 arm_acquisition: armacq
 parm_acquisition: parmacq
 trm_acquisition: trmacq
 tarm_acquisition: tarmacq
-acquisition:: acq
 
+
+# demagnetization measurements
+demagnetization: demag
 afdemagnetization: af, afdemag
-forc: forc
-thermocurve: rmp, mom
+thermaldemagnetization: thdemag
+
+
 hysteresis: hys, hysteresis
 backfield: coe, backfield
-thellier: tt
 viscosity: visc
+forc: forc
+thermocurve: rmp, mom
+
+thellier: tt
 paleointensity: pint
 
 anisotropy: ani, aniso
