@@ -1086,7 +1086,7 @@ class Hysteresis(measurement.Measurement):
         """
         raise NotImplementedError
 
-    @correction
+    @correction #todo redundant?
     def correct_vsym(self, method='auto', check=False):
         """
         Correction of horizontal symmetry of hysteresis loop. Horizontal displacement is found by looking for the minimum
@@ -1115,7 +1115,7 @@ class Hysteresis(measurement.Measurement):
         if check:
             self.check_plot(uncorrected_data, self.data, title='correct_vsym')
 
-    @correction
+    @correction #todo redundant?
     def correct_hsym(self, method='auto', check=False):
         """
         Correction of horizontal symmetry of hysteresis loop. Horizontal displacement is found by looking for the minimum
@@ -1300,41 +1300,6 @@ class Hysteresis(measurement.Measurement):
         data = [[v, m_inv[i]] for i, v in enumerate(df_branch['mag'].v) if not np.isnan(m_inv[i])]
         slope, intercept, r_value, p_value, std_err = stats.linregress(data)
         return slope, intercept, r_value, p_value, std_err
-
-    def correct_slope(self):  # todo redundant
-        """
-        The magnetization curve in this region can be expressed as
-        .. math::
-
-           M(B) = Ms + \Chi B + \alpha B^{\beta}
-
-        where :math:`\Chi` is the susceptibility of all dia- and paramagnetic components
-        (including the para-effect) and the last term represents an individual approach to saturation law.
-        :return:
-        """
-        # calculate approach to saturation ( assuming beta = -1 ) for upfield/downfield branches with pos / negative field
-        # assuming 80 % saturation
-        a2s_data = map(self.calc_approach2sat, ['down_field'])  # , 'up_field'])
-        a2s_data = np.array(a2s_data)
-        a2s_data = a2s_data.reshape(1, 2, 3)[0]
-
-        simple = self.result_paramag_slope()
-        # print a2s_data
-
-        popt = np.mean(a2s_data, axis=0)
-        ms = np.mean(abs(a2s_data[:, 0]))
-        ms_std = np.std(abs(a2s_data[:, 0]))
-        chi = np.mean(abs(a2s_data[:, 1])) * np.sign(simple)
-        chi_std = np.std(abs(a2s_data[:, 1]))
-
-        alpha = np.mean(abs(a2s_data[:, 2])) * np.sign(a2s_data[0, 2])
-        alpha_std = np.std(abs(a2s_data[:, 2]))
-
-        for dtype in self.corrected_data:
-            self.corrected_data[dtype]['mag'] = self.corrected_data[dtype]['mag'].v - \
-                                                self.corrected_data[dtype]['field'].v * chi
-        # print(a2s_data), self.result_paramag_slope()
-        return ms, chi, alpha
 
     def correct_holder(self):
         raise NotImplementedError
