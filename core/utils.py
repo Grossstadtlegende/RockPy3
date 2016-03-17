@@ -11,6 +11,8 @@ import datetime
 import decorator
 from pprint import pprint
 import numpy as np
+from matplotlib import rc
+
 
 def colorscheme(scheme='simple'):
     colors = {'simple': ['r', 'g', 'b', 'c', 'm', 'y', 'k'] * 100,
@@ -43,20 +45,20 @@ def create_logger(name):
     log.setLevel(logging.DEBUG)
     # formatter = logging.Formatter('%(asctime)s: %(levelname)-10s %(name)-20s %(message)s')
     formatter = logging.Formatter('%(levelname)-8s %(name)-15s %(message)s')
-    #fh = logging.FileHandler('RPV3.log')
+    # fh = logging.FileHandler('RPV3.log')
     # fh.setFormatter(formatter)
     # fh.setLevel(logging.INFO)
     ch = logging.StreamHandler()
     ch.setLevel(logging.DEBUG)
     ch.setFormatter(formatter)
-    #log.addHandler(fh)
+    # log.addHandler(fh)
     log.addHandler(ch)
     return log
 
 
 def convert_time(time):
     return matplotlib.dates.date2num(
-        datetime.datetime.strptime(time.replace('.500000', ''), "%Y-%m-%d %H:%M:%S"))
+            datetime.datetime.strptime(time.replace('.500000', ''), "%Y-%m-%d %H:%M:%S"))
 
 
 def to_list(oneormoreitems):
@@ -240,7 +242,7 @@ class plot(object):
         plt_input = {'in_type': None}
 
         for idx, indict in enumerate([visual.data, visual.features[name]['data']]):
-                # [visual._RockPy_figure.fig_input, visual.data, visual.features[name]['data']]):
+            # [visual._RockPy_figure.fig_input, visual.data, visual.features[name]['data']]):
             if any(indict[i] for i in ('groupmean', 'samplemean', 'samplebase', 'groupbase', 'other')):
                 plt_input.update(indict)
                 plt_input.update({'in_type': types[idx]})
@@ -352,7 +354,7 @@ class plot(object):
                     for mlist in mlists:
                         data.setdefault(plt_type, [])
 
-                        #initialize the RPdata for each sample
+                        # initialize the RPdata for each sample
                         sdata = RockPy3.Data(column_names=[visual.series, visual.result], row_names=[])
 
                         # calculate the results and get the series for all measurements
@@ -374,8 +376,10 @@ class plot(object):
                                 self.update_plt_props(kwargs, visual=visual, name=name)
 
                                 # update the plt_props for reducing the alpha
-                                if (plt_type == 'samplebase' and plt_info['plot_samplemean'] and plt_info['samplemean']) or \
-                                        (plt_type == 'groupbase' and plt_info['plot_groupmean' and plt_info['groupmean']]):
+                                if (plt_type == 'samplebase' and plt_info['plot_samplemean'] and plt_info[
+                                    'samplemean']) or \
+                                        (plt_type == 'groupbase' and plt_info[
+                                                'plot_groupmean' and plt_info['groupmean']]):
                                     kwargs['plt_props']['alpha'] = plt_info['base_alpha']
                                 feature(visual, data=d, **kwargs)
                         else:
@@ -439,8 +443,8 @@ class plot(object):
                             mobj = [m for m in mlist if m.mtype == mtype[0]]
                         else:
                             visual.log.error(
-                                'FEATURE {} data doesnt match mtype requirements {}'.format(feature.__name__,
-                                                                                             mtype))
+                                    'FEATURE {} data doesnt match mtype requirements {}'.format(feature.__name__,
+                                                                                                mtype))
                         for mt_tuple in mobj:
                             try:
                                 kwargs['plt_props'].update(mt_tuple[0].plt_props)
@@ -527,23 +531,26 @@ def compare_measurement_series(m1, m2):
     else:
         return False
 
-def separate_cparam_str(**kwargs):
 
+def separate_cparam_str(**kwargs):
     # the kwargs need to be sorted so that they follow the hierarchy
     # 1. parameter only
     # 2. mtype & parameter
     # 3. method & parameter
     # 4. mtype & method & parameter
 
-    param_only  = [i for i in kwargs if [i] == i.split('___') if [i] == i.split('__')]
-    mtype_only  = [i for i in kwargs if [i] == i.split('___') if [i] != i.split('__')]
+    param_only = [i for i in kwargs if [i] == i.split('___') if [i] == i.split('__')]
+    mtype_only = [i for i in kwargs if [i] == i.split('___') if [i] != i.split('__')]
     method_only = [i for i in kwargs if [i] != i.split('___') if [i] == i.split('__')]
     mixed = [i for i in kwargs if [i] != i.split('__') if [i] != i.split('___')]
 
     print(param_only, mtype_only, method_only, mixed)
 
+
 if __name__ == '__main__':
-    separate_cparam_str(saturation_percent=10, hys__saturation_percent=10, bc___saturation_percent=10, hys___bc__saturation_percent=10)
+    separate_cparam_str(saturation_percent=10, hys__saturation_percent=10, bc___saturation_percent=10,
+                        hys___bc__saturation_percent=10)
+
 
 def kwargs_to_calculation_parameter(rpobj=None, mtype_list=None, result=None, **kwargs):
     """
@@ -674,11 +681,11 @@ def kwargs_to_calculation_parameter(rpobj=None, mtype_list=None, result=None, **
                         calc_params[mtype][method].update({parameter: kwargs[kwarg]})
                     else:
                         RockPy3.logger.error(
-                            'PARAMETER << %s >> NOT found in << %s, %s >>' % (parameter, mtype, method))
+                                'PARAMETER << %s >> NOT found in << %s, %s >>' % (parameter, mtype, method))
                 except KeyError:
                     RockPy3.logger.debug(
-                        'PARAMETER << %s >> not found mtype, method pair probably wrong << %s, %s >>' % (
-                            parameter, mtype, method))
+                            'PARAMETER << %s >> not found mtype, method pair probably wrong << %s, %s >>' % (
+                                parameter, mtype, method))
         if remove:
             kwargs.pop(kwarg)
 
@@ -705,7 +712,7 @@ def sort_input(input):
 
     if not any([mlist, meanlist]):
         RockPy3.logger.warning(
-            'No data selected groupmean, samplemean, base and other will only work for the speecific data of figure visual or feature.')
+                'No data selected groupmean, samplemean, base and other will only work for the speecific data of figure visual or feature.')
 
     # group_means
     group_means = set(m for m in meanlist if isinstance(m.sobj, RockPy3.MeanSample))
@@ -770,9 +777,6 @@ def mlist_from_input(plt_input):
     return mlist, meanlist
 
 
-
-
-
 def MlistToTupleList(mlist, mtypes):
     """
     Transforma a list of measurements into a tuplelist, according to the mtypes specified.
@@ -810,6 +814,7 @@ def MlistToTupleList(mlist, mtypes):
                     continue
         out.append(tuple(aux))
     return out
+
 
 def compare_measurement_series(m1, m2):
     """
@@ -871,6 +876,23 @@ def separate_mtype_method_parameter(kwarg):
     return mtype, method, parameter
 
 
+def setLatex(latex=True, font='Computer Modern Roman'):
+    serif = ['Times', 'Palatino', 'New Century Schoolbook', 'Bookman', 'Computer Modern Roman']
+    sans_serif = ['Helvetica', 'Avant Garde', 'Computer Modern Sans serif']
+
+    if font in sans_serif:
+        rc('font', **{'family': 'sans-serif', 'sans-serif': [font]})
+    if font in serif:
+        rc('font', **{'family': 'serif', 'serif': [font]})
+    else:
+        RockPy3.logger.warning('Font not recognized: use one of these:')
+        RockPy3.logger.warning('\t{:2}\t{}'.format('', serif + sans_serif))
+
+    RockPy3.logger.info('USING LATEX %s: %s' % (latex, font))
+
+    rc('text', usetex=latex)
+
+
 def separate_calculation_parameter_from_kwargs(rpobj=None, mtype_list=None, **kwargs):
     """
     separates kwargs from calcuzlation arameters, without changing the signature
@@ -911,6 +933,7 @@ def tuple2list_of_tuples(item):
         item = aux
     return item
 
+
 def range_to_tuple(range):
     seperators = ('<', '=', '>')
 
@@ -920,6 +943,8 @@ def range_to_tuple(range):
             pass
     else:
         return float(range)
+
+
 #
 # if __name__ == '__main__':
 #     Study = RockPy3.RockPyStudy()
@@ -947,7 +972,9 @@ def _to_tuple(oneormoreitems):
        oneormoreitems: single number or string or list of numbers or strings
     :return: tuple of elements
     """
-    return tuple(oneormoreitems) if hasattr(oneormoreitems, '__iter__') and type(oneormoreitems) is not str else (oneormoreitems, )
+    return tuple(oneormoreitems) if hasattr(oneormoreitems, '__iter__') and type(oneormoreitems) is not str else (
+    oneormoreitems,)
+
 
 def create_heat_color_map(value_list, reverse=False):
     """
