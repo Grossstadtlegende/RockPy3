@@ -285,6 +285,7 @@ def get_info_from_fname(path=None):
     # replace 'xml' ending with idx:
     if index == 'xml':
         index = 1
+
     out = {
         'samplegroup': samplegroup,
         'sample_name': sample_name, # not needed since 3.5 rewrite
@@ -293,8 +294,13 @@ def get_info_from_fname(path=None):
         'fpath': join(folder, fpath),
         'series': series,
         # 'std': STD,
-        'idx': int(index)
-    }
+        'idx': int(index),
+        'mass': None,
+        'mass_unit': None,
+        'diameter': None,
+        'height': None,
+        'length_unit': None,
+        }
 
     # if mtype == 'mass':
     if mass[0]:
