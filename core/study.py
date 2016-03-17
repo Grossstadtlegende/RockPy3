@@ -205,48 +205,7 @@ class Study(object):
 
         return samples
 
-    def remove_samplegroup(self,
-                           gname=None,
-                           sname=None,
-                           mtype=None,
-                           series=None,
-                           stype=None, sval=None, sval_range=None,
-                           mean=False,
-                           invert=False,
-                           slist=None,
-                           ):
-        """
-        removes selected samples from a samplegroup
 
-        Parameter
-        ---------
-            gname: str
-                the name of the samplegroup that is supposed to be removed
-            slist: list
-                list of samples to be removed the sample_group
-
-        Returns
-        -------
-            list
-                list of samples in samplegroup
-        """
-        if not gname:
-            RockPy3.logger.error('NO sample group specified')
-            return
-
-        if not slist:
-            samples = self.get_sample(
-                    sname=sname,
-                    mtype=mtype,
-                    series=series,
-                    stype=stype, sval=sval, sval_range=sval_range,
-                    mean=mean,
-                    invert=invert,
-            )
-        else:
-            samples = slist
-
-        [s.remove_from_samplegroup(gname) for s in samples]
 
     def add_mean_sample(self,
                         gname=None,
@@ -336,16 +295,48 @@ class Study(object):
 
     ####################################################################################################################
     ''' remove functions '''
+    def remove_samplegroup(self,
+                           gname=None,
+                           sname=None,
+                           mtype=None,
+                           series=None,
+                           stype=None, sval=None, sval_range=None,
+                           mean=False,
+                           invert=False,
+                           slist=None,
+                           ):
+        """
+        removes selected samples from a samplegroup
 
-    def remove_samplegroup(self, gname=None):
+        Parameter
+        ---------
+            gname: str
+                the name of the samplegroup that is supposed to be removed
+            slist: list
+                list of samples to be removed the sample_group
+
+        Returns
+        -------
+            list
+                list of samples in samplegroup
         """
-        removes all samples from a samplegroup and therefore the samplegroup itself
-        :param gname: samplegroup name
-        :return:
-        """
-        samples = self.get_sample(gname=gname)
-        for s in samples:
-            s.remove_from_samplegroup(gname=gname)
+        if not gname:
+            RockPy3.logger.error('NO sample group specified')
+            return
+
+        if not slist:
+            samples = self.get_sample(
+                    sname=sname,
+                    mtype=mtype,
+                    series=series,
+                    stype=stype, sval=sval, sval_range=sval_range,
+                    mean=mean,
+                    invert=invert,
+            )
+        else:
+            samples = slist
+
+        [s.remove_from_samplegroup(gname) for s in samples]
 
     def remove_sample(self,
                       gname=None,
@@ -436,8 +427,12 @@ class Study(object):
 
         return sorted(set(mlist))
 
-    def import_folder(self, folder, sname=None, sgroup=None,
-                      gname=None):  # todo specify samples, mtypes and series for selective import of folder
+    ####################################################################################################################
+    ''' import functions '''
+
+    def import_folder(self,
+                      folder, sname=None, sgroup=None,
+                      ):  # todo specify samples, mtypes and series for selective import of folder
         """
         imports all files in the specified folder
         Parameters
@@ -480,9 +475,7 @@ class Study(object):
                  if not i.endswith("txt")
                  if not os.path.isdir(os.path.join(folder, i))
                  ]
-
-        sample_groups = set(extract_from_fpath(f, 0) for f in files)
-        sample_groups = (sg for sg in sample_groups if sg)
+        start = time.clock()
 
         samples = set(extract_from_fpath(f, 1) for f in files)
         samples = (i for i in samples if i)
@@ -493,7 +486,6 @@ class Study(object):
 
         measurements = []
 
-        start = time.clock()
         # create all samples:
         for s in sorted(samples):
             sfiles = [f for f in files if s in f]
@@ -510,6 +502,12 @@ class Study(object):
                     m = s.add_measurement(fpath=f)
                     measurements.append(m)
                     self.imported_files.append(fname)
+
+            sample_groups = set(extract_from_fpath(f, 0) for f in sfiles)
+            sample_groups = (sg for sg in sample_groups if sg)
+
+            for sg in sample_groups:
+                s.add_to_samplegroup(sg)
 
         end = time.clock()
         print('IMPORT generated {} measurements: finished in {:.02e}s'.format(len(measurements), end - start))

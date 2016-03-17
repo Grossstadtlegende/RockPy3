@@ -257,10 +257,10 @@ class Sample(object):
                         self._add_mobj(param)
 
             # if given add samplegroup to sample
-            sg = import_info.pop('samplegroup', None)
-
-            if sg:
-                self.add_to_samplegroup(gname=sg)
+            # sg = import_info.pop('samplegroup', None)
+            #
+            # if sg:
+            #     self.add_to_samplegroup(gname=sg)
 
             mtype = import_info.pop('mtype', mtype)
 
@@ -563,6 +563,17 @@ class Sample(object):
         return mean if mean else False
 
     def add_to_samplegroup(self, gname):
+        """
+        adds the sample to a samplegroup
+        Parameters
+        ----------
+        gname: str
+            name of the samplegroup
+
+        Returns
+        -------
+
+        """
         gname = str(gname)
         if gname not in self._samplegroups:
             self.log.debug('ADDING {} to samplegroup {}'.format(self.name, gname))
