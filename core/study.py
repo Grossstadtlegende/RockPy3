@@ -436,18 +436,60 @@ class Study(object):
 
         return sorted(set(mlist))
 
-    def import_folder(self, folder,
+    def import_folder(self, folder, sname=None, sgroup=None,
                       gname=None):  # todo specify samples, mtypes and series for selective import of folder
+        """
+        imports all files in the specified folder
+        Parameters
+        ----------
+        folder
+        gname
+
+        Returns
+        -------
+
+        """
+
+        def extract_from_fpath(fpath, index=1):
+            """
+            Extracts information from the fpath
+
+            Parameters
+            ----------
+            index: int
+                The index of the info to be extracted
+                    0: Sample Group
+                    1: Sample Name
+            fpath: str
+                Full path of the file
+
+            Returns
+            -------
+
+            """
+            try:
+                return os.path.basename(fpath).split('_')[index]
+            except IndexError:
+                return
+
         files = [os.path.join(folder, i) for i in os.listdir(folder)
                  if not i.startswith('#')
                  if not i.startswith(".")
                  if not i.endswith("pynb")
                  if not i.endswith("log")
+                 if not i.endswith("txt")
                  if not os.path.isdir(os.path.join(folder, i))
                  ]
 
-        sample_groups = set(os.path.basename(f).split('_')[0] for f in files)
-        samples = set(os.path.basename(f).split('_')[1] for f in files)
+        sample_groups = set(extract_from_fpath(f, 0) for f in files)
+        sample_groups = (sg for sg in sample_groups if sg)
+
+        samples = set(extract_from_fpath(f, 1) for f in files)
+        samples = (i for i in samples if i)
+
+        if sname:
+            sname = RockPy3._to_tuple(sname)
+            samples = (s for s in samples if s in sname)
 
         measurements = []
 
@@ -458,7 +500,7 @@ class Study(object):
 
             if not s in self.samplenames and sfiles:
                 info = RockPy3.get_info_from_fname(sfiles[0])
-                s = self.add_sample(name=s, mass=info['mass'], mass_unit=info['mass_unit'])
+                s = self.add_sample(name=s, mass=info['mass'], mass_unit=info['mass_unit'])#, samplegroup=sample_groups)
             else:
                 s = self._samples[s]
 
@@ -468,8 +510,9 @@ class Study(object):
                     m = s.add_measurement(fpath=f)
                     measurements.append(m)
                     self.imported_files.append(fname)
+
         end = time.clock()
-        print('IMPORT generated {} measurements: finished in {:<3}s'.format(len(measurements), end - start))
+        print('IMPORT generated {} measurements: finished in {:.02e}s'.format(len(measurements), end - start))
         return measurements
 
     def import_file(self, fpath):

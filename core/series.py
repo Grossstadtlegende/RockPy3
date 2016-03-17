@@ -60,4 +60,4 @@ class Series(object):
 
     @property
     def stype_sval_tuple(self):
-        return (self.stype, self.sval)
+        return self.data[:-1]
