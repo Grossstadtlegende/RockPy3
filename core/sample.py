@@ -308,6 +308,45 @@ class Sample(object):
         else:
             self.log.error('COULD not create measurement << %s >>' % mtype)
 
+    def remove_measurement(self,
+                           mtype=None,
+                           series=None,
+                           stype=None, sval=None, sval_range=None,
+                           mean=False,
+                           invert=False,
+                           id=None, mobj=None):
+        """
+        Removes measurements from the sample
+
+        Parameters
+        ----------
+        mtype
+        series
+        stype
+        sval
+        sval_range
+        mean
+        invert
+        id
+        mobj
+
+        Returns
+        -------
+
+        """
+        if mobj:
+            mlist = RockPy3._to_tuple(mobj)
+        else:
+            mlist = self.get_measurement(mtype=mtype,
+                                         series=series, stype=stype, sval=sval, sval_range=sval_range,
+                                         mean=mean, invert=invert, id=id)
+        for m in mlist:
+            if not mean:
+                self.measurements.remove(m)
+            else:
+                self.mean_measurements.remove(m)
+            self._remove_m_from_mdict(mobj=m, mdict_type='mdict' if not mean else 'mean_mdict')
+
     def _add_mobj(self, mobj):
         if mobj not in self.measurements:
             self.measurements.append(mobj)
@@ -549,7 +588,7 @@ class Sample(object):
             file_info = RockPy3.core.file_operations.get_info_from_fname(path=fpath)
         if not file_info:
             self.log.warning(
-                'CANNOT readin fpath automatically.',extra= 'See RockPy naming conventions for proper naming scheme.')
+                'CANNOT readin fpath automatically.', extra='See RockPy naming conventions for proper naming scheme.')
             fname = RockPy3.get_fname_from_info(samplegroup='SG', sample_name=self.name, mtype=mtype, ftype=ftype,
                                                 series=series)
             self.log.info('FILE NAME proposition:')
@@ -651,31 +690,6 @@ class Sample(object):
 
         for m in mlist:
             m.set_recipe(res=result, recipe=recipe)
-
-    def get_measurement_new(self, mtype=None, stype=None, sval=None, result=None, mean=False, base=False, all_types=False):
-
-        if mean or all_types:
-            mlist = self.mean_measurements
-            if base or all_types:
-                mlist = [m for mean in mlist for m in mean.base_measurements]
-        else:
-            mlist = self.measurements
-
-        # if all types are supposed to be returned, hence the all_types boolean, mlost has to be extended
-        if all_types:
-            mlist.extend(self.measurements)
-            mlist.extend(self.mean_measurements)
-
-        if mtype:
-            mtype = RockPy3.to_list(mtype)
-            mlist = filter(lambda x: x.mtype in mtype, mlist)
-        if stype:
-            stype = RockPy3.to_list(stype)
-            mlist = filter(lambda x: x.stype in stype, mlist)
-        if result:
-            mlist = filter(lambda x: x.has_result(result=result), mlist)
-
-        return list(mlist)
 
     """
     ####################################################################################################################
@@ -855,6 +869,32 @@ class Sample(object):
 
         return out
 
+    def get_measurement_new(self, mtype=None, stype=None, sval=None, result=None, mean=False, base=False,
+                            all_types=False):
+
+        if mean or all_types:
+            mlist = self.mean_measurements
+            if base or all_types:
+                mlist = [m for mean in mlist for m in mean.base_measurements]
+        else:
+            mlist = self.measurements
+
+        # if all types are supposed to be returned, hence the all_types boolean, mlost has to be extended
+        if all_types:
+            mlist.extend(self.measurements)
+            mlist.extend(self.mean_measurements)
+
+        if mtype:
+            mtype = RockPy3.to_list(mtype)
+            mlist = filter(lambda x: x.mtype in mtype, mlist)
+        if stype:
+            stype = RockPy3.to_list(stype)
+            mlist = filter(lambda x: x.stype in stype, mlist)
+        if result:
+            mlist = filter(lambda x: x.has_result(result=result), mlist)
+
+        return list(mlist)
+
     ####################################################################################################################
     ''' MEASUREMENT / RESULT DICTIONARY PART'''
 
@@ -1028,14 +1068,13 @@ class Sample(object):
     ''' PLOTTING PART'''
 
     def reset_plt_prop(self, mtype=None,
-                        series=None,
-                        stype=None, sval=None, sval_range=None,
-                        mean=False,
-                        invert=False,
-                        id=None):
+                       series=None,
+                       stype=None, sval=None, sval_range=None,
+                       mean=False,
+                       invert=False,
+                       id=None):
         for m in self.get_measurement(mtype, series, stype, sval, sval_range, mean, invert, id):
             m.reset_plt_prop()
-
 
     def set_plt_prop(self, prop, value):
         for m in self.measurements + self.mean_measurements:
@@ -1183,7 +1222,9 @@ if __name__ == '__main__':
 
     S = RockPy3.Study
     s = S.add_sample('1440')
-    s.add_measurement(fpyth = '/Users/mike/Dropbox/experimental_data/FeNiX/FeNi20K/FeNi_FeNi20-Ka2160\'-G03_HYS_VSM#50,3[mg]_[]_[]##STD030.001', mtype='hys', ftype='vsm')
+    s.add_measurement(
+        fpyth='/Users/mike/Dropbox/experimental_data/FeNiX/FeNi20K/FeNi_FeNi20-Ka2160\'-G03_HYS_VSM#50,3[mg]_[]_[]##STD030.001',
+        mtype='hys', ftype='vsm')
     # s = S.add_sample(name='test')
     # for n in range(10):
     #     m = s.add_simulation(mtype='hysteresis')
