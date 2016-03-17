@@ -4,6 +4,7 @@ import matplotlib
 import RockPy3
 matplotlib.use('Qt4Agg')
 # matplotlib.use('rtes')
+matplotlib.rcParams.update({'font.size': 14})
 
 installation_directory = os.path.dirname(RockPy3.__file__)
 
@@ -56,7 +57,6 @@ logger = logging.getLogger('RockPy3')
 logger.propagate = False
 
 test_data_path = os.path.join(os.getcwd().split('RockPy3')[0], 'RockPy3', 'testing', 'test_data')
-installation_directory = os.path.dirname(RockPy3.__file__)
 
 dependencies = ['matplotlib', 'numpy', 'scipy', 'lmfit', 'pint', 'decorator', 'tabulate', 'basemap']
 

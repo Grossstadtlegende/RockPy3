@@ -13,6 +13,7 @@ from scipy.interpolate import UnivariateSpline
 from lmfit import minimize, Parameters, report_fit
 import matplotlib.dates
 import datetime
+from collections import OrderedDict
 
 from RockPy3.core import measurement
 from RockPy3.core.measurement import calculate, result, correction
@@ -48,7 +49,7 @@ class Thermocurve(measurement.Measurement):
         data = ftype_data.data
         units = ftype_data.units
         header = ftype_data.header
-        mdata = {'warming':None, 'cooling':None}
+        mdata = OrderedDict(warming=None, cooling=None)
 
         if len(data) > 2:
             RockPy3.logger.warning('LENGTH of machine.out_thermocurve =! 2. Assuming data[0] = heating data[1] = cooling')
@@ -66,7 +67,7 @@ class Thermocurve(measurement.Measurement):
         segments = ftype_data.get_segments_from_data()
         data = ftype_data.get_data()
 
-        mdata = {}
+        mdata = OrderedDict()
 
         aux = np.array([j for i in data for j in i])  # combine all data arrays
         a = np.array([(i, v) for i, v in enumerate(np.diff(aux, axis=0)[:, 0])])
@@ -102,6 +103,59 @@ class Thermocurve(measurement.Measurement):
     #     for idx, dtype in enumerate(('warming', 'cooling')):
     #         self.data[dtype].find_peaks()
 
+    def combine_measurements(self, others, remove_others = False, normalize_to_last=False):
+        """
+        it combines several measurements into the specified one. e.g. a second cooling run at the end of the measurement
+        Parameters
+        ----------
+
+        others: list
+            the measurements to appended to the self.data dictionary. The names are chosen according to the total number of heating and cooling runs
+
+        remove_others: bool
+            default: False
+            if True the measurements are removed from the sample after it is combined with the measurement
+            if False the measurements only combined
+
+        normalize_to_last:
+            default: False
+            nomalizes the data to be combined to the last point of the last segment. So that different calibrations do not affect the measurement
+
+        Returns
+        -------
+
+        """
+        others = RockPy3._to_tuple(others)
+        self.log.info('COMBINING << {} >> with {}'.format(self, others))
+        cool_idx = sum(1 for i in self.data if 'cool' in i)
+        warm_idx = sum(1 for i in self.data if 'warm' in i)
+        c,w = cool_idx-1, warm_idx-1 # old maximum indices
+
+        nfactor = None
+        last_segment = list(self.data.keys())[-1]
+
+        if normalize_to_last:
+            nfactor = self.data[last_segment]['mag'].v[-1]
+
+        for m in others:
+            m = deepcopy(m)
+            if normalize_to_last:
+                m.normalize('cooling00')
+                m.normalize(norm_factor=1/nfactor)
+
+            for dtype in m.data:
+                if 'cool' in dtype:
+                    self.data.update({'cooling%02i'%cool_idx: m.data[dtype]})
+                    cool_idx += 1
+                if 'warming' in dtype:
+                    self.data.update({'warming%02i'%warm_idx: m.data[dtype]})
+                    warm_idx += 1
+
+            if remove_others:
+                self.log.info('REMOVING << {} >> from sample << {} >>'.format(self, self.sobj))
+                self.sobj.remove_measurement(mobj=m)
+
+        return self
 
 if __name__ == '__main__':
 

@@ -181,7 +181,8 @@ class Visual(object):
         Adds a feature to the visual. Each feature may have multiple instances, and can but does not have to have a
         separate data from the visual data.
         """
-        calculation_parameter, plt_props = RockPy3.core.utils.separate_calculation_parameter_from_kwargs(**plt_props)
+        plt_props, calculation_parameter = self.separate_plt_props(**plt_props)
+        #calculation_parameter, plt_props = RockPy3.core.utils.separate_calculation_parameter_from_kwargs(**plt_props)
 
         new_feature_name = self.add_feature_to_dict(feature=feature)
         self.set_plt_prop(feature_name=new_feature_name, **plt_props)
@@ -194,6 +195,27 @@ class Visual(object):
                      ('result_from_means', result_from_means),
                      ):
             self.features[new_feature_name].setdefault(k, v)
+
+    def separate_plt_props(self, **kwargs):
+        """
+        Separates the plot parameters from kwargs
+        Parameters
+        ----------
+        kwargs: dict
+            Dictionary of parameters
+
+        Returns
+        -------
+        plt_parameters
+        kwargs
+        """
+        plt_props = {}
+        for k in list(kwargs.keys()):
+            if k in self.possible_plt_props or k in self.possible_text_props:
+                plt_props[k] = kwargs.pop(k)
+        self.log.debug('FOUND {} plotting parameters'.format(sorted(plt_props.keys())))
+        self.log.debug('THESE KWARGS remaining {}'.format(sorted(kwargs.keys())))
+        return plt_props, kwargs
 
     def add_feature_to_dict(self, feature=None):
         """
@@ -540,17 +562,23 @@ def set_colorscheme(scheme):
     return RockPy3.core.utils.colorscheme(scheme)
 
 if __name__ == '__main__':
-    pass
-    S = RockPy3.Study
-    s = S.add_sample(name='S1')
-    s.add_simulation(mtype='hysteresis')
-
-    fig = RockPy3.Figure()
-    v = fig.add_visual(visual='hysteresis', data=S)
-    print(v.data)
-    for f in v.features:
-        print(v.features[f]['data'])
-
-    fig.show()
+    # pass
+    # S = RockPy3.Study
+    # s = S.add_sample(name='S1')
+    # s.add_simulation(mtype='hysteresis')
+    #
+    # fig = RockPy3.Figure()
+    # v = fig.add_visual(visual='hysteresis', data=S)
+    # print(v.data)
+    # for f in v.features:
+    #     print(v.features[f]['data'])
+    #
+    # fig.show()
     # print(RockPy3.implemented_measurements.keys())
     # print(RockPy3.implemented_visuals.keys())
+    RockPy3.core.utils.setLatex(font='kudgv')
+
+    fig = RockPy3.Figure()
+    v = fig.add_visual('hysteresis')
+    v.add_feature('generic_text', s='test', x=0, y=0)
+    fig.show()
