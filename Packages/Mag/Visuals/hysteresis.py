@@ -5,6 +5,7 @@ import RockPy3.Packages.Mag.Visuals.backfield
 from RockPy3.core.utils import plot
 from RockPy3.core.visual import Visual
 import RockPy3.Packages.Mag.Features.hysteresis
+import RockPy3.Packages.Mag.Features.backfield
 
 
 class Hysteresis(Visual):
@@ -37,6 +38,9 @@ class Hysteresis(Visual):
     def feature_hysteresis_derivative_data(self, mobj, plt_props=None):
         RockPy3.Packages.Mag.Features.hysteresis.hysteresis_derivative(self.ax, mobj, **plt_props)
 
+    @plot(mtypes='backfield')
+    def feature_backfield_data(self, mobj, plt_props=None):
+        RockPy3.Packages.Mag.Features.backfield.backfield_data(self.ax, mobj, **plt_props)
 
 class Fabian2003(Hysteresis, RockPy3.Packages.Mag.Visuals.backfield.Backfield):
     def init_visual(self):
