@@ -654,7 +654,7 @@ class Measurement(object):
                  idx=None,
                  initial_state=None,
                  ismean=False, base_measurements=None,
-                 color=None, marker=None, linestyle=None, mid=None,
+                 color=None, marker=None, linestyle=None,
                  calculate_results=True,
                  **options
                  ):
@@ -692,10 +692,7 @@ class Measurement(object):
         """
         # self._cm = None
 
-        if mid is None:
-            self.id = id(self)
-        else:
-            self.id = int(mid)
+        self.id = id(self)
 
         self.sobj = sobj
 
@@ -730,7 +727,7 @@ class Measurement(object):
 
 
         # initialize the calculation_parameter dictionary  and results data
-        self.results = self.results = RockPy3.Data(column_names=self.result_methods().keys())
+        self.results = self.results = RockPy3.Data(column_names=self.result_methods().keys(), data=[np.nan]*len(self.result_methods()))
         self.calculation_parameter = {result: {} for result in self.result_methods()}
 
         self.__initialize()
@@ -1361,6 +1358,8 @@ class Measurement(object):
             True if all stypes exist, False if not
             If stype = None : returns True if no series else True
         """
+        if not self._series:
+            return False
 
         if stype is not None:
             stype = RockPy3.core.utils.to_list(stype)
@@ -1373,9 +1372,52 @@ class Measurement(object):
         else:
             return True if not self.stypes else False
 
-    def has_series(self, series=None):
+    def has_sval(self, sval=None, method='any'):
+        """
+        Checks if a measurement has all of the specified series
+
+        Parameters
+        ----------
+            stype: str, list, tuple
+                stypes to test for
+            method: 'all' or 'any' or 'none'
+                defines the check method:
+                    all: all series need to exist
+                    any: any series needs to exist
+                    none: no series can exist
+
+        Returns
+        -------
+            True if all stypes exist, False if not
+            If stype = None : returns True if no series else True
+        """
+        if not self._series:
+            return False
+
+        if sval is not None:
+            sval = RockPy3.core.utils.to_list(sval)
+            if method == 'all':
+                return all(i in self.svals for i in sval)
+            if method == 'any':
+                return any(i in self.svals for i in sval)
+            if method == 'none':
+                return not any(i in self.svals for i in sval)
+        else:
+            return True if not self.svals else False
+
+    def has_series(self, series=None, method = 'all'):
         series = RockPy3.core.utils.tuple2list_of_tuples(series)
-        return True if self.get_series(series=series) else False
+
+        if series is not None:
+            series = RockPy3.core.utils.to_list(series)
+            if method == 'all':
+                return True if all(i in self.stype_sval_tuples for i in series) else False
+            if method == 'any':
+                return True if any(i in self.stype_sval_tuples for i in series) else False
+            if method == 'none':
+                return True if not any(i in self.svals for i in series) else False
+        else:
+            return True if not self.svals else False
 
     def get_series(self, stype=None, sval=None, series=None):
         """
@@ -1400,10 +1442,12 @@ class Measurement(object):
         Note
         ----
             m = measurement with [<RockPy3.series> pressure, 0.00, [GPa], <RockPy3.series> temperature, 0.00, [C]]
-            m.get_series('pressure', 0) -> [<RockPy3.series> pressure, 0.00, [GPa]]
-            m.get_series(0) -> [<RockPy3.series> pressure, 0.00, [GPa], <RockPy3.series> temperature, 0.00, [C]]
+            m.get_series(stype = 'pressure', sval = 0) -> [<RockPy3.series> pressure, 0.00, [GPa]]
+            m.get_series(sval = 0) -> [<RockPy3.series> pressure, 0.00, [GPa], <RockPy3.series> temperature, 0.00, [C]]
+            m.get_series(series=('temperature', 0)) -> [<RockPy3.series> pressure, 0.00, [GPa], <RockPy3.series> temperature, 0.00, [C]]
         """
-        # out = self.series
+        if not self._series:
+            return False
 
         slist = self.series
 
@@ -1414,9 +1458,10 @@ class Measurement(object):
             sval = RockPy3.core.utils.to_list(sval)
             slist = filter(lambda x: x.sval in sval, slist)
         if series:
-            series = RockPy3.core.utils.to_list(series)
+            series = RockPy3.core.utils.tuple2list_of_tuples(series)
             slist = filter(lambda x: (x.stype, x.sval) in series, slist)
         return list(slist)
+
 
     def get_sval(self, stype):
         """
@@ -1454,26 +1499,21 @@ class Measurement(object):
         # if a series object is provided other wise create series object
         if not any(i for i in [stype, sval, unit, series_obj, series]):
             return
+
         elif series_obj:
             series = series_obj
 
         elif series:
-            if type(series) == tuple:
-                aux = []
-                aux.append(series)
-                slist = aux
-            else:
-                slist = series
-            series = []
-            for stup in slist:
-                series.append(RockPy3.Series.from_tuple(series=stup))
+            series = RockPy3.core.utils.tuple2list_of_tuples(series)
+            sobjs = []
+            for stup in series:
+                sobjs.append(RockPy3.Series.from_tuple(series=stup))
         else:
-            series = RockPy3.Series(stype=stype, value=sval, unit=unit)
+            sobjs = [RockPy3.Series(stype=stype, value=sval, unit=unit)]
 
-        series = RockPy3.core.utils.to_list(series)
-
-        for s in series:
+        for s in sobjs:
             self.study._series.setdefault(s.data, []).append(self)  # todo see if better
+
             with RockPy3.ignored(ValueError):
                 self.study._series['none'].remove(self)  # todo see if better
 
@@ -1482,17 +1522,17 @@ class Measurement(object):
             self.sobj._remove_series_from_mdict(mobj=self, series=self.series[0],
                                                 mdict_type='mdict')  # remove default series
 
-        # turn into list to add multiples
-        series = RockPy3.core.utils.to_list(series)
-        for sobj in series:
-            if not any(sobj == s for s in self._series):
-                self._series.append(sobj)
-                self._add_sval_to_data(sobj)
-                self._add_sval_to_results(sobj)
+        for sinst in sobjs:
+            if not any(sinst == s for s in self._series):
+                self._series.append(sinst)
+                self._add_sval_to_data(sinst)
+                self._add_sval_to_results(sinst)
+                self.sobj.series.update([sinst.data])
 
             # add the measurement to the mdict of the sobj
             if not self.is_mean:
-                self.sobj._add_series2_mdict(series=sobj, mobj=self)
+                self.sobj._add_series2_mdict(series=sinst, mobj=self)
+
         return series
 
     def _add_sval_to_data(self, sobj):
@@ -1519,14 +1559,11 @@ class Measurement(object):
         ---------
            sobj: series instance
         """
+
         if sobj.stype != 'none':
-            # data = np.ones(len(self.results['variable'].v)) * sobj.value
-            if not self.results:
-                self.results = RockPy3.Data(column_names='stype ' + sobj.stype,
-                                            data=[sobj.value])
             if not 'stype ' + sobj.stype in self.results.column_names:
-                self.results = self.results.append_columns(column_names='stype ' + sobj.stype,
-                                                           data=[sobj.value])  # , unit=sobj.unit) #todo add units
+                self.results = self.results.append_columns(
+                        column_names='stype ' + sobj.stype, data=sobj.value)  # , unit=sobj.unit) #todo add units
 
     def __sort_list_set(self, values):
         """
@@ -2223,10 +2260,8 @@ if __name__ == '__main__':
     RockPy3.logger.setLevel('DEBUG')
     from pprint import pprint
 
-    S = RockPy3.RockPyStudy()
-    s = S.add_sample(name='test')
-    m1 = s.add_simulation(mtype='hys')
+    S=RockPy3.Study
+    s = S.add_sample('test')
+    m = s.add_simulation('hysteresis')
 
-    f = RockPy3.Figure(data=s)
-    v = f.add_visual('hysteresis')
-    f.show()
+    print(m.has_sval((1,2,3)))
