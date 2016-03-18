@@ -18,4 +18,7 @@ def text_x_y(ax, s, x, y, **plt_props):
     :param plt_props:
     :return:
     """
+    if 'transform' in plt_props:
+        if plt_props['transform'] == 'ax':
+            plt_props['transform'] = ax.transAxes
     ax.text(x, y, s, **plt_props)

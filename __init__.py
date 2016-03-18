@@ -1,11 +1,10 @@
 import os
 import logging
 import matplotlib
-import RockPy3
-matplotlib.use('Qt4Agg')
-# matplotlib.use('rtes')
-matplotlib.rcParams.update({'font.size': 14})
 
+matplotlib.use('Qt4Agg')
+
+import RockPy3
 installation_directory = os.path.dirname(RockPy3.__file__)
 
 # automatic import of all subpackages in Packages and core
@@ -138,3 +137,13 @@ colorscheme = set_colorscheme('pretty')
 linestyles = ['-', '--', ':', '-.'] * 100
 marker = ['|', '.', 's', 'o', '+', '*', ',', '1', '3', '2', '4', '8', '<', '>', 'D', 'H', '_', '^',
               'd', 'h', 'p', 'v'] * 100
+
+
+def set_fontsize(fontsize=16):
+    matplotlib.rcParams.update({'font.size': fontsize})
+    RockPy3.fontsize = fontsize
+
+def get_fontsize():
+    return matplotlib.rcParams['font.size']
+
+set_fontsize(16)

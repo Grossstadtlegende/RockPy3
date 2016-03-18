@@ -8,7 +8,7 @@ import RockPy3.utils
 import RockPy3.core.measurement
 import RockPy3.Packages.Generic.Features.generic
 from RockPy3.core.utils import plot, to_list
-
+import matplotlib
 
 class Visual(object):
     """
@@ -39,6 +39,7 @@ class Visual(object):
                           'xdata', 'ydata', 'xerr', 'yerr',
                           'zorder',
                           ]
+    alpha = tuple('ABCDEFGHIJKLMNOPQRSTUVWXYZ'.lower())
 
     @classmethod
     def implemented_visuals(cls):
@@ -182,7 +183,7 @@ class Visual(object):
         separate data from the visual data.
         """
         plt_props, calculation_parameter = self.separate_plt_props(**plt_props)
-        #calculation_parameter, plt_props = RockPy3.core.utils.separate_calculation_parameter_from_kwargs(**plt_props)
+        # calculation_parameter, plt_props = RockPy3.core.utils.separate_calculation_parameter_from_kwargs(**plt_props)
 
         new_feature_name = self.add_feature_to_dict(feature=feature)
         self.set_plt_prop(feature_name=new_feature_name, **plt_props)
@@ -331,8 +332,8 @@ class Visual(object):
             self.ax.legend(**self.legend_options)
 
     def show_legend(self):
-        # if self.legend_options['show']:
-        #     return True
+        if 'show' in self.legend_options and not self.legend_options['show']:
+            return False
         mlist = [m for k, v in self.data.items() for m in v]
         if any(m.plt_props['label'] != '' for m in mlist):
             return True
@@ -389,8 +390,16 @@ class Visual(object):
         if not 'handlelength' in options:
             options.setdefault('handlelength', 1)
         if not 'fontsize' in options:
-            options.setdefault('fontsize', 12)
+            options.setdefault('fontsize', RockPy3.fontsize)
         return options
+
+    def enumerate(self, x=0.1, y=0.9, **text_props):
+        text_props.setdefault('fontsize', RockPy3.fontsize+2)
+        text_props.setdefault('weight', 'bold')
+        if matplotlib.rcParams['text.usetex']:
+            self.add_feature('generic_text', s='\\textbf{%s})'%self.alpha[self._plt_index], x=x, y=y, transform='ax', **text_props)
+        else:
+            self.add_feature('generic_text', s='%s)'%self.alpha[self._plt_index], x=x, y=y, transform='ax', **text_props)
 
     @plot(single=True)
     def feature_grid(self, plt_props=None):
@@ -489,8 +498,9 @@ class Visual(object):
                     for f in features:
                         try:
                             self.log.debug(
-                                'CHANGING plot property {}.{} from {} -> {}'.format(feature, p,
-                                                                                    self.plt_props[feature][p], value))
+                                    'CHANGING plot property {}.{} from {} -> {}'.format(feature, p,
+                                                                                        self.plt_props[feature][p],
+                                                                                        value))
                         except KeyError:
                             self.log.debug('Setting plot property {}.{} to {}'.format(feature, p, value))
                         else:
@@ -505,6 +515,7 @@ class Visual(object):
         self.ax.ticklabel_format(axis=axis, style=style, scilimits=scilimits)
         self.ax.xaxis.major.formatter._useMathText = True
         self.ax.yaxis.major.formatter._useMathText = True
+
 
 # class GenericData(Visual):
 #
@@ -561,6 +572,7 @@ def set_colorscheme(scheme):
     RockPy3.colorscheme = RockPy3.core.utils.colorscheme(scheme)
     return RockPy3.core.utils.colorscheme(scheme)
 
+
 if __name__ == '__main__':
     # pass
     # S = RockPy3.Study
@@ -576,9 +588,11 @@ if __name__ == '__main__':
     # fig.show()
     # print(RockPy3.implemented_measurements.keys())
     # print(RockPy3.implemented_visuals.keys())
-    RockPy3.core.utils.setLatex(font='kudgv')
+
+    RockPy3.set_fontsize(fontsize=14)
+    RockPy3.core.utils.setLatex(True)
 
     fig = RockPy3.Figure()
     v = fig.add_visual('hysteresis')
-    v.add_feature('generic_text', s='test', x=0, y=0)
+    v.enumerate()
     fig.show()

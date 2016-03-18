@@ -877,21 +877,23 @@ def separate_mtype_method_parameter(kwarg):
 
 
 def setLatex(latex=True, font='Computer Modern Roman'):
-    serif = ['Times', 'Palatino', 'New Century Schoolbook', 'Bookman', 'Computer Modern Roman']
-    sans_serif = ['Helvetica', 'Avant Garde', 'Computer Modern Sans serif']
 
-    if font in sans_serif:
-        rc('font', **{'family': 'sans-serif', 'sans-serif': [font]})
-    if font in serif:
-        rc('font', **{'family': 'serif', 'serif': [font]})
-    else:
-        RockPy3.logger.warning('Font not recognized: use one of these:')
-        RockPy3.logger.warning('\t{:2}\t{}'.format('', serif + sans_serif))
+    if latex == True:
+        serif = ['Times', 'Palatino', 'New Century Schoolbook', 'Bookman', 'Computer Modern Roman']
+        sans_serif = ['Helvetica', 'Avant Garde', 'Computer Modern Sans serif']
 
-    RockPy3.logger.info('USING LATEX %s: %s' % (latex, font))
+        if font in sans_serif:
+            rc('font', **{'family': 'sans-serif', 'sans-serif': [font]})
+        if font in serif:
+            rc('font', **{'family': 'serif', 'serif': [font]})
+        else:
+            RockPy3.logger.warning('Font not recognized: use one of these:')
+            RockPy3.logger.warning('\t{:2}\t{}'.format('', serif + sans_serif))
+
+        RockPy3.logger.info('USING LATEX %s: %s' % (latex, font))
 
     rc('text', usetex=latex)
-
+    RockPy3.set_fontsize(RockPy3.fontsize)
 
 def separate_calculation_parameter_from_kwargs(rpobj=None, mtype_list=None, **kwargs):
     """
