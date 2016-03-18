@@ -22,7 +22,7 @@ class Sample(object):
     def log(self):
         return RockPy3.core.utils.set_get_attr(self, '_log',
                                                value=logging.getLogger(
-                                                   'RockPy3.Sample(#%03i)[%s]' % (Sample.snum, self.name)))
+                                                       'RockPy3.Sample(#%03i)[%s]' % (Sample.snum, self.name)))
 
     def __lt__(self, other):
         return self.name < other.name
@@ -122,6 +122,9 @@ class Sample(object):
         self._mean_mdict = self._create_mdict()
         self._rdict = self._create_mdict()
 
+        # trying to get away from mdict:
+        self.series = set()
+
         # adding paraeter measurements
         if mass is not None:
             mass = RockPy3.implemented_measurements['mass'](sobj=self,
@@ -152,6 +155,26 @@ class Sample(object):
             self.add_measurement(mtype='volume', sample_shape=sample_shape, height=height, diameter=diameter)
         if x_len and y_len and z_len:
             self.add_measurement(mtype='volume', sample_shape=sample_shape, x_len=x_len, y_len=y_len, z_len=z_len)
+
+    @property
+    def stypes(self):
+        return set(s[0].lower() for s in self.series)
+
+    @property
+    def svals(self):
+        return set(s[1] for s in self.series)
+
+    @property
+    def sunits(self):
+        return set(s[0] for s in self.series)
+
+    @property
+    def mtypes(self):
+        return set(m.mtype for m in self.measurements)
+
+    @property
+    def mids(self):
+        return set(m.id for m in self.measurements)
 
     def __repr__(self):
         return '<< RockPy3.Sample.{} >>'.format(self.name)
@@ -299,10 +322,11 @@ class Sample(object):
                 return
             self.log.info('ADDING\t << %s, %s >>' % (mobj.ftype, mobj.mtype))
             if series:
+                series = RockPy3.core.utils.tuple2list_of_tuples(series)
                 for s in series:
                     mobj.add_series(series=s)
                 self.log.info(
-                    '\t\t WITH series << %s >>' % ('; '.join(', '.join(str(j) for j in i) for i in series)))
+                        '\t\t WITH series << %s >>' % ('; '.join(', '.join(str(j) for j in i) for i in series)))
             self._add_mobj(mobj)
             return mobj
         else:
@@ -542,8 +566,8 @@ class Sample(object):
 
         # create mean measurement from a list of measurements
         mean = RockPy3.implemented_measurements[mtype].from_measurements_create_mean(
-            sobj=self, mlist=mlist, interpolate=interpolate, recalc_mag=recalc_mag,
-            substfunc=substfunc, ignore_series=ignore_series, color=color, marker=marker, linestyle=linestyle)
+                sobj=self, mlist=mlist, interpolate=interpolate, recalc_mag=recalc_mag,
+                substfunc=substfunc, ignore_series=ignore_series, color=color, marker=marker, linestyle=linestyle)
 
         # add to self.mean_measurements if specified
         if not create_only:
@@ -599,7 +623,8 @@ class Sample(object):
             file_info = RockPy3.core.file_operations.get_info_from_fname(path=fpath)
         if not file_info:
             self.log.warning(
-                'CANNOT readin fpath automatically.', extra='See RockPy naming conventions for proper naming scheme.')
+                    'CANNOT readin fpath automatically.',
+                    extra='See RockPy naming conventions for proper naming scheme.')
             fname = RockPy3.get_fname_from_info(samplegroup='SG', sample_name=self.name, mtype=mtype, ftype=ftype,
                                                 series=series)
             self.log.info('FILE NAME proposition:')
@@ -612,7 +637,7 @@ class Sample(object):
                 if check in file_info and locals()[check]:
                     if not out[check] == file_info[check]:
                         self.log.warning(
-                            '!!! INPUT != file_name: info does not match. Please check input, assuming filename correct')
+                                '!!! INPUT != file_name: info does not match. Please check input, assuming filename correct')
                         self.log.warning('!!! {} != {}'.format(locals()[check], file_info[check]))
         out.update(file_info)
         out.pop('name', None)
@@ -734,34 +759,41 @@ class Sample(object):
 
         Parameters
         ----------
-            sval_range: list, str
+            sval_range: tuple, str
                 series range e.g. sval_range = [0,2] will give all from 0 to 2 including 0,2
                 also '<2', '<=2', '>2', and '>=2' are allowed.
 
         """
+        out = []
 
         if mean:
-            mdict = self.mean_mdict
+            svals = set(s for m in self.mean_measurements for s in m.svals)
         else:
-            mdict = self.mdict
+            svals = self.svals
 
-        if isinstance(sval_range, list):
-            svals = [i for i in mdict['sval'] if sval_range[0] <= i <= sval_range[1]]
+        if isinstance(sval_range, tuple):
+            out = [i for i in svals if sval_range[0] <= i <= sval_range[1]]
+
         if isinstance(sval_range, str):
             sval_range = sval_range.strip()  # remove whitespaces in case '> 4' is provided
+            if '-' in sval_range:
+                tup = [float(i) for i in sval_range.split('-')]
+                out = [i for i in svals if min(tup) <= i <= max(tup)]
+
             if '<' in sval_range:
                 if '=' in sval_range:
-                    svals = [i for i in mdict['sval'] if i <= float(sval_range.replace('<=', ''))]
+                    out = [i for i in svals if i <= float(sval_range.replace('<=', ''))]
                 else:
-                    svals = [i for i in mdict['sval'] if i < float(sval_range.replace('<', ''))]
+                    out = [i for i in svals if i < float(sval_range.replace('<', ''))]
             if '>' in sval_range:
                 if '=' in sval_range:
-                    svals = [i for i in mdict['sval'] if i >= float(sval_range.replace('>=', ''))]
+                    out = [i for i in svals if i >= float(sval_range.replace('>=', ''))]
                 else:
-                    svals = [i for i in mdict['sval'] if i > float(sval_range.replace('>', ''))]
-        return sorted(svals)
+                    out = [i for i in svals if i > float(sval_range.replace('>', ''))]
 
-    def get_measurement(self,
+        return sorted(out)
+
+    def get_measurement_old(self,
                         mtype=None,
                         series=None,
                         stype=None, sval=None, sval_range=None,
@@ -880,29 +912,115 @@ class Sample(object):
 
         return out
 
-    def get_measurement_new(self, mtype=None, stype=None, sval=None, result=None, mean=False, base=False,
-                            all_types=False):
+    def get_measurement(self,
+                            mtype=None,
+                            series=None,
+                            stype=None, sval=None, sval_range=None,
+                            mean=False,
+                            invert=False,
+                            id=None,
+                            result=None
+                            ):
+        """
+        Returns a list of measurements of type = mtypes
 
-        if mean or all_types:
+        Parameters
+        ----------
+           mtypes: list, str
+              mtypes to be returned
+           series: list(tuple)
+              list of tuples, to search for several sepcific series. e.g. [('mtime',4),('gc',2)] will only return
+              mesurements that fulfill both criteria.
+           stypes: list, str
+              series type
+           sval_range: list, str
+              series range e.g. sval_range = [0,2] will give all from 0 to 2 including 0,2
+              also '<2', '<=2', '>2', and '>=2' are allowed.
+           svals: float
+              series value to be searched for.
+              caution:
+                 will be overwritten when sval_range is given
+           invert:
+              if invert true it returns only measurements that do not meet criteria
+           sval_range:
+              can be used to look up measurements within a certain range. if only one value is given,
+                     it is assumed to be an upper limit and the range is set to [0, sval_range]
+           mean: bool
+           id: list(int)
+            search for given measurement id
+
+        Returns
+        -------
+            if no arguments are passed all sample.measurements
+            list of RockPy.Measurements that meet search criteria or if invert is True, do not meet criteria.
+            [] if none are found
+
+        Note
+        ----
+            there is no connection between stype and sval. This may cause problems. I you have measurements with
+               M1: [pressure, 0.0, GPa], [temperature, 100.0, C]
+               M2: [pressure, 1.0, GPa], [temperature, 100.0, C]
+            and you search for stypes=['pressure','temperature'], svals=[0,100]. It will return both M1 and M2 because
+            both M1 and M2 have [temperature, 100.0, C].
+
+        """
+
+        def check_existing(l2check, attribute):
+            l2check = RockPy3._to_tuple(l2check)
+
+            not_available = set(l2check) - getattr(self, attribute)
+            l2check = set(l2check) & getattr(self, attribute)
+
+            if not_available:
+                self.log.error('No measurements with %s: << %s >>' % (attribute, not_available))
+
+            return l2check
+
+        if mean:
             mlist = self.mean_measurements
-            if base or all_types:
-                mlist = [m for mean in mlist for m in mean.base_measurements]
         else:
             mlist = self.measurements
 
-        # if all types are supposed to be returned, hence the all_types boolean, mlost has to be extended
-        if all_types:
-            mlist.extend(self.measurements)
-            mlist.extend(self.mean_measurements)
+        if id:
+            id = check_existing(id, 'mid')
+            mlist = filter(lambda x: x.id in id, mlist)
+            return mlist
 
         if mtype:
-            mtype = RockPy3.to_list(mtype)
+            mtype = RockPy3._to_tuple(mtype)
+            mtype = (RockPy3.abbrev_to_classname(mt) for mt in mtype)
+            mtype = check_existing(mtype, 'mtypes')
             mlist = filter(lambda x: x.mtype in mtype, mlist)
+
         if stype:
-            stype = RockPy3.to_list(stype)
-            mlist = filter(lambda x: x.stype in stype, mlist)
+            stype = check_existing(stype, 'stypes')
+            mlist = filter(lambda x: x.has_stype(stype=stype, method='any'), mlist)
+
+        if sval_range:
+            sval_range = self._convert_sval_range(sval_range=sval_range, mean=mean)
+
+            if not sval:
+                sval = sval_range
+            else:
+                sval = RockPy3._to_tuple()
+                sval += RockPy3._to_tuple(sval_range)
+
+        if sval:
+            sval = check_existing(sval, 'svals')
+            mlist = filter(lambda x: x.has_sval(sval=sval, method='any'), mlist)
+
+        if series:
+            series = RockPy3.core.utils.tuple2list_of_tuples(series)
+            mlist = filter(lambda x: x.has_series(series=series, method='all'), mlist)
+
         if result:
             mlist = filter(lambda x: x.has_result(result=result), mlist)
+
+        if invert:
+            if mean:
+                mlist = filter(lambda x: x not in mlist, self.mean_measurements)
+            else:
+                mlist = filter(lambda x: x not in mlist, self.measurements)
 
         return list(mlist)
 
@@ -1067,13 +1185,13 @@ class Sample(object):
         for m in self.measurements:
             m.calc_all(**parameter)
 
-    @property
-    def stypes(self):
-        return list(self.mdict['stype'].keys())
-
-    @property
-    def mtypes(self):
-        return list(self.mdict['mtype'].keys())
+    # @property
+    # def stypes(self):
+    #     return list(self.mdict['stype'].keys())
+    #
+    # @property
+    # def mtypes(self):
+    #     return list(self.mdict['mtype'].keys())
 
     ####################################################################################################################
     ''' PLOTTING PART'''
@@ -1231,11 +1349,21 @@ class MeanSample(Sample):
 if __name__ == '__main__':
     from pprint import pprint
 
+    RockPy3.logger.setLevel('ERROR')
     S = RockPy3.Study
-    s = S.add_sample('1440')
-    s.add_measurement(
-        fpyth='/Users/mike/Dropbox/experimental_data/FeNiX/FeNi20K/FeNi_FeNi20-Ka2160\'-G03_HYS_VSM#50,3[mg]_[]_[]##STD030.001',
-        mtype='hys', ftype='vsm')
+    S.import_folder('/Users/mike/Dropbox/experimental_data/0915-LT_pyrrhtotite', sname='167a')
+    S.info()
+    # print(S['167a'].get_measurement_new(mtype='hys'))
+    # print(S['167a'].get_measurement_new(stype='temp'))
+    # print(S['167a'].get_measurement_new(stype='temp', sval=(300, 200)))
+    # print(S['167a'].get_measurement_new(series=[('temp', 300)]))
+    # print(S['167a'].get_measurement_new(series=[('temp', 300), ('temp', 200)]))
+    # print(S['167a'].get_measurement_new(sval_range='<300'))
+    print(S['167a'].get_measurement_new(sval=300, invert=True))
+    # print(S['167a'].get_measurement_new(sval_range='<=300'))
+
+
+
     # s = S.add_sample(name='test')
     # for n in range(10):
     #     m = s.add_simulation(mtype='hysteresis')

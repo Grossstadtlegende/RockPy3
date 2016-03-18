@@ -1362,7 +1362,7 @@ class Measurement(object):
             return False
 
         if stype is not None:
-            stype = RockPy3.core.utils.to_list(stype)
+            stype = RockPy3._to_tuple(stype)
             if method == 'all':
                 return True if all(i in self.stypes for i in stype) else False
             if method == 'any':
@@ -1395,7 +1395,7 @@ class Measurement(object):
             return False
 
         if sval is not None:
-            sval = RockPy3.core.utils.to_list(sval)
+            sval = RockPy3._to_tuple(sval)
             if method == 'all':
                 return all(i in self.svals for i in sval)
             if method == 'any':
@@ -1406,10 +1406,9 @@ class Measurement(object):
             return True if not self.svals else False
 
     def has_series(self, series=None, method = 'all'):
-        series = RockPy3.core.utils.tuple2list_of_tuples(series)
 
         if series is not None:
-            series = RockPy3.core.utils.to_list(series)
+            series = RockPy3.core.utils.tuple2list_of_tuples(series)
             if method == 'all':
                 return True if all(i in self.stype_sval_tuples for i in series) else False
             if method == 'any':
@@ -1527,7 +1526,7 @@ class Measurement(object):
                 self._series.append(sinst)
                 self._add_sval_to_data(sinst)
                 self._add_sval_to_results(sinst)
-                self.sobj.series.update([sinst.data])
+                self.sobj.series.update([sinst.stype_sval_tuple])
 
             # add the measurement to the mdict of the sobj
             if not self.is_mean:
@@ -2262,6 +2261,7 @@ if __name__ == '__main__':
 
     S=RockPy3.Study
     s = S.add_sample('test')
-    m = s.add_simulation('hysteresis')
-
+    m = s.add_simulation('hysteresis', series=[('a', 2, 'b'), ('b', 10, 'b')])
+    m6 = s.add_simulation('hysteresis', series=[('d', 2, 'a'), ('b', 6, 'b'), ('c', 10, 'c')])
+    print(s.get_measurement(sval_range='<8'))
     print(m.has_sval((1,2,3)))

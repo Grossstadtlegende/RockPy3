@@ -9,8 +9,9 @@ class Series(object):
     create_logger('RockPy.series')
 
     def __init__(self, stype, value, unit):
+        stype = stype.lower()
         self.data = (stype, value, unit)
-        self.stype = stype.lower()
+        self.stype = stype
         self.value = float(value)
         self.unit = unit
 

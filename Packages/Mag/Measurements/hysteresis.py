@@ -809,7 +809,7 @@ class Hysteresis(measurement.Measurement):
 
         """
         if not self.msi_exists:
-            self.log.error(
+            self.log.debug(
                     '%s\tMsi branch does not exist or not properly saturated. Please check datafile' % self.sobj.name)
             self.results['e_delta_t'] = np.nan
             return np.nan
