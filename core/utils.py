@@ -927,12 +927,16 @@ def tuple2list_of_tuples(item):
           Returns a list of tuples, if data is a tuple it converts it to a list of tuples
           if data == a list of tuples will just return data
     """
-    if type(item) != tuple and type(item) != list:
+
+    if isinstance(item, list):
+        for i, elem in enumerate(item):
+            if not type(elem) == tuple:
+                item[i] = (elem,)
+    if not isinstance(item, (list, tuple)):
         item = tuple([item])
-    if type(item) == tuple:
-        aux = list()
-        aux.append(item)
-        item = aux
+
+    if isinstance(item, tuple):
+        item = [item,]
     return item
 
 
