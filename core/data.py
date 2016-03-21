@@ -1354,12 +1354,21 @@ class RockPyData(object):
            RockPyData
               filtered data
         """
-        index_list = _to_tuple(index_list)
+        index_list = np.array(index_list)
+
         if invert:
-            tf_array = (False if x in index_list else True for x in range(len(self.data)))
-        else:
-            tf_array = (True if x in index_list else False for x in range(len(self.data)))
-        return self.filter(tf_array)
+            # tf_array = [False if x in index_list else True for x in range(len(self.data))]
+            index_list = (x for x in range(len(self.data)) if x not in index_list)
+        # else:
+        #     tf_array = [True if x in index_list else False for x in range(len(self.data))]
+        # return self.filter(tf_array)
+        self_copy = deepcopy(self)
+
+        self_copy._data = self_copy._data[index_list]
+        if self_copy._row_names is not None:
+            self_copy._row_names = list(
+                np.array(self_copy._row_names, dtype=object)[index_list])  # filter row names with same true/false array
+        return self_copy
 
     def filter_row_names(self, row_names, invert=False):
         """
