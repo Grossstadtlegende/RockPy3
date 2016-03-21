@@ -80,7 +80,7 @@ class Visual(object):
             if k in cls.possible_plt_props:
                 plt_props.setdefault(k, kwargs.pop(k))
             if k in cls.possible_text_props:
-                txt_props.setdefault(k, kwargs.pop(k))
+                txt_props.setdefault(k, kwargs.pop(k, plt_props.get(k)))
         return plt_props, txt_props, kwargs
 
     def __init__(self,

@@ -73,4 +73,3 @@ class Vftb(io.ftype):
 
 if __name__ == '__main__':
     vftb_file = '/Users/Mike/Dropbox/experimental_data/001_PintP/LF4C/VFTB/P0-postTT/140310_1a.hys'
-    print(Vftb(dfile=vftb_file).data)

@@ -1356,9 +1356,9 @@ class RockPyData(object):
         """
         index_list = _to_tuple(index_list)
         if invert:
-            tf_array = [False if x in index_list else True for x in range(len(self.data))]
+            tf_array = (False if x in index_list else True for x in range(len(self.data)))
         else:
-            tf_array = [True if x in index_list else False for x in range(len(self.data))]
+            tf_array = (True if x in index_list else False for x in range(len(self.data)))
         return self.filter(tf_array)
 
     def filter_row_names(self, row_names, invert=False):

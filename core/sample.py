@@ -373,7 +373,7 @@ class Sample(object):
                 self.measurements.remove(m)
             else:
                 self.mean_measurements.remove(m)
-            # self._remove_m_from_mdict(mobj=m, mdict_type='mdict' if not mean else 'mean_mdict')
+                # self._remove_m_from_mdict(mobj=m, mdict_type='mdict' if not mean else 'mean_mdict')
 
     def _add_mobj(self, mobj):
         if mobj not in self.measurements:
@@ -798,14 +798,14 @@ class Sample(object):
         return sorted(out)
 
     def get_measurement(self,
-                            mtype=None,
-                            series=None,
-                            stype=None, sval=None, sval_range=None,
-                            mean=False,
-                            invert=False,
-                            id=None,
-                            result=None
-                            ):
+                        mtype=None,
+                        series=None,
+                        stype=None, sval=None, sval_range=None,
+                        mean=False,
+                        invert=False,
+                        id=None,
+                        result=None
+                        ):
         """
         Returns a list of measurements of type = mtypes
 
@@ -849,6 +849,7 @@ class Sample(object):
             both M1 and M2 have [temperature, 100.0, C].
 
         """
+
         def check_existing(l2check, attribute):
             l2check = RockPy3._to_tuple(l2check)
 
@@ -972,6 +973,36 @@ class Sample(object):
             m.label = ''
 
     ####################################################################################################################
+    ''' plotting '''
+
+    def plot(self,
+             mtype=None,
+             series=None,
+             stype=None, sval=None, sval_range=None,
+             mean=False,
+             invert=False,
+             id=None,
+             result=None, **plt_props):
+
+        mlist = self.get_measurement(mtype=mtype,
+                                     series=series, stype=stype, sval=sval, sval_range=sval_range,
+                                     mean=mean, invert=invert, id=id, result=result)
+
+        max_columns = max(len(m._visuals) for m in mlist)
+        fig = RockPy3.Figure(title=self.name, columns=max_columns)
+
+        for m in mlist:
+            # get index of the first visual of this measurement
+            vidx = deepcopy(fig._n_visuals)
+            m.add_visuals(fig, **plt_props)
+
+            if m.has_series():
+                stuples = '\n'.join('{}'.format(s) for s in m.series)
+                with RockPy3.ignored(IndexError):
+                    fig.visuals[vidx][2].add_feature('generic_text', transform='ax', s=stuples, x=0.05, y=0.9)
+        fig.show()
+
+    ####################################################################################################################
     ''' XML io'''
 
     @property
@@ -1077,10 +1108,4 @@ class MeanSample(Sample):
 
 
 if __name__ == '__main__':
-    from pprint import pprint
-
-    RockPy3.logger.setLevel('ERROR')
-    S = RockPy3.Study
-    S.import_folder('/Users/mike/Dropbox/experimental_data/0915-LT_pyrrhtotite', sname='167a')
-    S.info()
-    print(S.stype_svals)
+    pass

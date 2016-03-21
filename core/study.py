@@ -835,14 +835,11 @@ if __name__ == '__main__':
     # sample
     s = S.add_sample(name='S2')
     # noise ranging from 0-4%
-    for noise in range(5):
+    for noise in range(1):
         # 4 measurements for each noise
-        for n in range(4):
+        for n in range(1):
             h1 = s.add_simulation(mtype='hysteresis', noise=noise, marker='o')
             # we add a series for the noise
             h1.add_series('noise', noise, '%')
-    fig = RockPy3.Figure(data=S)
-    v = fig.add_visual(visual='resultseries',result='ms', series='noise')
-    for f in v.features:
-        print(v.features[f])
-    fig.show()
+
+    s.plot()

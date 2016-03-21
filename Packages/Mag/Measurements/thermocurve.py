@@ -21,6 +21,8 @@ from RockPy3.core.data import RockPyData
 
 
 class Thermocurve(measurement.Measurement):
+    _visuals = (('thermocurve',{}), )
+
     @staticmethod
     def format_mpms(ftype_data, sobj_name=None):
         if ftype_data.name == sobj_name:

@@ -30,7 +30,7 @@ class Series(object):
         return '<RockPy.series> %s, %.2f, [%s]' % (self.stype, self.value, self.unit)
 
     def __str__(self):
-        return '%s_%.2f_%s' % (self.stype, self.value, self.unit)
+        return '%s: %.2f[%s]' % (self.stype, self.value, self.unit)
 
     def __eq__(self, other):
 

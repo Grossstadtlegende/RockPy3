@@ -326,7 +326,7 @@ class plot(object):
                 """
                 # cycle through possible inputs
                 data = {}
-                print(plt_info)
+
                 for plt_type in ('groupbase', 'samplebase', 'other', 'samplemean', 'groupmean'):
                     if plt_type not in plt_info:
                         continue
@@ -550,7 +550,7 @@ def separate_cparam_str(**kwargs):
     method_only = [i for i in kwargs if [i] != i.split('___') if [i] == i.split('__')]
     mixed = [i for i in kwargs if [i] != i.split('__') if [i] != i.split('___')]
 
-    print(param_only, mtype_only, method_only, mixed)
+    # print(param_only, mtype_only, method_only, mixed)
 
 
 if __name__ == '__main__':

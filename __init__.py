@@ -135,8 +135,7 @@ mtype_ftype_abbreviations_inversed, mtype_ftype_abbreviations = RockPy3.core.fil
 
 colorscheme = set_colorscheme('pretty')
 linestyles = ['-', '--', ':', '-.'] * 100
-marker = ['|', '.', 's', 'o', '+', '*', ',', '1', '3', '2', '4', '8', '<', '>', 'D', 'H', '_', '^',
-              'd', 'h', 'p', 'v'] * 100
+marker = ['.', 's', 'o', '<', '>', '^', '+', '*', ',', '1', '3', '2', '4', '8', 'D', 'H', 'd', 'h', 'p', 'v'] * 100
 
 
 def set_fontsize(fontsize=16):
@@ -146,4 +145,4 @@ def set_fontsize(fontsize=16):
 def get_fontsize():
     return matplotlib.rcParams['font.size']
 
-set_fontsize(16)
+set_fontsize(14)

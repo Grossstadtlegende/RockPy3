@@ -53,6 +53,7 @@ class Measurement(object):
 
     clslog = logging.getLogger('RockPy3.MEASUREMENT')
 
+    _visuals = ()
 
     possible_plt_props = ['agg_filter', 'alpha', 'animated', 'antialiased', 'axes', 'clip_box', 'clip_on', 'clip_path',
                           'color', 'contains', 'dash_capstyle', 'dash_joinstyle', 'dashes', 'drawstyle', 'figure',
@@ -63,11 +64,7 @@ class Measurement(object):
                           'zorder']
 
     _mcp = None  # mtype calculation parameter cache for all measurements implemented as a dict(measurement:method:parameter)
-    # _cmcp = None  # mtype calculation parameter cache for all measurements implemented as a dict(measurement: parameter)
-    # _pcp = None  # possible calculation parameters cache for a single measurement
-    # _gcp = None  # all possible parameters combined for all measurements and all methods
-    # _mpcp = None  # all possible parameters for each method of a specific mtype as a dict(method:parameters)
-    #
+
     _rm = None  # result methods #needed 1.3.16
     _cm = None  # calculation methods
 
@@ -174,13 +171,13 @@ class Measurement(object):
             cls._scalculate = scp
         return cls._scalculate
 
-    @classmethod
-    def res2calc(cls):
-        results = cls.res_signature().keys()
-        methods = cls.calc_signature().keys()
-
-        for r in results:
-            print([i for i in methods if r == cls.remove_recipe_from_name(i)])
+    # @classmethod
+    # def res2calc(cls):
+    #     results = cls.res_signature().keys()
+    #     methods = cls.calc_signature().keys()
+    #
+    #     for r in results:
+    #         print([i for i in methods if r == cls.remove_recipe_from_name(i)])
 
     @staticmethod
     def remove_recipe_from_name(method):
@@ -1941,18 +1938,6 @@ class Measurement(object):
     def label_add_text(self, text):
         self.plt_props['label'] = ' '.join([self.plt_props['label'], text])
 
-    @property
-    def plottable(self):
-        """
-        returns a list of all possible Visuals for this measurement
-        :return:
-        """
-        out = {}
-        for name, visual in RockPy3.Visualize.base.Visual.implemented_visuals().items():
-            if visual._required == [self.mtype]:
-                out.update({visual.__name__.lower(): visual})
-        return out
-
     def show_plots(self):
         for visual in self.plottable:
             self.plottable[visual](self, show=True)
@@ -1979,14 +1964,18 @@ class Measurement(object):
         sval_index = svals.index(sval)
         self.color = color_map[sval_index]
 
-    def plt_all(self, **plt_props):
-        fig = RockPy3.Figure()
-        calculation_parameter, non_calculation_parameter = core.utils.separate_calculation_parameter_from_kwargs(
-                self, **plt_props)
-        for visual in self.plottable:
-            fig.add_visual(visual=visual, visual_input=self, **plt_props)
-        fig.show(**non_calculation_parameter)
+    def plot(self, **plt_props):
+        fig = RockPy3.Figure(title='{}'.format(self.sobj.name))
+        self.add_visuals(fig, **plt_props)
+        fig.show()
 
+    def add_visuals(self, fig, **plt_props):
+        for v in self._visuals:
+            visual = v[0]
+            vprops = v[1]
+            vprops.update(plt_props)
+            fig.add_visual(data=self, visual=visual, **vprops)
+        return fig
     ####################################################################################################################
     ''' REPORT '''
 
@@ -2262,6 +2251,4 @@ if __name__ == '__main__':
     S=RockPy3.Study
     s = S.add_sample('test')
     m = s.add_simulation('hysteresis', series=[('a', 2, 'b'), ('b', 10, 'b')])
-    m6 = s.add_simulation('hysteresis', series=[('d', 2, 'a'), ('b', 6, 'b'), ('c', 10, 'c')])
-    print(s.get_measurement(sval_range='<8'))
-    print(m.has_sval((1,2,3)))
+    s.plot()
