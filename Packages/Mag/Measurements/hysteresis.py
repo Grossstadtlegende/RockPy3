@@ -1298,6 +1298,7 @@ class Hysteresis(measurement.Measurement):
         m_inv = f(self.data['down_field']['field'].v)  # get m_inv values
 
         data = [[v, m_inv[i]] for i, v in enumerate(df_branch['mag'].v) if not np.isnan(m_inv[i])]
+
         slope, intercept, r_value, p_value, std_err = stats.linregress(data)
         return slope, intercept, r_value, p_value, std_err
 

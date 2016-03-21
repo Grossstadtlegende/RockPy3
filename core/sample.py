@@ -118,12 +118,12 @@ class Sample(object):
         self._mean_results = None
 
         # dictionaries
-        self._mdict = self._create_mdict()
-        self._mean_mdict = self._create_mdict()
-        self._rdict = self._create_mdict()
+        # self._mdict = self._create_mdict()
+        # self._mean_mdict = self._create_mdict()
+        # self._rdict = self._create_mdict()
 
         # trying to get away from mdict:
-        self.series = set()
+        # self.series = set()
 
         # adding paraeter measurements
         if mass is not None:
@@ -155,6 +155,10 @@ class Sample(object):
             self.add_measurement(mtype='volume', sample_shape=sample_shape, height=height, diameter=diameter)
         if x_len and y_len and z_len:
             self.add_measurement(mtype='volume', sample_shape=sample_shape, x_len=x_len, y_len=y_len, z_len=z_len)
+
+    @property
+    def series(self):
+        return set(s.data for m in self.measurements for s in m.series)
 
     @property
     def stypes(self):
@@ -369,16 +373,16 @@ class Sample(object):
                 self.measurements.remove(m)
             else:
                 self.mean_measurements.remove(m)
-            self._remove_m_from_mdict(mobj=m, mdict_type='mdict' if not mean else 'mean_mdict')
+            # self._remove_m_from_mdict(mobj=m, mdict_type='mdict' if not mean else 'mean_mdict')
 
     def _add_mobj(self, mobj):
         if mobj not in self.measurements:
             self.measurements.append(mobj)
-            # self.raw_measurements.append(deepcopy(mobj))
-            if mobj.is_mean:
-                self._add_m2_mdict(mobj, mdict_type='mean_mdict')
-            else:
-                self._add_m2_mdict(mobj)
+            # # self.raw_measurements.append(deepcopy(mobj))
+            # if mobj.is_mean:
+            #     self._add_m2_mdict(mobj, mdict_type='mean_mdict')
+            # else:
+            #     self._add_m2_mdict(mobj)
 
     def add_simulation(self, mtype, idx=None, **sim_param):
         """
@@ -431,7 +435,7 @@ class Sample(object):
         """
         mean_measurements = []
         # separate the different mtypes
-        for mtype in self.mdict['mtype']:
+        for mtype in self.mtypes:
             # all measurements with that mtype
             measurements = self.get_measurement(mtype=mtype, mean=False)  # self.mdict['mtype'][mtype]
 
@@ -572,7 +576,7 @@ class Sample(object):
         # add to self.mean_measurements if specified
         if not create_only:
             self.mean_measurements.append(mean)
-            self._add_m2_mdict(mobj=mean, mdict_type='mean_mdict')
+            # self._add_m2_mdict(mobj=mean, mdict_type='mean_mdict')
         return mean
 
     def mean_measurement_exists(self, mlist):
@@ -793,125 +797,6 @@ class Sample(object):
 
         return sorted(out)
 
-    def get_measurement_old(self,
-                        mtype=None,
-                        series=None,
-                        stype=None, sval=None, sval_range=None,
-                        mean=False,
-                        invert=False,
-                        id=None
-                        ):
-        """
-        Returns a list of measurements of type = mtypes
-
-        Parameters
-        ----------
-           mtypes: list, str
-              mtypes to be returned
-           series: list(tuple)
-              list of tuples, to search for several sepcific series. e.g. [('mtime',4),('gc',2)] will only return
-              mesurements that fulfill both criteria.
-              Supercedes stype, sval and sval_range. Returnes only measurements that meet series exactly!
-           stypes: list, str
-              series type
-           sval_range: list, str
-              series range e.g. sval_range = [0,2] will give all from 0 to 2 including 0,2
-              also '<2', '<=2', '>2', and '>=2' are allowed.
-           svals: float
-              series value to be searched for.
-              caution:
-                 will be overwritten when sval_range is given
-           invert:
-              if invert true it returns only measurements that do not meet criteria
-           sval_range:
-              can be used to look up measurements within a certain range. if only one value is given,
-                     it is assumed to be an upper limit and the range is set to [0, sval_range]
-           mean: bool
-           id: list(int)
-            search for given measurement id
-
-        Returns
-        -------
-            if no arguments are passed all sample.measurements
-            list of RockPy.Measurements that meet search criteria or if invert is True, do not meet criteria.
-            [] if none are found
-
-        Note
-        ----
-            there is no connection between stype and sval. This may cause problems. I you have measurements with
-               M1: [pressure, 0.0, GPa], [temperature, 100.0, C]
-               M2: [pressure, 1.0, GPa], [temperature, 100.0, C]
-            and you search for stypes=['pressure','temperature'], svals=[0,100]. It will return both M1 and M2 because
-            both M1 and M2 have [temperature, 100.0, C].
-
-        """  # todo fix search for only series
-
-        if id:
-            id = RockPy3.core.utils.to_list(id)
-            if not invert:
-                m = [m for m in self.measurements + self.mean_measurements if m.id in id]
-            else:
-                m = [m for m in self.measurements + self.mean_measurements if m.id not in id]
-            return m
-
-        # if no parameters are given, return all measurments/none (invert=True)
-        if not any(i for i in [mtype, series, stype, sval, sval_range]):
-            if not invert:
-                if mean:
-                    return self.mean_measurements
-                else:
-                    return self.measurements
-            else:
-                return []
-
-        if mtype:
-            mtype = RockPy3.core.utils.to_list(mtype)
-            mtype = [RockPy3.abbrev_to_classname(mt) for mt in mtype]
-        else:
-            mtype = [None]
-
-        stype = RockPy3.core.utils.to_list(stype)
-        sval = RockPy3.core.utils.to_list(sval)
-
-        if mean:
-            mdict = self.mean_mdict
-            mdict_type = 'mean_mdict'
-        else:
-            mdict = self.mdict
-            mdict_type = 'mdict'
-
-        if sval_range:
-            sval = self._convert_sval_range(sval_range=sval_range, mean=mean)
-            self.log.info('SEARCHING %s for sval_range << %s >>' % (mdict_type, ', '.join(map(str, sval))))
-
-        out = []
-
-        if not series:
-            for mt in mtype:
-                if not stype:
-                    stype = [None]
-                for st in stype:
-                    if not sval:
-                        sval = [None]
-                    for sv in sval:
-                        measurements = [m for m in mdict['measurements'] if
-                                        m.has_mtype_stype_sval(mtype=mt, stype=st, sval=sv) if m not in out]
-                        out.extend(measurements)
-        else:
-            # searching for specific series, all mtypes specified that fit the series description will be returned
-            serie = RockPy3.core.utils.tuple2list_of_tuples(series)
-            for mt in mtype:  # cycle through mtypes
-                aux = []
-                for s in serie:
-                    aux.extend(self.get_mtype_stype_sval(mtype=mt, stype=s[0], sval=float(s[1])))
-                out.extend(list(set([i for i in aux if aux.count(i) == len(series)])))
-
-        # invert list to contain only measurements that do not meet criteria
-        if invert:
-            out = [i for i in mdict['measurements'] if not i in out]
-
-        return out
-
     def get_measurement(self,
                             mtype=None,
                             series=None,
@@ -964,7 +849,6 @@ class Sample(object):
             both M1 and M2 have [temperature, 100.0, C].
 
         """
-
         def check_existing(l2check, attribute):
             l2check = RockPy3._to_tuple(l2check)
 
@@ -981,7 +865,7 @@ class Sample(object):
         else:
             mlist = self.measurements
 
-        if id:
+        if id is not None:
             id = check_existing(id, 'mid')
             mlist = filter(lambda x: x.id in id, mlist)
             return mlist
@@ -1005,7 +889,7 @@ class Sample(object):
                 sval = RockPy3._to_tuple()
                 sval += RockPy3._to_tuple(sval_range)
 
-        if sval:
+        if sval is not None:
             sval = check_existing(sval, 'svals')
             mlist = filter(lambda x: x.has_sval(sval=sval, method='any'), mlist)
 
@@ -1026,160 +910,6 @@ class Sample(object):
 
     ####################################################################################################################
     ''' MEASUREMENT / RESULT DICTIONARY PART'''
-
-    @property
-    def mdict(self):
-        """
-        """
-        if not self._mdict:
-            self._mdict = self._create_mdict()
-        else:
-            return self._mdict
-
-    @property
-    def mean_mdict(self):
-        if not self._mean_mdict:
-            self._mean_mdict = self._create_mdict()
-        else:
-            return self._mean_mdict
-
-    def _create_mdict(self):
-        """
-        creates all info dictionaries
-
-        Returns
-        -------
-           dict
-              Dictionary with a permutation of ,type, stype and sval.
-        """
-        d = ['mtype', 'stype', 'sval']
-        keys = ['_'.join(i) for n in range(4) for i in itertools.permutations(d, n) if not len(i) == 0]
-        out = {i: {} for i in keys}
-        out.update({'measurements': list()})
-        out.update({'series': list()})
-        return out
-
-    def _mdict_cleanup(self, mdict_type='mdict'):
-        """
-        recursively removes all empty lists from dictionary
-        :param empties_list:
-        :return:
-        """
-
-        mdict = getattr(self, mdict_type)
-
-        for k0, v0 in sorted(mdict.items()):
-            if isinstance(v0, dict):
-                for k1, v1 in sorted(v0.items()):
-                    if isinstance(v1, dict):
-                        for k2, v2 in sorted(v1.items()):
-                            if isinstance(v2, dict):
-                                for k3, v3 in sorted(v2.items()):
-                                    if not v3:
-                                        v2.pop(k3)
-                                    if not v2:
-                                        v1.pop(k2)
-                                    if not v1:
-                                        v0.pop(k1)
-                            else:
-                                if not v2:
-                                    v1.pop(k2)
-                                if not v1:
-                                    v0.pop(k1)
-                    else:
-                        if not v1:
-                            v0.pop(k1)
-
-    def _add_m2_mdict(self, mobj, mdict_type='mdict'):
-        """
-        adds or removes a measurement from the mdict
-
-        Parameters
-        ----------
-           mobj: measurement object
-              object to be added
-        :param operation:
-        :return:
-        """
-        # cylcle through all the series
-        for s in mobj.series:
-            self._add_series2_mdict(mobj=mobj, series=s, mdict_type=mdict_type)
-
-    def _remove_m_from_mdict(self, mobj, mdict_type='mdict'):
-        """
-        adds or removes a measurement from the mdict
-
-        Parameters
-        ----------
-           mobj: measurement object
-              object to be added
-        :param operation:
-        :return:
-        """
-        # cylcle through all the series
-        for series in mobj.series:
-            self._remove_series_from_mdict(mobj=mobj, series=series, mdict_type=mdict_type)
-
-    def _add_series2_mdict(self, mobj, series, mdict_type='mdict'):
-        self._change_series_in_mdict(mobj=mobj, series=series, operation='append', mdict_type=mdict_type)
-
-    def _remove_series_from_mdict(self, mobj, series, mdict_type='mdict'):
-        self._change_series_in_mdict(mobj=mobj, series=series, operation='remove', mdict_type=mdict_type)
-
-    def _change_series_in_mdict(self, mobj, series, operation, mdict_type='mdict'):
-        # dict for getting the info of the series
-        sinfo = {'mtype': mobj.mtype, 'stype': series.stype, 'sval': series.value}
-
-        mdict = getattr(self, mdict_type)
-
-        if series in mdict['series'] and mobj in mdict['measurements'] and operation == 'append':
-            self.log.info('SERIES & MEASURMENT << {}, {} >> already in mdict'.format(series, mobj))
-            return
-
-        # cycle through all the elements of the self.mdict
-        for level in mdict:
-            # get sublevels of the level
-            sublevels = level.split('_')
-            if level == 'measurements':
-                RockPy3.core.utils.append_if_not_exists(mdict['measurements'], mobj, operation=operation)
-                # getattr(self.mdict['measurements'], operation)(mobj)
-            elif level == 'series':
-                RockPy3.core.utils.append_if_not_exists(mdict['series'], series, operation=operation)
-
-                # getattr(self.mdict['series'], operation)(series)
-            elif len(sublevels) == 1:
-                d = mdict[level].setdefault(sinfo[level], list())
-                RockPy3.core.utils.append_if_not_exists(d, mobj, operation=operation)
-                # getattr(d, operation)(mobj)
-            else:
-                for slevel_idx, sublevel in enumerate(sublevels):
-                    if slevel_idx == 0:
-                        info0 = sinfo[sublevel]
-                        d = mdict[level].setdefault(info0, dict())
-                    elif slevel_idx != len(sublevels) - 1:
-                        info0 = sinfo[sublevel]
-                        d = d.setdefault(info0, dict())
-                    else:
-                        info0 = sinfo[sublevel]
-                        d = d.setdefault(info0, list())
-                        RockPy3.core.utils.append_if_not_exists(d, mobj, operation=operation)
-
-                        # getattr(d, operation)(mobj)
-
-        if operation == 'remove':
-            self._mdict_cleanup(mdict_type=mdict_type)
-
-    def _populate_mdict(self, mdict_type='mdict'):
-        """
-        Populates the mdict with all measurements
-        :return:
-        """
-        if mdict_type == 'mdict':
-            # var = lambda x: self._add_m2_mdict(x), self.measurements
-            [self._add_m2_mdict(m) for m in self.measurements]
-        if mdict_type == 'mean_mdict':
-            add_m2_mean_mdict = partial(self._add_m2_mdict, mdict_type='mean_mdict')
-            [add_m2_mean_mdict(m) for m in self.mean_measurements]
 
     def calc_all(self, **parameter):
         for m in self.measurements:
@@ -1331,10 +1061,10 @@ class MeanSample(Sample):
         self.mean_measurements = []
         self._mean_results = None
 
-        # dictionaries
-        self._mdict = self._create_mdict()
-        self._mean_mdict = self._create_mdict()
-        self._rdict = self._create_mdict()
+        # # dictionaries
+        # self._mdict = self._create_mdict()
+        # self._mean_mdict = self._create_mdict()
+        # self._rdict = self._create_mdict()
 
         self.index = MeanSample.snum
         self._samplegroups = []
@@ -1353,19 +1083,4 @@ if __name__ == '__main__':
     S = RockPy3.Study
     S.import_folder('/Users/mike/Dropbox/experimental_data/0915-LT_pyrrhtotite', sname='167a')
     S.info()
-    # print(S['167a'].get_measurement_new(mtype='hys'))
-    # print(S['167a'].get_measurement_new(stype='temp'))
-    # print(S['167a'].get_measurement_new(stype='temp', sval=(300, 200)))
-    # print(S['167a'].get_measurement_new(series=[('temp', 300)]))
-    # print(S['167a'].get_measurement_new(series=[('temp', 300), ('temp', 200)]))
-    # print(S['167a'].get_measurement_new(sval_range='<300'))
-    print(S['167a'].get_measurement_new(sval=300, invert=True))
-    # print(S['167a'].get_measurement_new(sval_range='<=300'))
-
-
-
-    # s = S.add_sample(name='test')
-    # for n in range(10):
-    #     m = s.add_simulation(mtype='hysteresis')
-    # pprint(m.res_signature())
-    # print(s.get_result(result='ms', test=7, saturation_percent=80))
+    print(S.stype_svals)

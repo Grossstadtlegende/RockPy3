@@ -114,13 +114,29 @@ class Study(object):
         :return:
         """
         stype_sval_dict = {stype: set() for stype in self.stypes}
+
         for stype in stype_sval_dict:
-            for s in self.samplelist:
-                if stype in s.mdict['stype_sval']:
-                    stype_sval_dict[stype].update(s.mdict['stype_sval'][stype].keys())
-            else:
-                stype_sval_dict[stype] = sorted(stype_sval_dict[stype])
+            for m in self.get_measurement(stype=stype):
+                stype_sval_dict[stype].update([m.get_sval(stype=stype)])
+            stype_sval_dict[stype] = sorted(stype_sval_dict[stype])
         return stype_sval_dict
+
+    def get_sval(self, stype):
+        """
+        Method to get all values for a given stype
+
+        Parameters
+        ----------
+        stype
+
+        Returns
+        -------
+
+        """
+        out = set()
+        for m in self.get_measurement(stype=stype):
+            out.update([m.get_sval(stype=stype)])
+        return out
 
     ####################################################################################################################
     ''' add functions '''
@@ -205,8 +221,6 @@ class Study(object):
 
         return samples
 
-
-
     def add_mean_sample(self,
                         gname=None,
                         sname=None,
@@ -275,7 +289,7 @@ class Study(object):
                     mean_sample.measurements.extend(sample.measurements)
 
         # mdict needs to be populated
-        mean_sample._populate_mdict()
+        # mean_sample._populate_mdict()
         # the measurements are now used as if they belonged to that sample
         mean_sample.add_mean_measurements(ignore_series=ignore_series,
                                           interpolate=interpolate, substfunc=substfunc,
@@ -287,14 +301,15 @@ class Study(object):
         mean_sample.base_measurements = mean_sample.measurements
         mean_sample.measurements = []
         # mdict needs to be populated
-        mean_sample._mdict = mean_sample._create_mdict()
-        mean_sample._populate_mdict(mdict_type='mean_mdict')
+        # mean_sample._mdict = mean_sample._create_mdict()
+        # mean_sample._populate_mdict(mdict_type='mean_mdict')
         # mean_sample.mean_measurements = []
         self.add_sample(sobj=mean_sample)
         return mean_sample
 
     ####################################################################################################################
     ''' remove functions '''
+
     def remove_samplegroup(self,
                            gname=None,
                            sname=None,
@@ -492,7 +507,8 @@ class Study(object):
 
             if not s in self.samplenames and sfiles:
                 info = RockPy3.get_info_from_fname(sfiles[0])
-                s = self.add_sample(name=s, mass=info['mass'], mass_unit=info['mass_unit'])#, samplegroup=sample_groups)
+                s = self.add_sample(name=s, mass=info['mass'],
+                                    mass_unit=info['mass_unit'])  # , samplegroup=sample_groups)
             else:
                 s = self._samples[s]
 
@@ -549,7 +565,7 @@ class Study(object):
         mtypes = set(mt for s in self.samplelist for mt in s.mtypes)
         for mtype in mtypes:
             measurements = self.get_measurement(mtype=mtype)
-            stypes = sorted(list(set([s.stype for m in measurements for s in m.series])))
+            stypes = sorted(set([s.stype for m in measurements for s in m.series]))
             table.append(['{} measurements'.format(len(measurements)), mtype])
             table.append(['', '{} series:'.format(len(stypes))])
             for stype in stypes:
@@ -572,12 +588,12 @@ class Study(object):
 
         for s in sorted(self.samplelist):
             # get all mtypes of the sample
-            mtypes = list(s.mdict['mtype'].keys())
+            mtypes = s.mtypes
             # get all stypes of the sample
-            stypes = ', '.join(list(s.mdict['stype'].keys()))
+            stypes = s.stypes
 
             # count how many measurements for each mtype
-            measurements = ', '.join(['%ix %s' % (len(s.mdict['mtype'][i]), i) for i in mtypes])
+            measurements = ', '.join(['%ix %s' % (len(s.get_measurement(mtype=mt)), mt) for mt in mtypes])
 
             # does the measurement have an initial state
             i_state = [True if any(m.has_initial_state for m in s.measurements) else False][0]
@@ -815,8 +831,18 @@ class Study(object):
 
 
 if __name__ == '__main__':
-    S400J = RockPy3.RockPyStudy()
-    ms = S400J.import_folder('/Users/mike/Desktop/test')
-    for m in ms:
-        m.calc_all()
-        # S400J.info()
+    S = RockPy3.RockPyStudy()
+    # sample
+    s = S.add_sample(name='S2')
+    # noise ranging from 0-4%
+    for noise in range(5):
+        # 4 measurements for each noise
+        for n in range(4):
+            h1 = s.add_simulation(mtype='hysteresis', noise=noise, marker='o')
+            # we add a series for the noise
+            h1.add_series('noise', noise, '%')
+    fig = RockPy3.Figure(data=S)
+    v = fig.add_visual(visual='resultseries',result='ms', series='noise')
+    for f in v.features:
+        print(v.features[f])
+    fig.show()

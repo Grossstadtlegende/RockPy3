@@ -2,7 +2,7 @@ import inspect
 
 __author__ = 'mike'
 from contextlib import contextmanager
-from copy import deepcopy
+from copy import deepcopy, copy
 import RockPy3
 import logging
 from functools import wraps
@@ -326,10 +326,14 @@ class plot(object):
                 """
                 # cycle through possible inputs
                 data = {}
+                print(plt_info)
                 for plt_type in ('groupbase', 'samplebase', 'other', 'samplemean', 'groupmean'):
+                    if plt_type not in plt_info:
+                        continue
                     # skip everything that should not be plotted
                     if not plt_info['plot_' + plt_type]:
                         continue
+
                     # get the list of measurements
                     mlist = plt_info[plt_type]
                     # initialize plot properties
@@ -341,11 +345,13 @@ class plot(object):
 
                     # get rid of measurements without proper result and series
                     mlist = [m for m in mlist if m.has_result(visual.result) if m.get_series(stype=visual.series)]
+
                     # seaparate list into separate lists for each sample
                     # if ignore samples, all measurements will be used
                     if not plt_info['ignore_samples']:
-                        samples = set(m.sobj.name for m in mlist)
-                        mlists = [[m for m in mlist if m.sobj.name == sname] for sname in samples]
+                        samples = set(m.sobj.name for m in copy(mlist))
+                        mlists = [tuple(m for m in mlist if m.sobj.name == sname) for sname in samples]
+
                     else:
                         mlists = [mlist]
 

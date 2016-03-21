@@ -6,11 +6,11 @@ import numpy as np
 def day_data(ax, mobj, **plt_props):
     if not len(mobj) == 2:
         return
-    ms = mobj[0].result_ms()
-    mrs = mobj[0].result_mrs()
-    bc = mobj[0].result_bc()
-    bcr = mobj[1].result_bcr()
-    ax.plot(bcr[0] / bc[0], mrs[0] / ms[0], **plt_props)
+    ms = mobj[0].results['ms']
+    mrs = mobj[0].results['mrs']
+    bc = mobj[0].results['bc']
+    bcr = mobj[1].results['bcr']
+    ax.plot(bcr.v[0] / bc.v[0], mrs.v[0] / ms.v[0], **plt_props)
 
 
 def sd_md_mixline_1(ax, **plt_opt):

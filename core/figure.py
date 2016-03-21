@@ -102,7 +102,7 @@ class Figure(object):
         """
         # calculation_parameters, kwargs = RockPy3.core.utils.separate_calculation_parameter_from_kwargs(rpobj=self, **visual_opt)
         # convert visual to list
-        visuals = RockPy3.core.utils.to_list(visual)
+        visuals = RockPy3._to_tuple(visual)
         # for easy checking convert the names to lower case
         visuals = map(str.lower, visuals)
         for visual in visuals:

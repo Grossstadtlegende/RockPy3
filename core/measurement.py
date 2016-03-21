@@ -1062,7 +1062,7 @@ class Measurement(object):
                          'ftype', 'fpath',
                          # plotting related
                          '_plt_props',
-                         'calculation_parameters',
+                         'calculation_parameter',
                          # data related
                          '_raw_data', '_data',
                          'initial_state', 'is_initial_state',
@@ -1207,7 +1207,7 @@ class Measurement(object):
             self.log.warning('%s does not have result << %s >>' % self.mtype, result)
             return
         else:
-            self.log = logging.getLogger('RockPy3.MEASURMENT.' + self.mtype + '[%s]' % self.sobj.name)
+            # self.log = logging.getLogger('RockPy3.MEASURMENT.' + self.mtype + '[%s]' % self.sobj.name)
             self.log.info('CALCULATING << %s >>' % result)
             out = getattr(self, 'result_' + result)(**parameter)
         return out
@@ -1517,20 +1517,20 @@ class Measurement(object):
                 self.study._series['none'].remove(self)  # todo see if better
 
         # remove default series from sobj.mdict if non series exists previously
-        if not self._series:
-            self.sobj._remove_series_from_mdict(mobj=self, series=self.series[0],
-                                                mdict_type='mdict')  # remove default series
+        # if not self._series:
+            # self.sobj._remove_series_from_mdict(mobj=self, series=self.series[0],
+            #                                     mdict_type='mdict')  # remove default series
 
         for sinst in sobjs:
             if not any(sinst == s for s in self._series):
                 self._series.append(sinst)
                 self._add_sval_to_data(sinst)
                 self._add_sval_to_results(sinst)
-                self.sobj.series.update([sinst.stype_sval_tuple])
+                # self.sobj.series.update([sinst.stype_sval_tuple])
 
             # add the measurement to the mdict of the sobj
-            if not self.is_mean:
-                self.sobj._add_series2_mdict(series=sinst, mobj=self)
+            # if not self.is_mean:
+            #     self.sobj._add_series2_mdict(series=sinst, mobj=self)
 
         return series
 
@@ -1969,7 +1969,7 @@ class Measurement(object):
 
     def series_to_color(self, stype, reverse=False):
         # get all possible svals in the hierarchy
-        svals = sorted(self.sobj.mdict['stype_sval'][stype].keys())
+        svals = sorted(self.sobj.svals)
 
         # create colormap from svals
         color_map = RockPy3.core.utils.create_heat_color_map(value_list=svals, reverse=reverse)
