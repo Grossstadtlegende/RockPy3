@@ -698,10 +698,10 @@ def kwargs_to_calculation_parameter(rpobj=None, mtype_list=None, result=None, **
     return calc_params, kwargs
 
 
-def sort_input(input):
+def sort_input(data):
     """
     sorts a inputlist into subcategories
-    :param input:
+    :param data:
     :param groupmean:
     :param samplemean:
     :param base:
@@ -710,11 +710,11 @@ def sort_input(input):
     """
     out = dict(groupmean=set(), samplemean=set(), groupbase=set(), samplebase=set(), other=set())
 
-    if not input:
+    if not data:
         return out
 
     # get all measurements in plt_input
-    mlist, meanlist = mlist_from_input(input)
+    mlist, meanlist = mlist_from_input(data)
 
     if not any([mlist, meanlist]):
         RockPy3.logger.warning(
@@ -744,10 +744,10 @@ def sort_input(input):
     return deepcopy(out)
 
 
-def add_to_input(input, to_add_to, groupmean=True, samplemean=True, base=True, other=True):
-    input = sort_input(input=input)
+def add_to_input(data, to_add_to, groupmean=True, samplemean=True, base=True, other=True):
+    data = sort_input(data=data)
     for k, v in to_add_to.items():
-        to_add_to[k].update(input[k])
+        to_add_to[k].update(data[k])
     return to_add_to
 
 

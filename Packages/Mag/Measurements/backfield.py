@@ -33,7 +33,9 @@ class Backfield(measurement.Measurement):
 
 
     """
-    _standard_parameter = {}
+    _visuals = (('backfield',
+                 {'features':('zero_lines', 'backfield_data', 'rockmag_results'), 'color':'k', 'marker':'.'}),
+                )
 
     @staticmethod
     def empty_mdata():

@@ -10,6 +10,7 @@ from RockPy3.core import utils
 import RockPy3.core.sample
 import RockPy3.core.file_operations
 import numpy as np
+from functools import partial
 
 log = logging.getLogger(__name__)
 
@@ -26,7 +27,7 @@ class Study(object):
     SAMPLES = 'samples'
     NAME = 'nane'
 
-    def __init__(self, name=None):
+    def __init__(self, name=None, folder=None):
         """
         general Container for Samplegroups and Samples.
 
@@ -45,6 +46,9 @@ class Study(object):
 
         self._series = {'none': []}  # {series_obj: measurement}
         self.imported_files = []
+
+        if folder:
+            self.import_folder(folder)
 
     def __repr__(self):
         if self == RockPy3.Study:
@@ -447,6 +451,7 @@ class Study(object):
 
     def import_folder(self,
                       folder, sname=None, sgroup=None,
+                      automatic_results = True,
                       ):  # todo specify samples, mtypes and series for selective import of folder
         """
         imports all files in the specified folder
@@ -515,7 +520,7 @@ class Study(object):
             for f in sfiles:
                 fname = os.path.basename(f)
                 if fname not in self.imported_files:
-                    m = s.add_measurement(fpath=f)
+                    m = s.add_measurement(fpath=f, automatic_results=automatic_results)
                     measurements.append(m)
                     self.imported_files.append(fname)
 
@@ -636,6 +641,65 @@ class Study(object):
     def calc_all(self, **parameter):
         for s in self.samplelist:
             s.calc_all(**parameter)
+
+    def normalize(self,
+                  gname=None,
+                  sname=None,
+                  mtype=None,
+                  series=None,
+                  stype=None, sval=None, sval_range=None,
+                  mean=False, groupmean=False,
+                  invert=False,
+                  id=None,
+                  reference='data', ref_dtype='mag', norm_dtypes='all', vval=None,
+                  norm_method='max', norm_factor=None, result=None,
+                  normalize_variable=False, dont_normalize=None,
+                  norm_initial_state=True, **options):
+        """
+        normalizes all available data to reference value, using norm_method
+
+        Parameter
+        ---------
+            reference: str
+                reference state, to which to normalize to e.g. 'NRM'
+                also possible to normalize to mass
+            ref_dtype: str
+                component of the reference, if applicable. standard - 'mag'
+            norm_dtypes: list
+                default: 'all'
+                dtypes to be normalized, if dtype = 'all' all columns will be normalized
+            vval: float
+                variable value, if reference == value then it will search for the point closest to the vval
+            norm_method: str
+                how the norm_factor is generated, could be min
+            normalize_variable: bool
+                if True, variable is also normalized
+                default: False
+            result: str
+                default: None
+                normalizes the values in norm_dtypes to the result value.
+                e.g. normalize the moment to ms (hysteresis measuremetns)
+            dont_normalize: list
+                list of dtypes that will not be normalized
+                default: None
+            norm_initial_state: bool
+                if true, initial state values are normalized in the same manner as normal data
+                default: True
+        """
+
+        mlist = self.get_measurement(gname=gname, sname=sname, mtype=mtype, series=series,
+                                      stype=stype, sval=sval, sval_range=sval_range,
+                                      mean=mean, groupmean=groupmean,
+                                      invert=invert, id=id)
+
+        norm = partial(RockPy3.Measurement.normalize,
+                       reference=reference, ref_dtype=ref_dtype,
+                       norm_dtypes=norm_dtypes, vval=vval,
+                       norm_method=norm_method, norm_factor=norm_factor, result=result,
+                       normalize_variable=normalize_variable, dont_normalize=dont_normalize,
+                       norm_initial_state=norm_initial_state)
+
+        map(norm, mlist)
 
     ####################################################################################################################
     ''' label operations '''
@@ -832,14 +896,4 @@ class Study(object):
 
 if __name__ == '__main__':
     S = RockPy3.RockPyStudy()
-    # sample
-    s = S.add_sample(name='S2')
-    # noise ranging from 0-4%
-    for noise in range(1):
-        # 4 measurements for each noise
-        for n in range(1):
-            h1 = s.add_simulation(mtype='hysteresis', noise=noise, marker='o')
-            # we add a series for the noise
-            h1.add_series('noise', noise, '%')
-
-    s.plot()
+    S.import_folder('/Users/Mike/Dropbox/experimental_data/FeNiX/FeNi20J', automatic_results=False)

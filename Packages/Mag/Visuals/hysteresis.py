@@ -7,6 +7,7 @@ from RockPy3.core.visual import Visual
 import RockPy3.Packages.Mag.Features.hysteresis
 import RockPy3.Packages.Mag.Features.backfield
 from collections import OrderedDict
+import numpy as np
 
 class Hysteresis(Visual):
     def init_visual(self):
@@ -16,8 +17,8 @@ class Hysteresis(Visual):
 
     def __call__(self, *args, **kwargs):
         super(Hysteresis, self).__call__(*args, **kwargs)
-        xlims = self.ax.get_xlim()
-        self.ax.set_xlim((-max(xlims), max(xlims)))
+        xlims = max(abs(d) for l in self.ax.lines for d in l.get_data()[1])
+        self.ax.set_xlim((-xlims, xlims))
 
     @plot(mtypes='hysteresis', overwrite_mobj_plt_props={'marker': ''})
     def feature_hysteresis_data(self, mobj, plt_props=None):

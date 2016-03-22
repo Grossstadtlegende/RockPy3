@@ -55,8 +55,8 @@ if __name__ == '__main__':
 
     palint = s.add_measurement(mtype='paleointensity', mobj=(pARM_acq, NRM_AF))
     fig = RockPy3.Figure()
-    fig.add_visual(visual='acquisition', visual_input=pARM_acq)
-    fig.add_visual(visual='AF_DEMAGNETIZATION'.lower(), visual_input=NRM_AF, var_min=30, var_max=60)
-    v = fig.add_visual(visual='pseudothellier', visual_input=palint, var_min=30, var_max=60)
+    fig.add_visual(visual='acquisition', data=pARM_acq)
+    fig.add_visual(visual='AF_DEMAGNETIZATION'.lower(), data=NRM_AF, var_min=30, var_max=60)
+    v = fig.add_visual(visual='pseudothellier', data=palint, var_min=30, var_max=60)
     v.add_feature(feature='least_square_line')
     fig.show()

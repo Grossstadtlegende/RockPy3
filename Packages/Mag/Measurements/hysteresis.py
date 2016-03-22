@@ -56,9 +56,9 @@ class Hysteresis(measurement.Measurement):
        :cite:`Yu2005b`
     """
 
-    _visuals = (('hysteresis', {'features': ('hysteresis_data', 'zero_lines', 'rockmag_results')}),
-                ('hysteresis', {'features': ('reversible_data', 'irreversible_data', 'zero_lines'),
-                                'title':'rev. & irrev. hysteretic'})
+    _visuals = (('hysteresis', {'features': ('hysteresis_data', 'zero_lines', 'rockmag_results'), 'color':'k'}),
+                #('hysteresis', {'features': ('reversible_data', 'irreversible_data', 'zero_lines'),
+                #                'title':'rev. & irrev. hysteretic'})
                 )
 
     @classmethod
@@ -388,8 +388,10 @@ class Hysteresis(measurement.Measurement):
 
     @property
     def max_field(self):
-        fields = set(self.data['down_field']['field'].v) | set(self.data['up_field']['field'].v)
-        return max(fields)
+        if not hasattr(self, '_max_field'):
+            setattr(self, '_max_field',
+                    max(set(self.data['down_field']['field'].v) | set(self.data['up_field']['field'].v)))
+        return self._max_field
 
     # ## calculations
 
@@ -554,12 +556,9 @@ class Hysteresis(measurement.Measurement):
         saturation_percent /= 100
 
         # filter ommitted points
-        df = self.data['down_field'].filter_idx(
-                [i for i in range(len(self.data['down_field']['field'].v))
-                 if ommit_last_n - 1 < i < len(self.data['down_field']['field'].v) - ommit_last_n])
+        df = self.data['down_field'].filter_idx(range(ommit_last_n, len(self.data['down_field']['field'].v) - ommit_last_n))
         uf = self.data['up_field'].filter_idx(
-                [i for i in range(len(self.data['up_field']['field'].v))
-                 if ommit_last_n - 1 < i < len(self.data['up_field']['field'].v) - ommit_last_n])
+                (range(ommit_last_n, len(self.data['down_field']['field'].v) - ommit_last_n)))
 
         # filter for field limits
         df_plus = df.filter(df['field'].v >= saturation_percent * self.max_field)
@@ -666,13 +665,10 @@ class Hysteresis(measurement.Measurement):
         saturation_percent /= 100
 
         # filter ommitted points
-        df = self.data['down_field'].filter_idx(
-                [i for i in range(len(self.data['down_field']['field'].v))
-                 if ommit_last_n - 1 < i < len(self.data['down_field']['field'].v) - ommit_last_n])
+        # print(self.data['down_field'][range(ommit_last_n, len(self.data['down_field']['field'].v)-ommit_last_n)])
+        df = self.data['down_field'].filter_idx(range(ommit_last_n, len(self.data['down_field']['field'].v)-ommit_last_n))
 
-        uf = self.data['up_field'].filter_idx(
-                [i for i in range(len(self.data['up_field']['field'].v))
-                 if ommit_last_n - 1 < i < len(self.data['up_field']['field'].v) - ommit_last_n])
+        uf = self.data['up_field'].filter_idx(range(ommit_last_n, len(self.data['down_field']['field'].v)-ommit_last_n))
 
         # filter for field limits
         df_plus = df.filter(df['field'].v >= saturation_percent * self.max_field)
@@ -777,11 +773,11 @@ class Hysteresis(measurement.Measurement):
     @calculate
     def calculate_brh(self, **non_method_parameters):
         mrs = self.result_mrs()
-        uf = deepcopy(self.data['up_field'])
-        idx = np.argmin(np.fabs(self.data['down_field']['mag'].v - (uf['mag'].v + mrs[0])))
+        # uf = deepcopy(self.data['up_field']['mag'].v)
+        idx = np.argmin(np.fabs(self.data['down_field']['mag'].v - (self.data['up_field']['mag'].v + mrs[0])))
         # todo check
         # todo compute both points
-        self.results['brh'] = [[[uf['field'].v[idx], ]]]
+        self.results['brh'] = [[[self.data['up_field']['field'].v[idx], ]]]
 
     @result
     def result_brh(self, dependent='mrs', **non_method_parameters):
@@ -1302,9 +1298,10 @@ class Hysteresis(measurement.Measurement):
         f = interp1d(uf_flipped['field'].v, uf_flipped['mag'].v, bounds_error=False)
         m_inv = f(self.data['down_field']['field'].v)  # get m_inv values
 
-        data = [[v, m_inv[i]] for i, v in enumerate(df_branch['mag'].v) if not np.isnan(m_inv[i])]
-
-        slope, intercept, r_value, p_value, std_err = stats.linregress(data)
+        # data = [[v, m_inv[i]] for i, v in enumerate(df_branch['mag'].v) if not np.isnan(m_inv[i])]
+        mask = ~np.isnan(df_branch['mag'].v) & ~np.isnan(m_inv)
+        # slope, intercept, r_value, p_value, std_err = stats.linregress(data)
+        slope, intercept, r_value, p_value, std_err = stats.linregress(df_branch['mag'].v[mask], m_inv[mask])
         return slope, intercept, r_value, p_value, std_err
 
     def correct_holder(self):

@@ -35,11 +35,11 @@ if __name__ == '__main__':
     S.color_from_series(stype='field')
     S.label_add_series(stypes='field', add_stype=False)
     fig = RockPy3.Figure(linewidth=1.5)
-    v = fig.add_visual('thermocurve', features='thermocurve_data_colored', visual_input=S.get_measurement(stype='axis', sval=1))
+    v = fig.add_visual('thermocurve', features='thermocurve_data_colored', data=S.get_measurement(stype='axis', sval=1))
     v.title = 'a-axis'
-    v = fig.add_visual('thermocurve', features='thermocurve_data_colored', visual_input=S.get_measurement(stype='axis', sval=2))
+    v = fig.add_visual('thermocurve', features='thermocurve_data_colored', data=S.get_measurement(stype='axis', sval=2))
     v.title = 'b-axis'
-    v = fig.add_visual('thermocurve', features='thermocurve_data_colored', visual_input=S.get_measurement(stype='axis', sval=3))
+    v = fig.add_visual('thermocurve', features='thermocurve_data_colored', data=S.get_measurement(stype='axis', sval=3))
     v.title = 'c-axis'
     f = fig.show(xlims=[10, 100], equal_lims=True, return_figure=False, save_path='Desktop', file_name='LTPY_rmp_3axis')
 

@@ -56,8 +56,8 @@ class Figure(object):
         self.base_alpha = base_alpha
         self.ignore_samples = ignore_samples
 
-    def add_input(self, input, groupmean=True, samplemean=True, base=True, other=True):
-        self.data = RockPy3.core.utils.add_to_input(input=input, to_add_to=self.data,
+    def add_data(self, data, groupmean=True, samplemean=True, base=True, other=True):
+        self.data = RockPy3.core.utils.add_to_input(data=data, to_add_to=self.data,
                                                     groupmean=groupmean, samplemean=samplemean, base=base,
                                                     other=other)
 
@@ -85,7 +85,7 @@ class Figure(object):
         else:
             raise KeyError('%s can not be found' % item)
 
-    def add_visual(self, visual, name=None, visual_input=None,
+    def add_visual(self, visual, name=None, data=None,
                    plot_groupmean=None, plot_samplemean=None, plot_samplebase=None, plot_groupbase=None,
                    plot_other=None, base_alpha=None, result_from_means=None,
                    xlabel=None, ylabel=None,
@@ -115,7 +115,7 @@ class Figure(object):
                 n = self._n_visuals
                 # create instance of visual by dynamically calling from implemented_visuals dictionary
                 visual_obj = RockPy3.implemented_visuals[visual](
-                    input=input, plt_index=n, fig=self, name=name,
+                    data=data, plt_index=n, fig=self, name=name,
                     plot_groupmean=plot_groupmean, plot_groupbase=plot_groupbase,
                     plot_samplemean=plot_samplemean, plot_samplebase=plot_samplebase,
                     plot_other=plot_other, base_alpha=base_alpha, result_from_means=result_from_means,

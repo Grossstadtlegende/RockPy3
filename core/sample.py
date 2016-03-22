@@ -198,6 +198,7 @@ class Sample(object):
             mobj=None,  # for special import of a measurement instance
             series=None,
             create_parameter=False,
+            automatic_results=True,
             **options):
         '''
         All measurements have to be added here
@@ -280,7 +281,9 @@ class Sample(object):
             if parameter_info and create_parameter:
                 for mtype in ('mass', 'diameter', 'height'):
                     if mtype in parameter_info:
-                        param = RockPy3.implemented_measurements[mtype](sobj=self, **parameter_info)
+                        param = RockPy3.implemented_measurements[mtype](sobj=self,
+                                                                        automatic_results = automatic_results,
+                                                                        **parameter_info)
                         self._add_mobj(param)
 
             # if given add samplegroup to sample
@@ -294,7 +297,9 @@ class Sample(object):
             if not self.mtype_not_implemented_check(mtype=mtype):
                 return
 
-            mobj = RockPy3.implemented_measurements[mtype].from_file(sobj=self, **import_info)
+            mobj = RockPy3.implemented_measurements[mtype].from_file(sobj=self,
+                                                                     automatic_results = automatic_results,
+                                                                     **import_info)
 
         """
         ################################################################################################################
@@ -302,7 +307,8 @@ class Sample(object):
         """
 
         if any(i in options for i in ['mass', 'diameter', 'height', 'x_len', 'y_len', 'z_len']):
-            mobj = RockPy3.implemented_measurements[mtype](sobj=self, **options)
+            mobj = RockPy3.implemented_measurements[mtype](sobj=self, automatic_results=automatic_results,
+                                                           **import_info)
 
         """
         ################################################################################################################
@@ -311,7 +317,9 @@ class Sample(object):
         if all([mdata, mtype]):
             if not self.mtype_not_implemented_check(mtype=mtype):
                 return
-            mobj = RockPy3.implemented_measurements[mtype](sobj=self, mdata=mdata, series=series, idx=idx)
+            mobj = RockPy3.implemented_measurements[mtype](sobj=self, mdata=mdata, series=series, idx=idx,
+                                                           automatic_results=automatic_results,
+                                                           )
 
         """
         ################################################################################################################
@@ -321,7 +329,10 @@ class Sample(object):
             if isinstance(mobj, tuple) or ftype == 'from_measurement':
                 if not self.mtype_not_implemented_check(mtype=mtype):
                     return
-                mobj = RockPy3.implemented_measurements[mtype].from_measurement(sobj=self, mobj=mobj, **import_info)
+                mobj = RockPy3.implemented_measurements[mtype].from_measurement(sobj=self,
+                                                                                mobj=mobj,
+                                                                                automatic_results=automatic_results,
+                                                                                **import_info)
             if not mobj:
                 return
             self.log.info('ADDING\t << %s, %s >>' % (mobj.ftype, mobj.mtype))
@@ -916,14 +927,6 @@ class Sample(object):
         for m in self.measurements:
             m.calc_all(**parameter)
 
-    # @property
-    # def stypes(self):
-    #     return list(self.mdict['stype'].keys())
-    #
-    # @property
-    # def mtypes(self):
-    #     return list(self.mdict['mtype'].keys())
-
     ####################################################################################################################
     ''' PLOTTING PART'''
 
@@ -988,7 +991,9 @@ class Sample(object):
                                      series=series, stype=stype, sval=sval, sval_range=sval_range,
                                      mean=mean, invert=invert, id=id, result=result)
 
-        max_columns = max(len(m._visuals) for m in mlist)
+        # max_columns = max(len(m._visuals) for m in mlist)
+        max_columns = sum(len(m._visuals) for m in mlist) if len(mlist) < 4 else max(len(m._visuals) for m in mlist)
+
         fig = RockPy3.Figure(title=self.name, columns=max_columns)
 
         for m in mlist:

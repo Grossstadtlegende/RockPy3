@@ -652,7 +652,7 @@ class Measurement(object):
                  initial_state=None,
                  ismean=False, base_measurements=None,
                  color=None, marker=None, linestyle=None,
-                 calculate_results=True,
+                 automatic_results=True,
                  **options
                  ):
         """
@@ -752,7 +752,9 @@ class Measurement(object):
 
         self._plt_props = {'label': ''}
         self.set_standard_plt_props(color, marker, linestyle)
-        self.calc_all()
+
+        if automatic_results:
+            self.calc_all()
 
     def set_standard_plt_props(self, color=None, marker=None, linestyle=None):
         #### automatically set the plt_props for the measurement according to the
@@ -1218,6 +1220,7 @@ class Measurement(object):
             # get the calculation method
             calc_param = calc_param.get(result_method, {})
             getattr(self, 'result_' + result_method)(**calc_param)
+
         if kwargs:
             self.log.warning('--------------------------------------------------')
             self.log.warning('| %46s |' % 'THESE PARAMETERS COULD NOT BE USED')
@@ -1938,10 +1941,6 @@ class Measurement(object):
     def label_add_text(self, text):
         self.plt_props['label'] = ' '.join([self.plt_props['label'], text])
 
-    def show_plots(self):
-        for visual in self.plottable:
-            self.plottable[visual](self, show=True)
-
     def set_get_attr(self, attr, value=None):
         """
         checks if attribute exists, if not, creates attribute with value None
@@ -2245,10 +2244,6 @@ def get_result_recipe_name(func_name):
 
 
 if __name__ == '__main__':
-    RockPy3.logger.setLevel('DEBUG')
-    from pprint import pprint
-
-    S=RockPy3.Study
-    s = S.add_sample('test')
-    m = s.add_simulation('hysteresis', series=[('a', 2, 'b'), ('b', 10, 'b')])
-    s.plot()
+    S= RockPy3.RockPyStudy(folder='/Users/mike/Dropbox/experimental_data/006_HT-ARM-AF/HYS')
+    S.normalize(mtype='hysteresis')
+    S['IXD'].plot()

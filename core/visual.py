@@ -282,12 +282,12 @@ class Visual(object):
         self.ax.set_xlabel(self.xlabel)
         self.ax.set_ylabel(self.ylabel)
 
-    def add_input(self, input, groupmean=True, samplemean=True, base=True, other=True, base_alpha=0.5,
-                  ignore_samples=False):
+    def add_data(self, data, groupmean=True, samplemean=True, base=True, other=True, base_alpha=0.5,
+                 ignore_samples=False):
         """
         Parameters
         ----------
-            input: study, sample or list of studies, measurement or list of measurements
+            data: study, sample or list of studies, measurement or list of measurements
                 the measurements you want to have plotted
             ignore_mean: bool
                 default: False
@@ -295,7 +295,7 @@ class Visual(object):
                     The base measurements are not added to the data
         """
 
-        self._data = RockPy3.core.utils.add_to_input(input=input, to_add_to=self.data,
+        self._data = RockPy3.core.utils.add_to_input(data=data, to_add_to=self.data,
                                                      groupmean=groupmean, samplemean=samplemean, base=base,
                                                      other=other)
 
