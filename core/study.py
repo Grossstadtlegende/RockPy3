@@ -651,7 +651,7 @@ class Study(object):
                   mean=False, groupmean=False,
                   invert=False,
                   id=None,
-                  reference='data', ref_dtype='mag', norm_dtypes='all', vval=None,
+                  reference='mass', ref_dtype='mag', norm_dtypes='all', vval=None,
                   norm_method='max', norm_factor=None, result=None,
                   normalize_variable=False, dont_normalize=None,
                   norm_initial_state=True, **options):
@@ -692,6 +692,7 @@ class Study(object):
                                       mean=mean, groupmean=groupmean,
                                       invert=invert, id=id)
 
+        # define partial function to be called as map
         norm = partial(RockPy3.Measurement.normalize,
                        reference=reference, ref_dtype=ref_dtype,
                        norm_dtypes=norm_dtypes, vval=vval,
@@ -699,7 +700,7 @@ class Study(object):
                        normalize_variable=normalize_variable, dont_normalize=dont_normalize,
                        norm_initial_state=norm_initial_state)
 
-        map(norm, mlist)
+        return list(map(norm, mlist))
 
     ####################################################################################################################
     ''' label operations '''

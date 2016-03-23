@@ -558,7 +558,7 @@ if __name__ == '__main__':
                         hys___bc__saturation_percent=10)
 
 
-def kwargs_to_calculation_parameter(rpobj=None, mtype_list=None, result=None, **kwargs):
+def kwargs_to_calculation_parameter(rpobj=None, mtype_list=None, result=None, **kwargs): #todo this needs to be simplified and updated
     """
     looks though all provided kwargs and searches for possible calculation parameters. kwarg key naming see:
     separate_mtype_method_parameter
@@ -618,6 +618,9 @@ def kwargs_to_calculation_parameter(rpobj=None, mtype_list=None, result=None, **
 
     calc_params = {}
 
+    # print(RockPy3.Measurement.collected_mtype_calculation_parameter())
+    # print(RockPy3.implemented_measurements['hysteresis'].calc_signature())
+
     for kwarg in kwarg_list:
         remove = False
         mtypes, methods, parameter = RockPy3.core.utils.separate_mtype_method_parameter(kwarg=kwarg)
@@ -637,18 +640,18 @@ def kwargs_to_calculation_parameter(rpobj=None, mtype_list=None, result=None, **
             # we need to add methods with recipes:
             # bc___recipe = 'simple' would otherwise not be added because there is no method calculate_bc
             for method in methods:
-                for calc_method, method_params in RockPy3.Measurement.method_calculation_parameter_list().items():
+                for calc_method, method_params in RockPy3.Measurement.calc_signature().items():
                     if calc_method.split('_')[-1].isupper() and ''.join(calc_method.split('_')[:-1]) == method:
                         methods.append(calc_method)
 
-            mtypes = [mtype for mtype, mtype_methods in RockPy3.Measurement.mtype_calculation_parameter().items()
+            mtypes = [mtype for mtype, mtype_methods in RockPy3.Measurement.calc_signature().items()
                       if any(method in mtype_methods.keys() for method in methods)]
             # filter only given in mtype_list
             if mtype_list:
                 mtypes = [mtype for mtype in mtypes if mtype in mtype_list]
 
         if not methods:
-            methods = [method for method, params in RockPy3.Measurement.method_calculation_parameter_list().items()
+            methods = [method for method, params in RockPy3.Measurement.calc_signature().items()
                        if
                        parameter in params]
 

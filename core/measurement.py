@@ -73,6 +73,8 @@ class Measurement(object):
     _scp = None  # standard_calculation parameter
     _scalculate = None
 
+    _cmtype_params = None # measurement parameter collection
+
     @property
     def log(self):
         return RockPy3.core.utils.set_get_attr(self, '_log',
@@ -171,13 +173,17 @@ class Measurement(object):
             cls._scalculate = scp
         return cls._scalculate
 
-    # @classmethod
-    # def res2calc(cls):
-    #     results = cls.res_signature().keys()
-    #     methods = cls.calc_signature().keys()
-    #
-    #     for r in results:
-    #         print([i for i in methods if r == cls.remove_recipe_from_name(i)])
+    @classmethod
+    def collected_mtype_calculation_parameter(cls):
+        if cls._cmtype_params is not None:
+            return cls._cmtype_params
+        cmp = {}
+        for mtype, mcls in RockPy3.implemented_measurements.items():
+            cmp.setdefault(mtype, set())
+            for method in mcls.calc_signature():
+                cmp[mtype].update(set(mcls.calc_signature()[method].keys()))
+        cls._cmtype_params = cmp
+        return cmp
 
     @staticmethod
     def remove_recipe_from_name(method):
@@ -756,6 +762,7 @@ class Measurement(object):
         if automatic_results:
             self.calc_all()
 
+
     def set_standard_plt_props(self, color=None, marker=None, linestyle=None):
         #### automatically set the plt_props for the measurement according to the
         if color:
@@ -782,6 +789,15 @@ class Measurement(object):
         for prop in self.plt_props:
             if prop not in ('marker', 'color', 'linestyle', 'label'):
                 self.plt_props.remove(prop)
+
+    def reset_calculation_params(self):
+        """
+        resets the calculation parameters so you can force recalc
+        Returns
+        -------
+
+        """
+        self.calculation_parameter = {result: {} for result in self.result_methods()}
 
     def __lt__(self, other):
         """
@@ -1211,9 +1227,27 @@ class Measurement(object):
             out = getattr(self, 'result_' + result)(**parameter)
         return out
 
-    def calc_all(self, **parameter):
+    def calc_all(self, force_recalc=False, **parameter):
+        """
+        Calculates all result methods in the measurement
+
+        Parameters
+        ----------
+        force_recalc: bool
+            Forces the recalculation of all resuts: e.g. when you change the data values by normalizing
+
+        parameter
+
+        Returns
+        -------
+
+        """
+        if force_recalc:
+            self.reset_calculation_params()
+
         # get possible calculation parameters and put them in a dictionary
         calculation_parameter, kwargs = RockPy3.core.utils.kwargs_to_calculation_parameter(rpobj=self, **parameter)
+
         for result_method in sorted(self.result_methods()):
             # get calculation parameter
             calc_param = calculation_parameter.get(self.mtype, {})
@@ -1629,15 +1663,14 @@ class Measurement(object):
                 if true, initial state values are normalized in the same manner as normal data
                 default: True
         """
-
         # dont normalize parameter measurements
         if isinstance(self, RockPy3.Parameter):
             return
-
+        # print(self.mtype, locals())
         # separate the calc from non calc parameters
         calculation_parameter, options = RockPy3.core.utils.separate_calculation_parameter_from_kwargs(rpobj=self,
                                                                                                        **options)
-        NoNormVar = ['temperature', 'time', 'field']
+        NoNormVar = ('temperature', 'time', 'field')
 
         # getting normalization factor
         if not norm_factor:  # if norm_factor specified
@@ -1647,7 +1680,8 @@ class Measurement(object):
                                                 result=result,
                                                 **calculation_parameter)
 
-        norm_dtypes = RockPy3.core.utils.to_list(norm_dtypes)  # make sure its a list/tuple
+        norm_dtypes = RockPy3._to_tuple(norm_dtypes)  # make sure its a list/tuple
+        norm_dtypes = set(norm_dtypes+NoNormVar)
 
         for dtype, dtype_data in self.data.items():  # cycling through all dtypes in data
             if dtype_data:
@@ -1685,6 +1719,14 @@ class Measurement(object):
                 if 'mag' in self.initial_state.data[dtype].column_names:
                     self.initial_state.data[dtype]['mag'] = self.initial_state.data[dtype].magnitude(('x', 'y', 'z'))
 
+        if reference == 'mass':
+            self.calc_all(force_recalc=True, **self.calculation_parameter)
+
+        self.is_normalized = {'reference': reference, 'ref_dtype': ref_dtype,
+                              'norm_dtypes': norm_dtypes, 'vval': vval,
+                              'norm_method': norm_method, 'norm_factor': norm_factor, 'result': result,
+                              'normalize_variable': normalize_variable, 'dont_normalize': dont_normalize,
+                              'norm_initial_state': norm_initial_state}
         return self
 
     def _get_norm_factor(self, reference, rtype, vval, norm_method, result, **calculation_parameter):
@@ -2119,7 +2161,6 @@ def result(func, *args, **kwargs):
             return cpars, unused_pars
 
     # get the name of the result: e.g. hf_sus
-
     res = func.__name__.replace('result_','')
     self = args[0]
 
@@ -2137,47 +2178,49 @@ def result(func, *args, **kwargs):
     if not self.res_signature()[res]['indirect']:
         # print('%s is direct'%res)
         # if self.has_recipe(res):
-            # print('%   s has recipes'%res)
+        #     print('   %s has recipes'%res)
+        if self.res_signature()[res]['dependent']:
+            # print('    %s has root methods'% res)
+            for mmethod in self.res_signature()[res]['signature']['dependent']:
+                if check_parameters(mmethod):
+                    # print('      getting root cmethod', mmethod)
+                    method = getattr(self, 'result_'+ mmethod)
+                    # print('      calling', method)
+                    method(self, result_name=mmethod, **cpars)
         method = self.get_cmethod(res)
         # print('   getting cmethod', method)
         # print('   calling', method)
         method(self, result_name=res, **cpars)
-        if self.res_signature()[res]['dependent']:
-            # print('%   s has root methods'% res)
-            for mmethod in self.res_signature()[res]['signature']['dependent']:
-                if check_parameters(mmethod):
-                    method = self.get_cmethod(mmethod)
-                    method(self, result_name=mmethod, **cpars)
-                    # print('      getting root cmethod', method)
-                    # print('      calling', method)
+
         if self.res_signature()[res]['subjects']:
             # print('%   s is root for:'%res, self.res_signature()[res]['subjects'])
             for subj in self.res_signature()[res]['subjects']:
+                # calculate other dependencies for subject
                 if check_parameters(subj):
-                    method = self.get_cmethod(subj)
+                    # print('      getting subject cmethod %s', subj)
+                    method = getattr(self, 'result_'+ subj)
+                    # print('      calling %s', method)
                     method(self, result_name=subj, **cpars)
-                    # print('      getting subject cmethod', method)
-                    # print('      calling', subj)
     else:
         # print('%s is indirect'%res)
         # if self.has_recipe(res):
             # print('%   s has recipes'%res)
         if self.res_signature()[res]['dependent']:
-            # print('%   s has master methods'% res)
+            # print('%   s has master methods %s'% (res, self.res_signature()[res]['signature']['dependent']))
             for mmethod in self.res_signature()[res]['signature']['dependent']:
                 if check_parameters(mmethod):
-                    method = self.get_cmethod(mmethod)
-                    method(self, result_name=mmethod, **cpars)
-                    # print('      getting master cmethod', method)
+                    # print('      getting master cmethod', mmethod)
+                    method = getattr(self, 'result_'+ mmethod)
                     # print('      calling', method)
+                    method(self, result_name=mmethod, **cpars)
         if self.res_signature()[res]['subjects']:
             # print('%   s is root for:'%res, self.res_signature()[res]['subjects'])
             for subj in self.res_signature()[res]['subjects']:
                 if check_parameters(subj):
-                    method = self.get_cmethod(subj)
+                    # print('      getting subject cmethod', subj)
+                    method = getattr(self, 'result_'+ subj)
+                    # print('      calling', method)
                     method(self, result_name=subj, **cpars)
-                    # print('      getting subject cmethod', method)
-                    # print('      calling', subj)
 
     if 'check' in self.calculation_parameter[res]:
         self.calculation_parameter[res]['check'] = False
@@ -2244,6 +2287,13 @@ def get_result_recipe_name(func_name):
 
 
 if __name__ == '__main__':
+    RockPy3.logger.setLevel('ERROR')
+
     S= RockPy3.RockPyStudy(folder='/Users/mike/Dropbox/experimental_data/006_HT-ARM-AF/HYS')
-    S.normalize(mtype='hysteresis')
+    # S = RockPy3.Study
+    # s = S.add_sample('test')
+    # s.add_simulation('hys')
+    print('NORMALIZING')
+    print('###############################')
+    S.normalize()
     S['IXD'].plot()

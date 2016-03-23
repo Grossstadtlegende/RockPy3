@@ -263,11 +263,16 @@ class Hysteresis(measurement.Measurement):
             p.set(value=0)
         return params
 
-    @property
-    def data(self):
-        if not self._data:
-            self._data = deepcopy(self._raw_data)
-        return self._data
+    def normalize(self,
+                  reference='down_field', ref_dtype='mag', norm_dtypes='all', vval=None,
+                  norm_method='max', norm_factor=None, result=None,
+                  normalize_variable=False, dont_normalize=None,
+                  norm_initial_state=True, **options):
+        super(Hysteresis, self).normalize(reference=reference, ref_dtype=ref_dtype,
+                       norm_dtypes=norm_dtypes, vval=vval,
+                       norm_method=norm_method, norm_factor=norm_factor, result=result,
+                       normalize_variable=normalize_variable, dont_normalize=dont_normalize,
+                       norm_initial_state=norm_initial_state)
 
     ####################################################################################################################
     """ formatting functions """
@@ -874,9 +879,9 @@ class Hysteresis(measurement.Measurement):
            E^{Hys} = \int_{-B_{max}}^{B_{max}} (M^+(B) - M^-(B)) dB
 
         '''
-        mrs = self.result_mrs(**non_method_parameters)
-        ms = self.result_ms(**non_method_parameters)
-        self.results['mrs_ms'] = [[[mrs[0] / ms[0], mrs[1] + ms[1]]]]
+        mrs = self.results['mrs']
+        ms = self.results['ms']
+        self.results['mrs_ms'] = [[[mrs.v[0] / ms.v[0], mrs.e[0] + ms.e[0]]]]
 
     @result
     def result_mrs_ms(self, recalc=False, dependent=('ms', 'mrs'), **non_method_parameters):
