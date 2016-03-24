@@ -89,11 +89,8 @@ class Backfield(measurement.Measurement):
         :return:
         '''
         idx = 0
-        data = ftype_data.get_data()
+        data = ftype_data.data
         header = ftype_data.header
-
-        # from pprint import pprint
-        # pprint(ftype_data.info_header)
 
         # check if vsm file actually contains a dcd measurement
         if not ftype_data.info_header['include dcd?']:
@@ -101,6 +98,7 @@ class Backfield(measurement.Measurement):
         else:
             if ftype_data.info_header['include irm?']:
                 idx +=1
+
         mdata = {}
         mdata['data'] = RockPyData(column_names=header, data=data[idx])
         mdata['data'].define_alias('mag', 'remanence')

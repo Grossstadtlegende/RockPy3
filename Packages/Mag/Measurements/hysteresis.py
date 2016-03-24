@@ -281,8 +281,8 @@ class Hysteresis(measurement.Measurement):
     @staticmethod
     def format_vsm(ftype_data, sobj_name=None):
         header = ftype_data.header
-        segments = ftype_data.get_segments_from_data()
-        data = ftype_data.get_data()
+        segments = ftype_data.segment_data
+        data = ftype_data.data
 
         mdata = {}
 
@@ -917,6 +917,7 @@ class Hysteresis(measurement.Measurement):
                 m = self.data[branch].interpolate(new_variables=field / 1000.)  # correct mT -> T
                 aux.append(m['mag'].v[0])
                 dtypes.append(branch)
+
         self.log.info('M(%.1f mT) calculated as mean of %s branch(es)' % (b, dtypes))
         self.results['m_b'] = [[[np.nanmean(np.fabs(aux)), np.nanstd(np.fabs(aux))]]]
         # self.results.define_alias('m_b[%.1f]'%b, 'm_b') #todo rename the column

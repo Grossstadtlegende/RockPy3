@@ -34,13 +34,12 @@ class Series(object):
 
     def __eq__(self, other):
 
-        if not type(self) == type(other):
+        if isinstance(other, Series):
             return False
         if self.stype == other.stype:
             if np.isnan(self.value) and np.isnan(other.value):
                 return True
-            elif self.value == other.value:
-                if self.unit == other.unit:
+            elif self.value == other.value and self.unit == other.unit:
                     return True
             else:
                 return False

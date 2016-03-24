@@ -67,7 +67,7 @@ class Thermocurve(measurement.Measurement):
 
         header = ftype_data.header
         segments = ftype_data.get_segments_from_data()
-        data = ftype_data.get_data()
+        data = ftype_data.data
 
         mdata = OrderedDict()
 
@@ -80,6 +80,7 @@ class Thermocurve(measurement.Measurement):
         zero_crossings = [i + 1 for i in range(len(a[:, 1]) - 1)
                           if a[i, 1] > 0 > a[i + 1, 1] and a[i, 1] > 0 > a[i + 2, 1]
                           or a[i, 1] < 0 < a[i + 1, 1] and a[i, 1] < 0 < a[i + 2, 1]]
+
         zero_crossings = [0] + zero_crossings  # start with zero index
         zero_crossings += [len(aux)]  # append last index
 
