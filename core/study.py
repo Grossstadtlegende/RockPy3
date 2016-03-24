@@ -44,7 +44,7 @@ class Study(object):
         self.name = name
         self._samples = dict()  # {'sname':'sobj'}
 
-        self._series = {'none': []}  # {series_obj: measurement}
+        # self._series = {'none': []}  # {series_obj: measurement}
         self.imported_files = []
 
         if folder:
@@ -66,6 +66,29 @@ class Study(object):
                 return sorted(self.samplelist)[item]
             except IndexError:
                 raise IndexError('index too high {}>{}'.format(item, len(self._samples)))
+
+    def __add__(self, other):
+        """
+        Adds two studies and returns a new study with all samples and measurements from both studies.
+        The old studies will get a new samplegroup from the name of the study
+
+        Parameters
+        ----------
+        other: second samplegroup to be added
+
+        Returns
+        -------
+        RockPyStudy
+        """
+        study = RockPy3.RockPyStudy()
+
+        for s in self.samplelist:
+            study.add_sample(sobj=s, samplegroup=self.name)
+
+        for s in other.samplelist:
+            study.add_sample(sobj=s, samplegroup=other.name)
+
+        return study
 
     @property
     def samplelist(self):
@@ -643,6 +666,7 @@ class Study(object):
             s.calc_all(**parameter)
 
     def normalize(self,
+                  reference='mass',
                   gname=None,
                   sname=None,
                   mtype=None,
@@ -651,7 +675,7 @@ class Study(object):
                   mean=False, groupmean=False,
                   invert=False,
                   id=None,
-                  reference='mass', ref_dtype='mag', norm_dtypes='all', vval=None,
+                  ref_dtype='mag', norm_dtypes='all', vval=None,
                   norm_method='max', norm_factor=None, result=None,
                   normalize_variable=False, dont_normalize=None,
                   norm_initial_state=True, **options):
@@ -700,7 +724,7 @@ class Study(object):
                        normalize_variable=normalize_variable, dont_normalize=dont_normalize,
                        norm_initial_state=norm_initial_state)
 
-        return list(map(norm, mlist))
+        list(map(norm, mlist))
 
     ####################################################################################################################
     ''' label operations '''
@@ -745,7 +769,7 @@ class Study(object):
         for m in mlist:
             m.reset_plt_prop()
 
-    def set_color(self, color, stypes=None, add_stype=True, add_sval=True, add_unit=True,
+    def set_color(self, color,
                   gname=None,
                   sname=None,
                   mtype=None,
@@ -756,10 +780,11 @@ class Study(object):
                   id=None,
                   ):
 
-        for m in self.get_measurement(gname=gname, sname=sname, mtype=mtype, series=series,
+        mlist = self.get_measurement(gname=gname, sname=sname, mtype=mtype, series=series,
                                       stype=stype, sval=sval, sval_range=sval_range,
                                       mean=mean, groupmean=groupmean,
-                                      invert=invert, id=id):
+                                      invert=invert, id=id)
+        for m in mlist:
             m.set_plt_prop('color', color)
 
     def color_from_series(self, stype):
@@ -770,7 +795,8 @@ class Study(object):
         """
 
         # get svals
-        svals = self.stype_svals[stype]
+        svals = sorted(self.get_sval(stype))
+
         # create heatmap
         color_map = self.create_heat_color_map(svals)
 
@@ -795,6 +821,17 @@ class Study(object):
             out = out[::-1]
         return out
 
+    def combine_samples(self, new_sname, slist, remove_old=True):
+        new_sample = self.add_sample(new_sname)
+
+        for s in slist:
+            for m in s.get_measurement():
+                new_sample.add_measurement(mobj=m)
+
+        if remove_old:
+            for s in slist:
+                self.remove_sample(sname=s.name)
+        return new_sample
     ####################################################################################################################
     ''' Data Operations '''
 
@@ -896,5 +933,10 @@ class Study(object):
 
 
 if __name__ == '__main__':
-    S = RockPy3.RockPyStudy()
-    S.import_folder('/Users/Mike/Dropbox/experimental_data/FeNiX/FeNi20J', automatic_results=False)
+    S = RockPy3.RockPyStudy(folder='/Users/mike/Dropbox/experimental_data/FeNiX/FeNi20K')
+    S.combine_samples(new_sname='FeNi20K', slist=S.samplelist)
+    S.normalize('mass')
+    S.color_from_series(stype='mtime')
+    fig = RockPy3.Figure(data=S)
+    v = fig.add_visual('hysteresis')
+    fig.show()

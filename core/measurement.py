@@ -745,9 +745,9 @@ class Measurement(object):
         # add series if provided
         if series:
             self.add_series(series=series)
-        else:
-            if self.study:
-                self.study._series.setdefault('none', []).append(self)
+        # else:
+        #     if self.study:
+        #         self.study._series.setdefault('none', []).append(self)
 
         if not idx:
             idx = len(self.sobj.measurements)
@@ -813,7 +813,7 @@ class Measurement(object):
                   ('kilo', 'k')]
 
         if add_series:
-            series = [s.get_tuple() for s in self.series if not s.get_tuple() == ('none', np.nan, '')]
+            series = sorted([s.get_tuple() for s in self.series if not s.get_tuple() == ('none', np.nan, '')])
         else:
             series = None
         mass = self.get_mtype_prior_to(mtype='mass')
@@ -1495,7 +1495,6 @@ class Measurement(object):
             slist = filter(lambda x: (x.stype, x.sval) in series, slist)
         return list(slist)
 
-
     def get_sval(self, stype):
         """
         Searches for stype and returns sval
@@ -1536,6 +1535,7 @@ class Measurement(object):
         elif series_obj:
             series = series_obj
 
+        # if series provided of type ('stype', value, 'unit')
         elif series:
             series = RockPy3.core.utils.tuple2list_of_tuples(series)
             sobjs = []
@@ -1544,29 +1544,43 @@ class Measurement(object):
         else:
             sobjs = [RockPy3.Series(stype=stype, value=sval, unit=unit)]
 
-        for s in sobjs:
-            self.study._series.setdefault(s.data, []).append(self)  # todo see if better
-
-            with RockPy3.ignored(ValueError):
-                self.study._series['none'].remove(self)  # todo see if better
-
-        # remove default series from sobj.mdict if non series exists previously
-        # if not self._series:
-            # self.sobj._remove_series_from_mdict(mobj=self, series=self.series[0],
-            #                                     mdict_type='mdict')  # remove default series
+        # for s in sobjs:
+        #     self.study._series.setdefault(s.data, []).append(self)  # todo see if better
 
         for sinst in sobjs:
             if not any(sinst == s for s in self._series):
                 self._series.append(sinst)
                 self._add_sval_to_data(sinst)
                 self._add_sval_to_results(sinst)
-                # self.sobj.series.update([sinst.stype_sval_tuple])
-
-            # add the measurement to the mdict of the sobj
-            # if not self.is_mean:
-            #     self.sobj._add_series2_mdict(series=sinst, mobj=self)
 
         return series
+
+    def remove_series(self, stype):
+        """
+        Removes a series from the measurement
+
+        Parameters
+        ----------
+        stype: str
+            the series stype to be removes
+
+        """
+        # get the series
+        sobj = self.get_series(stype=stype)[0]
+        # remove series from _series list
+        self._series.remove(sobj)
+        self._remove_series_from_data(sobj)
+        self._remove_series_from_results(sobj)
+
+    def _remove_series_from_data(self, sobj):
+        #remove series from data
+        for dtype in self.data:
+            if self.data[dtype]:
+                self.data[dtype].delete_columns(keys='stype '+sobj.stype)
+
+    def _remove_series_from_results(self, sobj):
+        #remove series from results
+        self.results.delete_columns(keys='stype '+sobj.stype)
 
     def _add_sval_to_data(self, sobj):
         """
@@ -2006,9 +2020,10 @@ class Measurement(object):
         self.color = color_map[sval_index]
 
     def plot(self, **plt_props):
-        fig = RockPy3.Figure(title='{}'.format(self.sobj.name))
-        self.add_visuals(fig, **plt_props)
-        fig.show()
+        if self._visuals:
+            fig = RockPy3.Figure(title='{}'.format(self.sobj.name))
+            self.add_visuals(fig, **plt_props)
+            fig.show()
 
     def add_visuals(self, fig, **plt_props):
         for v in self._visuals:
@@ -2289,11 +2304,11 @@ def get_result_recipe_name(func_name):
 if __name__ == '__main__':
     RockPy3.logger.setLevel('ERROR')
 
-    S= RockPy3.RockPyStudy(folder='/Users/mike/Dropbox/experimental_data/006_HT-ARM-AF/HYS')
-    # S = RockPy3.Study
-    # s = S.add_sample('test')
-    # s.add_simulation('hys')
-    print('NORMALIZING')
-    print('###############################')
-    S.normalize()
-    S['IXD'].plot()
+    # S= RockPy3.RockPyStudy(folder='/Users/mike/Dropbox/experimental_data/006_HT-ARM-AF/HYS')
+    S = RockPy3.Study
+    s = S.add_sample('test')
+    m = s.add_simulation('hys', series=('mtime', 2, 'min'))
+    print(m.data['down_field'].column_names)
+
+    m.remove_series(stype='mtime')
+    print(m.data['down_field'].column_names)

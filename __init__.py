@@ -45,6 +45,7 @@ from RockPy3.core.data import condense
 from RockPy3.core.file_operations import save, load, abbrev_to_classname
 from RockPy3.core.file_operations import get_fname_from_info, get_info_from_fname, import_folder
 from RockPy3.core.file_operations import load_xml, save_xml
+from RockPy3.core.utils import setLatex
 
 ### utility imports
 from RockPy3.utils.general import check_coordinate_system
@@ -110,7 +111,7 @@ logger.info('RockPy3 rocks! Git repository version: %s' % __version__)
 logger.info('RockPy3 test_data_path: %s' % test_data_path)
 logger.info('RockPy3 installation_directory: %s' % installation_directory)
 
-tabulate_available = True # assumin it is installed- checked after import_check
+tabulate_available = True # assuming it is installed- checked after import_check
 coordinate_systems = ('core', 'geo', 'bed')
 
 coord = 'geo'

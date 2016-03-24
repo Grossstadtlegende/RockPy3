@@ -335,6 +335,7 @@ class Sample(object):
                                                                                 **import_info)
             if not mobj:
                 return
+
             self.log.info('ADDING\t << %s, %s >>' % (mobj.ftype, mobj.mtype))
             if series:
                 series = RockPy3.core.utils.tuple2list_of_tuples(series)
@@ -389,11 +390,7 @@ class Sample(object):
     def _add_mobj(self, mobj):
         if mobj not in self.measurements:
             self.measurements.append(mobj)
-            # # self.raw_measurements.append(deepcopy(mobj))
-            # if mobj.is_mean:
-            #     self._add_m2_mdict(mobj, mdict_type='mean_mdict')
-            # else:
-            #     self._add_m2_mdict(mobj)
+            mobj.sobj = self
 
     def add_simulation(self, mtype, idx=None, **sim_param):
         """
@@ -862,14 +859,21 @@ class Sample(object):
         """
 
         def check_existing(l2check, attribute):
+            """
+            Checks if a sample has the given parameter and reduces the list to be checked (l2check)
+            Parameters
+            ----------
+            l2check
+            attribute
+
+            Returns
+            -------
+
+            """
             l2check = RockPy3._to_tuple(l2check)
 
             not_available = set(l2check) - getattr(self, attribute)
             l2check = set(l2check) & getattr(self, attribute)
-
-            if not_available:
-                self.log.error('No measurements with %s: << %s >>' % (attribute, not_available))
-
             return l2check
 
         if mean:
@@ -892,7 +896,7 @@ class Sample(object):
             stype = check_existing(stype, 'stypes')
             mlist = filter(lambda x: x.has_stype(stype=stype, method='any'), mlist)
 
-        if sval_range:
+        if sval_range is not None:
             sval_range = self._convert_sval_range(sval_range=sval_range, mean=mean)
 
             if not sval:
@@ -999,12 +1003,14 @@ class Sample(object):
         for m in mlist:
             # get index of the first visual of this measurement
             vidx = deepcopy(fig._n_visuals)
-            m.add_visuals(fig, **plt_props)
+            # only add the measurement if it has _visuals defined (e.g. no mass measurements)
+            if m._visuals:
+                m.add_visuals(fig, **plt_props)
 
-            if m.has_series():
-                stuples = '\n'.join('{}'.format(s) for s in m.series)
-                with RockPy3.ignored(IndexError):
-                    fig.visuals[vidx][2].add_feature('generic_text', transform='ax', s=stuples, x=0.05, y=0.9)
+                if m.has_series():
+                    stuples = '\n'.join('{}'.format(s) for s in m.series)
+                    with RockPy3.ignored(IndexError):
+                        fig.visuals[vidx][2].add_feature('generic_text', transform='ax', s=stuples, x=0.05, y=0.9)
         fig.show()
 
     ####################################################################################################################
