@@ -955,4 +955,6 @@ class Study(object):
 
 if __name__ == '__main__':
     S = RockPy3.RockPyStudy(folder='/Users/Mike/Dropbox/experimental_data/FeNiX/FeNi20J')
-    print(S.info())
+    for m in S.get_measurement(mtype='iacq')[:1]:
+        m.plot()
+        # print(m.data)

@@ -118,7 +118,7 @@ class Visual(object):
         self._RockPy_figure = fig
 
         # set the title: default is the name of the visual
-        self.title = options.pop('title', self.get_subclass_name())
+        self.title = options.pop('title', self.get_subclass_name().replace('_',' '))
 
         self.linedict = {}
         self.calculation_parameter = calc_params

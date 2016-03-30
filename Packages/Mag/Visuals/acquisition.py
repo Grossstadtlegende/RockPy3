@@ -14,7 +14,7 @@ class Acquisition(Visual):
         self.xlabel = 'Step'
         self.ylabel = 'Moment'
 
-    @plot(mtypes=['acquisition', 'arm_acquisition', 'parm_acquisition'])
+    @plot(mtypes=['acquisition', 'arm_acquisition', 'parm_acquisition', 'irm_acquisition'])
     def feature_acquisition_data(self, mobj, plt_props=None):
         RockPy3.Packages.Mag.Features.acquisition.acquisition_data(self.ax, mobj, **plt_props)
 
@@ -32,4 +32,5 @@ class Irm_Acquisition(Acquisition):
     def init_visual(self):
         self.standard_features = ['zero_lines', 'grid', 'acquisition_data']
         self.xlabel = 'Field [T]'
-        self.ylabel = 'Moment [$Am^$]'
+        self.ylabel = 'Moment [$Am^2$]'
+

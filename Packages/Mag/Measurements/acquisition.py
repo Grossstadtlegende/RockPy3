@@ -135,6 +135,8 @@ class Parm_Acquisition(Acquisition):
         return out
 
 class Irm_Acquisition(Acquisition):
+    _visuals = (('irm_acquisition', {'color': 'k'}),
+                )
 
     @staticmethod
     def format_vsm(ftype_data, sobj_name=None):
@@ -152,7 +154,7 @@ class Irm_Acquisition(Acquisition):
 
         mdata = {}
         mdata['data'] = RockPyData(column_names=header, data=data[0])
-        mdata['data'].define_alias('mag', 'remanence')
+        mdata['data'].rename_column('remanence', 'mag')
 
         return mdata
 
