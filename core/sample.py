@@ -235,7 +235,7 @@ class Sample(object):
         '''
 
         if NEWstyle:
-            pass
+            pass #todo new Style import with minfo class
         # lookup abbreviations of mtypes and ftypes
         import_info = {}
         import_info.update(options)
@@ -328,12 +328,12 @@ class Sample(object):
                 return
 
             self.log.info('ADDING\t << %s, %s >>' % (mobj.ftype, mobj.mtype))
-            if series:
-                series = RockPy3.core.utils.tuple2list_of_tuples(series)
-                for s in series:
-                    mobj.add_series(series=s)
-                self.log.info(
-                        '\t\t WITH series << %s >>' % ('; '.join(', '.join(str(j) for j in i) for i in series)))
+            # if series:
+            #     series = RockPy3.core.utils.tuple2list_of_tuples(series)
+            #     for s in series:
+            #         mobj.add_series(series=s)
+            #     self.log.info(
+            #             '\t\t WITH series << %s >>' % ('; '.join(', '.join(str(j) for j in i) for i in series)))
             self._add_mobj(mobj)
             return mobj
         else:

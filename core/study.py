@@ -528,6 +528,15 @@ class Study(object):
         minfos = (minfo for minfo in minfos if minfo.is_readable())
 
         for mi in minfos:
+            if sname:
+                sname = RockPy3._to_tuple(sname)
+                if not any(s in mi.samples for s in sname):
+                    continue
+            if sgroup:
+                sgroup = RockPy3._to_tuple(sgroup)
+                if not any(sg in mi.sgroups for sg in sgroup):
+                    continue
+
             if mi.fpath in self.imported_files:
                 continue
             else:
@@ -535,6 +544,7 @@ class Study(object):
             for sinfo in mi.sample_infos:
                 s = self.add_sample(warnings=False, **sinfo)
                 for minfo in mi.measurement_infos:
+                    print(minfo)
                     if minfo['sample'] == sinfo['name']:
                         measurements.append(s.add_measurement(**minfo))
 
@@ -954,7 +964,10 @@ class Study(object):
 
 
 if __name__ == '__main__':
-    S = RockPy3.RockPyStudy(folder='/Users/Mike/Dropbox/experimental_data/FeNiX/FeNi20J')
-    for m in S.get_measurement(mtype='iacq')[:1]:
-        m.plot()
-        # print(m.data)
+    RockPy3.logger.setLevel('DEBUG')
+    S = RockPy3.RockPyStudy()
+    S.import_folder(folder='/Users/Mike/Dropbox/experimental_data/FeNiX/FeNi20J', sname='FeNi20-Jd240-G01')
+    print(S.info())
+    fig = RockPy3.Figure(data=S)
+    v = fig.add_visual('henkel')
+    fig.show()
