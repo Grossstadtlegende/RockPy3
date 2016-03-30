@@ -85,7 +85,7 @@ class Backfield(measurement.Measurement):
     @staticmethod
     def format_vsm(ftype_data, sobj_name=None):
         '''
-        formats the output from vftb to measurement.data
+        formats the output from vsm to measurement.data
         :return:
         '''
         idx = 0

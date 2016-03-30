@@ -23,7 +23,7 @@ nrm: nrm
 
 # acqisition measurements
 acquisition:: acq
-irm_acquisition: irmacq
+irm_acquisition: iacq
 arm_acquisition: armacq
 parm_acquisition: parmacq
 trm_acquisition: trmacq
@@ -55,7 +55,7 @@ diameter: diameter
 height: height
 volume: volume
 
-simulation: simulation
+simulation: sim, simulation
 
 none: none
 # ftypes

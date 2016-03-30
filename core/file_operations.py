@@ -14,6 +14,7 @@ import RockPy3.core
 ureg = UnitRegistry()
 default_folder = join(expanduser("~"), 'Desktop', 'RockPy')
 
+import os, re
 
 def mtype_ftype_abbreviations():
     RockPy3.logger.debug('READING FTYPE/MTYPE abbreviations')
@@ -22,7 +23,7 @@ def mtype_ftype_abbreviations():
     abbrev = [tuple(i.rstrip().split(':')) for i in abbrev if i.rstrip() if not i.startswith('#')]
     abbrev = dict((i[0], [j.lstrip() for j in i[1].split(',')]) for i in abbrev)
     inv_abbrev = {i: k for k in abbrev for i in abbrev[k]}
-    inv_abbrev.update({k:k for k in abbrev})
+    inv_abbrev.update({k: k for k in abbrev})
     return inv_abbrev, abbrev
 
 
@@ -46,6 +47,7 @@ def save(smthg, file_name, folder=None):
         f.write(dump)
         f.close()
 
+
 def abbrev_to_classname(abbrev):
     """
     takes an abbreviated classname e.g. 'hys' and returns the true class_name
@@ -59,10 +61,12 @@ def abbrev_to_classname(abbrev):
         raise KeyError('{} not in abbrev -> class_name dictionary'.format(abbrev))
     return class_name
 
+
 def name_to_abbrev(name):
     if not name:
         return ''
     return RockPy3.mtype_ftype_abbreviations[name.lower()][0]
+
 
 def convert_to_fname_abbrev(name_or_abbrev):
     if name_or_abbrev:
@@ -71,6 +75,7 @@ def convert_to_fname_abbrev(name_or_abbrev):
         return abbrev.upper()
     else:
         return ''
+
 
 def load(file_name, folder=None):
     # print 'loading: %s' %join(folder, file_name)
@@ -289,7 +294,7 @@ def get_info_from_fname(path=None):
 
     out = {
         'samplegroup': samplegroup,
-        'sample_name': sample_name, # not needed since 3.5 rewrite
+        'sample_name': sample_name,  # not needed since 3.5 rewrite
         'mtype': mtype,
         'ftype': ftype,
         'fpath': join(folder, fpath),
@@ -301,7 +306,7 @@ def get_info_from_fname(path=None):
         'diameter': None,
         'height': None,
         'length_unit': None,
-        }
+    }
 
     # if mtype == 'mass':
     if mass[0]:
@@ -383,7 +388,7 @@ def rename_file(old_file='',
         n = 1
         while os.path.exists(new_path):
             RockPy3.logger.warning('FILE {} already exists adding suffix'.format(path))
-            new_path= '_'.join([path, str(n)])
+            new_path = '_'.join([path, str(n)])
             n += 1
         return new_path
 
@@ -393,3 +398,223 @@ def rename_file(old_file='',
     RockPy3.logger.info('{}'.format(new_file))
     new_file = check_if_file_exists(new_file)
     os.rename(old_file, new_file)
+
+class minfo():
+
+    @staticmethod
+    def extract_tuple(s):
+        s = s.strip('(').strip(')').split(',')
+        return tuple(s)
+
+    def extract_series(self, s):
+        s = self.extract_tuple(s)
+        s = tuple([s[0], float(s[1]), s[2]])
+        return s
+
+    @staticmethod
+    def tuple2str(tup):
+        """
+        takes a tuple and converts it to text, if more than one element, brackets are put around it
+        """
+
+        if len(tup) == 1:
+            return str(tup[0])
+        else:
+            return str(tup).replace('\'', ' ').replace(' ','')
+
+    def measurement_block(self, block):
+        sgroups, samples, mtypes, ftype = block.split('_')
+        self.sgroups, self.samples, self.mtypes, self.ftype = self.extract_tuple(sgroups), self.extract_tuple(samples), self.extract_tuple(mtypes), ftype
+
+    def sample_block(self, block):
+        out = [[None, None], [None, None], [None, None]]
+        units = []
+
+        if '_' in block:
+            #old style infos
+            block = block.replace('[', '').replace(']', '')
+            block = block.replace(',', '.')
+            parts = block.split('_')
+        else:
+            parts = block.split(',')
+
+        for i in range(3):
+            try:
+                p = parts[i]
+                val = float(re.findall(r"[-+]?\d*\.\d+|\d+", p)[0])
+                unit = ''.join([i for i in p if not i.isdigit()]).strip('.')
+            except IndexError:
+                val = None
+                unit = None
+            out[i][0] = val
+            out[i][1] = unit
+        [self.mass, self.massunit], [self.height, self.heightunit], [self.diameter, self.diameterunit] = out
+
+    def series_block(self, block):
+        # old style series block: e.g. mtime(h)_0,0_h;mtime(m)_0,0_min;speed_1100,0_rpm
+        if ';' in block:
+            block = block.replace(',', '.')
+            block = block.replace('_', ',')
+            block = block.replace(';', '_')
+        series = block.split('_')
+        if not series:
+            self.series = None
+        self.series =[self.extract_series(s) for s in series]
+
+    def add_block(self, block):
+        self.additional = block
+
+    def comment_block(self,block):
+        self.comment = block
+
+    def get_measurement_block(self):
+        block = self.storage[0]
+        if not all(block[1:]):
+            raise ImportError('sname, mtype, ftype needed for minfo to be generated')
+        return '_'.join((self.tuple2str(b) for b in block))
+
+    def get_sample_block(self):
+        out = ''
+        block = self.storage[1]
+
+        if not any((all(b) for b in block)):
+            return None
+
+        for i, b in enumerate(block):
+            if not all(b):
+                if i == 0:
+                    aux = 'XXmg'
+                else:
+                    aux = 'XXmm'
+            else:
+                aux = ''.join(map(str, b))
+            if not out:
+                out = aux
+            else:
+                out = ','.join([out, aux])
+
+            # stop if no more entries follow
+            if not any(all(i) for i in block[i + 1:]):
+                break
+        return out
+
+    def get_series_block(self):
+        block = self.storage[2]
+        if block:
+            if type(block[0]) != tuple:
+                block = (block,)
+            out = [self.tuple2str(b) for b in block]
+            return '_'.join(out)
+
+    def get_add_block(self):
+        if self.additional:
+            out = tuple(''.join(map(str, a)) for a in self.additional)
+            return self.tuple2str(out)
+
+    def is_readable(self):
+        if not os.path.isfile(self.fpath):
+            return False
+        if all(self.storage[0][1:]):
+            return True
+        else:
+            return False
+
+    def __init__(self, fpath,
+                 sgroups=None, samples=None,
+                 mtypes=None, ftype=None,
+                 mass=None, height=None, diameter=None,
+                 massunit=None, lengthunit=None, heightunit=None, diameterunit=None,
+                 series=None, comment=None, folder=None, suffix=None, **kwargs):
+
+        blocks = (self.measurement_block, self.sample_block, self.series_block, self.add_block, self.comment_block)
+        additional = tuple()
+
+        self.__dict__.update({i:None for i in ('sgroups', 'samples', 'mtypes', 'ftype',
+                                               'mass', 'height', 'diameter',
+                                               'massunit', 'lengthunit', 'heightunit', 'diameterunit',
+                                               'series', 'additional', 'comment', 'folder', 'suffix')
+                              })
+        self.fpath = fpath
+
+        if fpath:
+            self.folder= os.path.dirname(fpath)
+            f, self.suffix = os.path.splitext(os.path.basename(fpath))
+            self.suffix=self.suffix.strip('.')
+            splits = f.split('#')
+
+            #check if RockPy compatible e.g. first part must be len(4)
+            if not len(splits[0]) == 4:
+                pass
+            for i, block in enumerate(blocks[:len(splits)]):
+                if splits[i]:
+                    try:
+                        block(splits[i])
+                    except (ValueError, ):
+                        pass
+
+        for i in ('sgroups', 'samples', 'mtypes', 'ftype',
+                  'mass', 'height', 'diameter',
+                  'massunit', 'lengthunit', 'heightunit', 'diameterunit',
+                  'series', 'additional', 'comment', 'folder'):
+            if locals()[i] is not None:
+                setattr(self, i, locals()[i])
+
+        if kwargs:
+            self.additional += tuple(kwargs.items())
+
+        if suffix:
+            self.suffix = suffix
+
+        if type(self.suffix)==int:
+            self.suffix = '%03i'%self.suffix
+
+        if not self.sgroups: self.sgroups = 'None'
+
+        self.storage = [[self.sgroups, self.samples, self.mtypes, self.ftype],
+               [[self.mass, self.massunit], [self.height, self.heightunit], [self.diameter, self.diameterunit],],
+               self.series,
+               (self.additional,),
+               self.comment]
+
+    @property
+    def fname(self):
+        """
+        name after new RockPy3 convention
+        """
+        out = [self.get_measurement_block(), self.get_sample_block(),
+               self.get_series_block(), self.get_add_block(), self.comment]
+
+        for i, block in enumerate(out[::-1]):
+            if not block:
+                out.pop()
+            else:
+                break
+
+        fname = '#'.join(map(str, out))+'.'+self.suffix
+        return fname
+
+    @property
+    def measurement_infos(self):
+        idict = {'fpath': self.fpath, 'ftype': self.ftype, 'idx': self.suffix, 'series': self.series}
+        samples = RockPy3._to_tuple(self.samples)
+        for i in samples:
+            for j in self.mtypes:
+                idict.update({'mtype':j, 'sample':i})
+                yield idict
+
+    @property
+    def sample_infos(self):
+        sdict = dict(mass=self.mass, diameter=self.diameter, height=self.height,
+                     massunit = self.massunit, heightunit=self.heightunit, diameterunit=self.diameterunit,
+                     samplegroup=self.sgroups)
+
+        samples = RockPy3._to_tuple(self.samples)
+        for i in samples:
+            sdict.update({'name': i})
+            yield sdict
+
+if __name__ == '__main__':
+    f = '/Users/Mike/Dropbox/experimental_data/FeNiX/FeNi20J/FeNi20J_FeNi20-Jz000-G02_HYS_VSM#53,3[mg]_[]_[]#gc_2,0_No;mtime(h)_0,0_h;mtime(m)_0,0_min;speed_1100,0_rpm##.004'
+    t = minfo(fpath=f)
+    print(t.fpath)
+    print(f)

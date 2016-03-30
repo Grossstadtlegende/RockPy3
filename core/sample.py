@@ -46,6 +46,7 @@ class Sample(object):
                  mass=None, mass_unit='kg', mass_ftype='generic',
                  height=None, diameter=None,
                  x_len=None, y_len=None, z_len=None,  # for cubic samples
+                 heightunit='mm', diameterunit='mm',
                  length_unit='mm', length_ftype='generic',
                  sample_shape='cylinder',
                  coord=None,
@@ -102,6 +103,7 @@ class Sample(object):
         Sample.snum += 1
 
         self._samplegroups = []
+
         if samplegroup:
             self.add_to_samplegroup(gname=samplegroup)
 
@@ -110,34 +112,25 @@ class Sample(object):
 
         RockPy3.logger.info('CREATING\t new sample << %s >>' % self.name)
 
-        # self.raw_measurements = []
         self.measurements = []
         self.results = None
 
         self.mean_measurements = []
         self._mean_results = None
 
-        # dictionaries
-        # self._mdict = self._create_mdict()
-        # self._mean_mdict = self._create_mdict()
-        # self._rdict = self._create_mdict()
-
-        # trying to get away from mdict:
-        # self.series = set()
-
-        # adding paraeter measurements
+        # adding parameter measurements
         if mass is not None:
             mass = RockPy3.implemented_measurements['mass'](sobj=self,
                                                             mass=mass, mass_unit=mass_unit, ftype=mass_ftype)
             self.add_measurement(mobj=mass)
         if diameter is not None:
             diameter = RockPy3.implemented_measurements['diameter'](sobj=self,
-                                                                    diameter=diameter, length_unit=length_unit,
+                                                                    diameter=diameter, length_unit=diameterunit,
                                                                     ftype=length_ftype)
             self.add_measurement(mobj=diameter)
         if height is not None:
             height = RockPy3.implemented_measurements['height'](sobj=self,
-                                                                height=height, length_unit=length_unit,
+                                                                height=height, length_unit=heightunit,
                                                                 ftype=length_ftype)
             self.add_measurement(mobj=height)
 
@@ -199,6 +192,8 @@ class Sample(object):
             series=None,
             create_parameter=False,
             automatic_results=True,
+            comment=None, additional=None,
+            NEWstyle=False,
             **options):
         '''
         All measurements have to be added here
@@ -238,6 +233,9 @@ class Sample(object):
         -------
             RockPy3.measurement object
         '''
+
+        if NEWstyle:
+            pass
         # lookup abbreviations of mtypes and ftypes
         import_info = {}
         import_info.update(options)
@@ -276,21 +274,14 @@ class Sample(object):
                               if key in ['mass', 'diameter', 'height',
                                          'x_len', 'y_len', 'z_len',
                                          'length_unit', 'mass_unit', 'volume']}
-
             # create the parameter measurement.
             if parameter_info and create_parameter:
                 for mtype in ('mass', 'diameter', 'height'):
                     if mtype in parameter_info:
-                        param = RockPy3.implemented_measurements[mtype](sobj=self,
+                        mobj = RockPy3.implemented_measurements[mtype](sobj=self,
                                                                         automatic_results = automatic_results,
                                                                         **parameter_info)
-                        self._add_mobj(param)
-
-            # if given add samplegroup to sample
-            # sg = import_info.pop('samplegroup', None)
-            #
-            # if sg:
-            #     self.add_to_samplegroup(gname=sg)
+                        self._add_mobj(mobj)
 
             mtype = import_info.pop('mtype', mtype)
 
@@ -413,7 +404,8 @@ class Sample(object):
         if mtype in RockPy3.implemented_measurements:
             mobj = RockPy3.implemented_measurements[mtype].from_simulation(sobj=self, idx=idx, **sim_param)
             if mobj:
-                self.add_measurement(mtype=mtype, ftype='simulation', mobj=mobj, series=sim_param.get('series', None))
+                self.add_measurement(mtype=mtype, ftype='simulation', mobj=mobj, series=sim_param.get('series', None),
+                                     warnings=False)
                 return mobj
             else:
                 self.log.info('CANT ADD simulated measurement << %s >>' % mtype)
@@ -1119,4 +1111,9 @@ class MeanSample(Sample):
 
 
 if __name__ == '__main__':
-    pass
+    RockPy3.logger.setLevel('DEBUG')
+    S = RockPy3.Study
+    s = S.add_sample('test')
+
+    s.add_measurement(fpath='/Users/mike/Dropbox/experimental_data/LF4C/Hys_Coe/P0-postTT/LF4_1b_hys_vftb#[][][]###postTT.140310',
+                      NEWstyle=True)

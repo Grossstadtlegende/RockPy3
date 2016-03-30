@@ -79,6 +79,7 @@ class Acquisition(RockPy3.core.measurement.Measurement):
                 self.data['data']['mag'] = self.data['data'].magnitude(key='m')
             else:
                 self.data['data']['mag'] = self.data['data']['mag'].v - self.data['af3']['mag'].v
+
     @correction
     def correct_arbitrary_data(self, xyz, mag=None, recalc_mag=True):
         self.data['data']['m'] = self.data['data']['m'].v - xyz
@@ -132,6 +133,29 @@ class Parm_Acquisition(Acquisition):
                 out[dtype] = out[dtype].append_columns(column_names='window_mean', data=mean)
                 out[dtype].define_alias('variable', 'window_mean')
         return out
+
+class Irm_Acquisition(Acquisition):
+
+    @staticmethod
+    def format_vsm(ftype_data, sobj_name=None):
+        """
+        formats the vsm output to be compatible with irm acquisition measurements
+        :return:
+        """
+
+        data = ftype_data.data
+        header = ftype_data.header
+
+        # check if vsm file actually contains a dcd measurement
+        if not ftype_data.info_header['include irm?']:
+            return
+
+        mdata = {}
+        mdata['data'] = RockPyData(column_names=header, data=data[0])
+        mdata['data'].define_alias('mag', 'remanence')
+
+        return mdata
+
 
 if __name__ == '__main__':
     step1C = '/Users/mike/Dropbox/experimental_data/RelPint/Step1C/1c.csv'

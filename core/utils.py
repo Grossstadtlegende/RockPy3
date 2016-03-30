@@ -49,7 +49,7 @@ def create_logger(name):
     # fh.setFormatter(formatter)
     # fh.setLevel(logging.INFO)
     ch = logging.StreamHandler()
-    ch.setLevel(logging.DEBUG)
+    ch.setLevel(logging.WARNING)
     ch.setFormatter(formatter)
     # log.addHandler(fh)
     log.addHandler(ch)
@@ -990,6 +990,22 @@ def _to_tuple(oneormoreitems):
     return tuple(oneormoreitems) if hasattr(oneormoreitems, '__iter__') and type(oneormoreitems) is not str else (
     oneormoreitems,)
 
+def extract_tuple(s: str) -> tuple:
+    """
+    Extracts a tuple from a string
+
+    e.g. str((HYS, COE)) -> ('hys','coe')
+    Parameters
+    ----------
+    s str
+        string to be tupeled
+
+    Returns
+    -------
+        tuple
+    """
+    s = s.strip('(').strip(')').split(',')
+    return tuple(s)
 
 def create_heat_color_map(value_list, reverse=False):
     """

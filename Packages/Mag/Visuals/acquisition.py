@@ -27,3 +27,9 @@ class Parm_Acquisition(Acquisition):
         self.standard_features = ['zero_lines', 'grid', 'acquisition_data']
         self.xlabel = 'Step [mT]'
         self.ylabel = 'Moment'
+
+class Irm_Acquisition(Acquisition):
+    def init_visual(self):
+        self.standard_features = ['zero_lines', 'grid', 'acquisition_data']
+        self.xlabel = 'Field [T]'
+        self.ylabel = 'Moment [$Am^$]'

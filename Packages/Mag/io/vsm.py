@@ -85,14 +85,14 @@ class Vsm(io.ftype):
         self.data_idx = self.get_data_idx(raw_data)
         segment_raw = self.get_segment_raw(raw_data[:self.data_idx])
 
-        self.data = self.get_data(raw_data[self.data_idx:-1])
-        self.segment_data = self.get_segments_from_data(segment_raw=segment_raw)
-
         if self.mtype == 'Direct moment vs. field; First-order reversal curves':
             # for FORC files there is no segment info
             self.header, self.units = self.get_header(raw_data[:self.data_idx])
         else:
             self.header, self.units = self.get_header(raw_data[len(segment_raw):self.data_idx])
+
+        self.data = self.get_data(raw_data[self.data_idx:-1])
+        self.segment_data = self.get_segments_from_data(segment_raw=segment_raw)
 
     def get_segments_from_data(self, segment_raw):
         # the length of each field is calculated using the last line of the segments.

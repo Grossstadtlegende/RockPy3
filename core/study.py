@@ -11,6 +11,7 @@ import RockPy3.core.sample
 import RockPy3.core.file_operations
 import numpy as np
 from functools import partial
+from copy import deepcopy
 
 log = logging.getLogger(__name__)
 
@@ -179,11 +180,13 @@ class Study(object):
                    coord=None,
                    samplegroup=None,
                    sobj=None,
+                   warnings=True,
                    **options
                    ):
 
         if name in self.samplenames:
-            RockPy3.logger.warning('CANT create << %s >> already in Study. Please use unique sample names. '
+            if warnings:
+                RockPy3.logger.warning('CANT create << %s >> already in Study. Please use unique sample names. '
                                    'Returning sample' % name)
             return self._samples[name]
 
@@ -518,40 +521,22 @@ class Study(object):
                  if not i.endswith("txt")
                  if not os.path.isdir(os.path.join(folder, i))
                  ]
-        start = time.clock()
-
-        samples = set(extract_from_fpath(f, 1) for f in files)
-        samples = (i for i in samples if i)
-
-        if sname:
-            sname = RockPy3._to_tuple(sname)
-            samples = (s for s in samples if s in sname)
 
         measurements = []
+        start = time.clock()
+        minfos = (RockPy3.core.file_operations.minfo(f) for f in files)
+        minfos = (minfo for minfo in minfos if minfo.is_readable())
 
-        # create all samples:
-        for s in sorted(samples):
-            sfiles = [f for f in files if s in f]
-
-            if not s in self.samplenames and sfiles:
-                info = RockPy3.get_info_from_fname(sfiles[0])
-                s = self.add_sample(name=s, mass=info['mass'],
-                                    mass_unit=info['mass_unit'])  # , samplegroup=sample_groups)
+        for mi in minfos:
+            if mi.fpath in self.imported_files:
+                continue
             else:
-                s = self._samples[s]
-
-            for f in sfiles:
-                fname = os.path.basename(f)
-                if fname not in self.imported_files:
-                    m = s.add_measurement(fpath=f, automatic_results=automatic_results)
-                    measurements.append(m)
-                    self.imported_files.append(fname)
-
-            sample_groups = set(extract_from_fpath(f, 0) for f in sfiles)
-            sample_groups = (sg for sg in sample_groups if sg)
-
-            for sg in sample_groups:
-                s.add_to_samplegroup(sg)
+                self.imported_files.append(mi.fpath)
+            for sinfo in mi.sample_infos:
+                s = self.add_sample(warnings=False, **sinfo)
+                for minfo in mi.measurement_infos:
+                    if minfo['sample'] == sinfo['name']:
+                        measurements.append(s.add_measurement(**minfo))
 
         end = time.clock()
         print('IMPORT generated {} measurements: finished in {:.02e}s'.format(len(measurements), end - start))
@@ -749,6 +734,42 @@ class Study(object):
                                       invert=invert, id=id):
             m.label_add_stype(stypes=stypes, add_stype=add_stype, add_sval=add_sval, add_unit=add_unit)
 
+    def plot(self, gname=None,
+             sname=None,
+             mtype=None,
+             series=None,
+             stype=None, sval=None, sval_range=None,
+             mean=False, groupmean=False,
+             invert=False,
+             id=None, **plt_props):
+
+        samples = self.get_sample(sname=sname,
+                                  mtype=mtype,
+                                  series=series,
+                                  stype=stype, sval=sval, sval_range=sval_range,
+                                  mean=mean,
+                                  invert=invert,
+                                  )
+
+        mlists = [[m for m in s.get_measurement(mtype=mtype, series=series,
+                                      stype=stype, sval=sval, sval_range=sval_range,
+                                      mean=mean, invert=invert, id=id) if m._visuals] for s in samples]
+        columns = max(len(ml) for ml in mlists)
+
+        if any(m for m in mlists):
+            fig = RockPy3.Figure(title=self.name, columns=columns)
+            for ml in mlists:
+                for m in ml:
+                    vidx = deepcopy(fig._n_visuals)
+                    m.add_visuals(fig, **plt_props)
+                    v = fig.visuals[vidx][2]
+                    v.title = ' '.join((m.sobj.name, v.title))
+                    if m.has_series():
+                        stuples = '\n'.join('{}'.format(s) for s in m.series)
+                        with RockPy3.ignored(IndexError):
+                            fig.visuals[vidx][2].add_feature('generic_text', transform='ax', s=stuples, x=0.05, y=0.9)
+            fig.show()
+
     def color_from_sample(self):
         for i, s in enumerate(self.samplelist):
             color = RockPy3.colorscheme[i]
@@ -832,6 +853,7 @@ class Study(object):
             for s in slist:
                 self.remove_sample(sname=s.name)
         return new_sample
+
     ####################################################################################################################
     ''' Data Operations '''
 
@@ -851,7 +873,6 @@ class Study(object):
     ################################
     # XML io
     ################################
-
 
     def save_xml(self, file_name=None, folder=None):
         """
@@ -933,10 +954,5 @@ class Study(object):
 
 
 if __name__ == '__main__':
-    S = RockPy3.RockPyStudy(folder='/Users/mike/Dropbox/experimental_data/FeNiX/FeNi20K')
-    S.combine_samples(new_sname='FeNi20K', slist=S.samplelist)
-    S.normalize('mass')
-    S.color_from_series(stype='mtime')
-    fig = RockPy3.Figure(data=S)
-    v = fig.add_visual('hysteresis')
-    fig.show()
+    S = RockPy3.RockPyStudy(folder='/Users/Mike/Dropbox/experimental_data/FeNiX/FeNi20J')
+    print(S.info())

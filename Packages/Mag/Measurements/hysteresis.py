@@ -775,26 +775,26 @@ class Hysteresis(measurement.Measurement):
     ####################################################################################################################
     ''' Brh'''
 
-    @calculate
-    def calculate_brh(self, **non_method_parameters):
-        mrs = self.result_mrs()
-        # uf = deepcopy(self.data['up_field']['mag'].v)
-        idx = np.argmin(np.fabs(self.data['down_field']['mag'].v - (self.data['up_field']['mag'].v + mrs[0])))
-        # todo check
-        # todo compute both points
-        self.results['brh'] = [[[self.data['up_field']['field'].v[idx], ]]]
-
-    @result
-    def result_brh(self, dependent='mrs', **non_method_parameters):
-        """
-        By definition, Brh is the median destructive field of the vertical hysteresis difference:
-
-        .. math::
-
-           M_{rh}(B) = \\frac{M^+(B)-M^-(B)}{2}
-
-        """
-        pass
+    # @calculate
+    # def calculate_brh(self, **non_method_parameters):
+    #     mrs = self.result_mrs()
+    #     # uf = deepcopy(self.data['up_field']['mag'].v)
+    #     idx = np.argmin(np.fabs(self.data['down_field']['mag'].v - (self.data['up_field']['mag'].v + mrs[0])))
+    #     # todo check
+    #     # todo compute both points
+    #     self.results['brh'] = [[[self.data['up_field']['field'].v[idx], ]]]
+    #
+    # @result
+    # def result_brh(self, dependent='mrs', **non_method_parameters):
+    #     """
+    #     By definition, Brh is the median destructive field of the vertical hysteresis difference:
+    #
+    #     .. math::
+    #
+    #        M_{rh}(B) = \\frac{M^+(B)-M^-(B)}{2}
+    #
+    #     """
+    #     pass
 
     ####################################################################################################################
     ''' E_delta_t'''
@@ -1725,11 +1725,11 @@ class Hysteresis(measurement.Measurement):
 
 
 if __name__ == '__main__':
-    # Study = RockPy3.RockPyStudy()
-    # s = Study.add_sample(name='S1')
-    # hys_vsm = s.add_measurement(fpath='/Users/mike/Google Drive/__code/RockPy3/testing/test_data/hys_vsm.001',
-    #                         mtype='hysteresis',
-    #                         ftype='vsm')
+    Study = RockPy3.RockPyStudy()
+    s = Study.add_sample(name='S1')
+    hys_vsm = s.add_measurement(fpath='/Users/mike/Google Drive/__code/RockPy3/testing/test_data/hys_vsm.001',
+                            mtype='hysteresis',
+                            ftype='vsm')
     # hys_vftb = s.add_measurement(fpath='/Users/Mike/Dropbox/experimental_data/001_PintP/LF4C/VFTB/P0-postTT/140310_1a.hys',
     #                         mtype='hysteresis',
     #                         ftype='vftb')
@@ -1755,9 +1755,9 @@ if __name__ == '__main__':
     # fig.show()
 
     # testing the correct center function
-    Study = RockPy3.RockPyStudy()
-    s = Study.add_sample('test')
-    m = s.add_simulation('hysteresis', ms=10, hf_sus=0, noise=0, m_offest=0.1, b_offset=0.001, field_noise=10e-6)
+    # Study = RockPy3.RockPyStudy()
+    # s = Study.add_sample('test')
+    # m = s.add_simulation('hysteresis', ms=10, hf_sus=0, noise=0, m_offest=0.1, b_offset=0.001, field_noise=10e-6)
     # fig = RockPy3.Figure(data=m)
     # v = fig.add_visual('hysteresis')
     # fig.show()

@@ -655,6 +655,7 @@ class Measurement(object):
                  ismean=False, base_measurements=None,
                  color=None, marker=None, linestyle=None,
                  automatic_results=True,
+                 filename=None,
                  **options
                  ):
         """
@@ -692,7 +693,7 @@ class Measurement(object):
         self.id = id(self)
 
         self.sobj = sobj
-
+        self.filename = filename
         # self.log = logging.getLogger('RockPy3.MEASURMENT.' + self.get_subclass_name())
 
         if mdata is None:
@@ -1902,7 +1903,6 @@ class Measurement(object):
 
     '''' PLOTTING '''''
 
-
     def get_series_labels(self, stypes=True, add_stype=True, add_sval=True, add_unit=True):
         """
         takes a list of stypes or stypes = True and returns a string with stype_sval_sunit; for each stype
@@ -2090,9 +2090,7 @@ class Measurement(object):
         if is_mean:
             # TODO: readin base measurements
             pass
-        print(mdata)
         mobj = cls(sobj=sobj, id=et_element.attrib['id'], mtype=et_element.attrib['mtype'], ismean=is_mean)
-        print(mobj)
         return mobj
 
 
