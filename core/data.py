@@ -1237,7 +1237,7 @@ class RockPyData(object):
             header = self.column_names
         tab = []
         for i in range(self.row_count):
-            linestrs = tuple(['%.3e +- %.3e' % (v, u) if not np.isnan(u) else str(v) for (v, u) in self.data[i]])
+            linestrs = tuple(['%.3e +- %.1e' % (v, u) if not np.isnan(u) else str(v) for (v, u) in self.data[i]])
             if self.showfmt['show_rowlabels']:
                 if self.row_names is None:
                     l = (i,) + linestrs  # if there are no row labels, put numeric index in first column
