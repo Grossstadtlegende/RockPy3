@@ -578,6 +578,7 @@ class Measurement(object):
                                                         recalc_mag=recalc_mag, substfunc=substfunc)
         # add series if needed
         series = None
+
         if not ignore_series:
             slist = (set(s.data for s in m.series) for m in mlist)
             series = set()
@@ -1539,11 +1540,11 @@ class Measurement(object):
         # if series provided of type ('stype', value, 'unit')
         elif series:
             series = RockPy3.core.utils.tuple2list_of_tuples(series)
-            sobjs = []
-            for stup in series:
-                sobjs.append(RockPy3.Series.from_tuple(series=stup))
+            sobjs = [RockPy3.Series.from_tuple(series=stup) for stup in series]
         else:
             sobjs = [RockPy3.Series(stype=stype, value=sval, unit=unit)]
+
+        sobjs = (sobj for sobj in sobjs if sobj not in self.series)
 
         for sinst in sobjs:
             if not any(sinst == s for s in self._series):
@@ -1618,8 +1619,13 @@ class Measurement(object):
         out = [np.argmin(abs(self.data[dtype][var].v - val))]
         return out
 
-    def equal_series(self, other):
-        if all(i in other.series for i in self.series):
+    def equal_series(self, other, ignore_stypes=()):
+        ignore_stypes = RockPy3._to_tuple(ignore_stypes)
+        ignore_stypes = [st.lower() for st in ignore_stypes]
+        selfseries = [s for s in self.series if not s.stype in ignore_stypes]
+        otherseries = [s for s in other.series if not s.stype in ignore_stypes]
+
+        if all(i in otherseries for i in selfseries):
             return True
         if not self.series and not other.series:
             return True
@@ -1674,7 +1680,6 @@ class Measurement(object):
         # separate the calc from non calc parameters
         calculation_parameter, options = RockPy3.core.utils.separate_calculation_parameter_from_kwargs(rpobj=self,
                                                                                                        **options)
-        NoNormVar = ('temperature', 'time', 'field')
 
         # getting normalization factor
         if not norm_factor:  # if norm_factor specified
@@ -1685,7 +1690,6 @@ class Measurement(object):
                                                 **calculation_parameter)
 
         norm_dtypes = RockPy3._to_tuple(norm_dtypes)  # make sure its a list/tuple
-        norm_dtypes = set(norm_dtypes+NoNormVar)
 
         for dtype, dtype_data in self.data.items():  # cycling through all dtypes in data
             if dtype_data:
@@ -1815,7 +1819,7 @@ class Measurement(object):
         measurements = self.sobj.get_measurement(mtype=mtype)
 
         if measurements:
-            out = [i for i in measurements if i.m_idx <= self.m_idx]
+            out = [i for i in measurements if i._idx <= self._idx]
             return out[-1]
 
         else:
@@ -2019,7 +2023,13 @@ class Measurement(object):
             visual = v[0]
             vprops = v[1]
             vprops.update(plt_props)
-            fig.add_visual(data=self, visual=visual, **vprops)
+            v = fig.add_visual(data=self, visual=visual, **vprops)
+            if self.is_mean:
+                feature = [f for f in vprops['features'] if 'data' in f]
+                for f in feature:
+                    fprops = {k:v for k,v in vprops.items() if not k == 'features'}
+                    fprops['alpha'] = 0.5
+                    v.add_feature(feature=f, data=self.base_measurements, **fprops)
         return fig
     ####################################################################################################################
     ''' REPORT '''
@@ -2227,6 +2237,7 @@ def result(func, *args, **kwargs):
 
     if 'check' in self.calculation_parameter[res]:
         self.calculation_parameter[res]['check'] = False
+
     return self.results[res].v[0], self.results[res].e[0]
 
 
