@@ -306,7 +306,7 @@ class Study(object):
                 # if a sample has more than one measurement you can chose to either mean them first
                 # or add them to the measurements
                 if mean_of_mean:
-                    mean_measurements = sample.add_mean_measurements(ignore_series=ignore_series,
+                    mean_measurements = sample.add_mean_measurements(ignore_stypes=ignore_series,
                                                                      interpolate=interpolate, substfunc=substfunc,
                                                                      reference=reference, ref_dtype=ref_dtype,
                                                                      norm_dtypes=norm_dtypes,
@@ -321,7 +321,7 @@ class Study(object):
         # mdict needs to be populated
         # mean_sample._populate_mdict()
         # the measurements are now used as if they belonged to that sample
-        mean_sample.add_mean_measurements(ignore_series=ignore_series,
+        mean_sample.add_mean_measurements(ignore_stypes=ignore_series,
                                           interpolate=interpolate, substfunc=substfunc,
                                           reference=reference, ref_dtype=ref_dtype, norm_dtypes=norm_dtypes,
                                           vval=vval,
@@ -477,6 +477,7 @@ class Study(object):
 
     def import_folder(self,
                       folder, sname=None, sgroup=None,
+                      mtype=None,
                       automatic_results = True,
                       ):  # todo specify samples, mtypes and series for selective import of folder
         """
@@ -491,34 +492,11 @@ class Study(object):
 
         """
 
-        def extract_from_fpath(fpath, index=1):
-            """
-            Extracts information from the fpath
-
-            Parameters
-            ----------
-            index: int
-                The index of the info to be extracted
-                    0: Sample Group
-                    1: Sample Name
-            fpath: str
-                Full path of the file
-
-            Returns
-            -------
-
-            """
-            try:
-                return os.path.basename(fpath).split('_')[index]
-            except IndexError:
-                return
-
         files = [os.path.join(folder, i) for i in os.listdir(folder)
                  if not i.startswith('#')
                  if not i.startswith(".")
                  if not i.endswith("pynb")
                  if not i.endswith("log")
-                 if not i.endswith("txt")
                  if not os.path.isdir(os.path.join(folder, i))
                  ]
 
@@ -526,6 +504,10 @@ class Study(object):
         start = time.clock()
         minfos = (RockPy3.core.file_operations.minfo(f) for f in files)
         minfos = (minfo for minfo in minfos if minfo.is_readable())
+
+        if mtype:
+            mtype = RockPy3._to_tuple(mtype)
+            mtype = [RockPy3.abbrev_to_classname(mt) for mt in mtype]
 
         for mi in minfos:
             if sname:
@@ -543,8 +525,11 @@ class Study(object):
                 self.imported_files.append(mi.fpath)
             for sinfo in mi.sample_infos:
                 s = self.add_sample(warnings=False, **sinfo)
+
                 for minfo in mi.measurement_infos:
-                    print(minfo)
+                    if mtype and minfo['mtype'].lower() not in mtype:
+                        continue
+
                     if minfo['sample'] == sinfo['name']:
                         measurements.append(s.add_measurement(**minfo))
 
@@ -721,6 +706,29 @@ class Study(object):
 
         list(map(norm, mlist))
 
+
+    ####################################################################################################################
+    ''' add functions '''
+
+    @property
+    def _raw_results(self):
+        out = {s.name: s._raw_results for s in self.samplelist}
+        from pprint import pprint
+        for s in sorted(out):
+            for mid in out[s]:
+                # set the sample name as new
+                out[s][mid]._row_names = ' '.join((s, out[s][mid]._row_names))
+        return out
+
+    @property
+    def results(self):
+        results = RockPy3.Data(column_names='mID')
+        for s in sorted(self._raw_results):
+            for mid in self._raw_results[s]:
+                aux = self._raw_results[s][mid].append_columns(column_names='mID', data=mid)
+                results = results.append_rows(aux)
+        return results
+
     ####################################################################################################################
     ''' label operations '''
 
@@ -852,8 +860,32 @@ class Study(object):
             out = out[::-1]
         return out
 
-    def combine_samples(self, new_sname, slist, remove_old=True):
+    def combine_samples(self, new_sname: str, slist: list, remove_old: bool = True):
+        """
+        Combines the samples specified in slist into one new sample. The samples in slist can be removed with
+        remove_old.
+
+        Parameters
+        ----------
+
+        new_sname: str
+            name of the new sample
+        slist: list, RockPy3.RockPyStudy
+            list of samples to be combined.
+            If slist is a RockPyStudy, all samples in the study will be combined into a new one.
+        remove_old: bool
+            if True old samples are removed from the study
+
+        Returns
+        -------
+            RockPy3.Sample
+        """
         new_sample = self.add_sample(new_sname)
+
+        if isinstance(slist, RockPy3.RockPyStudy):
+            slist = slist.samplelist
+            # remove new sample or it will be deleted
+            slist.remove(new_sample)
 
         for s in slist:
             for m in s.get_measurement():
@@ -964,10 +996,11 @@ class Study(object):
 
 
 if __name__ == '__main__':
-    RockPy3.logger.setLevel('DEBUG')
+    # RockPy3.logger.setLevel('DEBUG')
     S = RockPy3.RockPyStudy()
-    S.import_folder(folder='/Users/Mike/Dropbox/experimental_data/FeNiX/FeNi20J', sname='FeNi20-Jd240-G01')
-    print(S.info())
-    fig = RockPy3.Figure(data=S)
-    v = fig.add_visual('henkel')
-    fig.show()
+    S.import_folder(folder='/Users/Mike/Dropbox/experimental_data/FeNiX/FeNi20J', mtype='hys')
+    S.combine_samples('FeNi20J', S)
+    S[0].add_mean_measurements(reference='mass', ignore_stypes='gc')
+    S[0].mean_measurements[0].plot()
+    # m = S.get_measurement(mtype='hys')[0]
+    # print([m.equal_series(other, ignore_stypes=('gc')) for other in S.get_measurement(mtype='hys')])
