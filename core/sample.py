@@ -113,10 +113,7 @@ class Sample(object):
         RockPy3.logger.info('CREATING\t new sample << %s >>' % self.name)
 
         self.measurements = []
-        self.results = None
-
         self.mean_measurements = []
-        self._mean_results = None
 
         # adding parameter measurements
         if mass is not None:
@@ -417,7 +414,7 @@ class Sample(object):
                               interpolate=True, substfunc='mean', mean_of_mean=False,
                               reference=None, ref_dtype='mag', norm_dtypes='all', vval=None, norm_method='max',
                               normalize_variable=False, dont_normalize=None,
-                              ignore_series=False):
+                              ignore_stypes=False):
         """
         Creates mean measurements for all measurements and measurement types
         :param interpolate:
@@ -430,25 +427,26 @@ class Sample(object):
         :param norm_method:
         :param normalize_variable:
         :param dont_normalize:
-        :param ignore_series:
+        :param ignore_stypes:
         :return:
         """
+        ignore_stypes = RockPy3._to_tuple(ignore_stypes)
+
         mean_measurements = []
         # separate the different mtypes
         for mtype in self.mtypes:
             # all measurements with that mtype
-            measurements = self.get_measurement(mtype=mtype, mean=False)  # self.mdict['mtype'][mtype]
-
+            measurements = self.get_measurement(mtype=mtype, mean=False)
             # use first measurement as template to check for series
             while measurements:
                 m = measurements[0]
                 if isinstance(m, RockPy3.Packages.Generic.Measurements.parameters.Parameter):
                     break
-                if ignore_series:
+                if ignore_stypes == 'all':
                     mlist = measurements
                 else:
                     # get measurements with the same series
-                    mlist = [measurement for measurement in measurements if m.equal_series(measurement)]
+                    mlist = [measurement for measurement in measurements if m.equal_series(measurement, ignore_stypes=ignore_stypes)]
 
                 # remove the measurements from the measurements list so they don't get averaged twice
                 measurements = [m for m in measurements if m not in mlist]
@@ -463,7 +461,7 @@ class Sample(object):
                     continue
 
                 mean_measurements.append(self.create_mean_measurement(mlist=mlist,
-                                                                      ignore_series=ignore_series,
+                                                                      ignore_stypes=ignore_stypes,
                                                                       interpolate=interpolate, substfunc=substfunc,
                                                                       reference=reference, ref_dtype=ref_dtype,
                                                                       norm_dtypes=norm_dtypes,
@@ -477,7 +475,7 @@ class Sample(object):
                                 mtype=None, stype=None, sval=None, sval_range=None, series=None, invert=False,
                                 mlist=None,
                                 interpolate=False, substfunc='mean',
-                                ignore_series=False,
+                                ignore_stypes=False,
                                 recalc_mag=False,
                                 reference=None, ref_dtype='mag', norm_dtypes='all', vval=None, norm_method='max',
                                 normalize_variable=False, dont_normalize=None,
@@ -489,12 +487,16 @@ class Sample(object):
 
         Parameters
         ----------
+            mlist: list
+                list of measurements to be combined into a new measurement
+            ignore_stypes: list
+                stypes to be ignored.
             mtype: str
               mtype to be returned
-            serie: list(tuple)
-              list of tuples, to search for several sepcific series. e.g. [('mtime',4),('gc',2)] will only return
-              mesurements that fulfill both criteria.
-              Supercedes stype, sval and sval_range. Returnes only measurements that meet series exactly!
+            series: list(tuple)
+              list of tuples, to search for several specific series. e.g. [('mtime',4),('gc',2)] will only return
+              measurements that fulfill both criteria.
+              Supersedes stype, sval and sval_range. Returns only measurements that meet series exactly!
             stype: str
               series type
             sval_range: list, str
@@ -509,6 +511,7 @@ class Sample(object):
             sval_range:
               can be used to look up measurements within a certain range. if only one value is given,
                      it is assumed to be an upper limit and the range is set to [0, sval_range]
+
             interpolate: bool
             substfunc: str
             recalc_mag: bool
@@ -521,6 +524,13 @@ class Sample(object):
             dont_normalize: list
             create_only: bool
                 will not add measurement to the mean_measurements list or mean_mdict
+
+            color: str
+                color for new mean measurement
+            marker: str
+                marker for new mean measurement
+            linestyle: str
+                linestyle for new mean measurement
 
         Returns
         -------
@@ -559,24 +569,16 @@ class Sample(object):
 
         if len(mlist) == 1:
             self.log.warning('Only one measurement found returning measurement')
-            # # add to self.mean_measurements if specified
-            # if not create_only:
-            #     mlist[0].base_measurements = mlist
-            #     self.mean_measurements.append(mlist[0])
-            #     self._add_m2_mdict(mobj=mlist[0], mdict_type='mean_mdict')
-            # return mlist[0]
-
-        # mlist = [m for m in mlist]  # create deepcopies
 
         # create mean measurement from a list of measurements
         mean = RockPy3.implemented_measurements[mtype].from_measurements_create_mean(
                 sobj=self, mlist=mlist, interpolate=interpolate, recalc_mag=recalc_mag,
-                substfunc=substfunc, ignore_series=ignore_series, color=color, marker=marker, linestyle=linestyle)
+                substfunc=substfunc, ignore_series=ignore_stypes, color=color, marker=marker, linestyle=linestyle)
 
+        mean.calc_all(force_recalc=True)
         # add to self.mean_measurements if specified
         if not create_only:
             self.mean_measurements.append(mean)
-            # self._add_m2_mdict(mobj=mean, mdict_type='mean_mdict')
         return mean
 
     def mean_measurement_exists(self, mlist):
@@ -671,6 +673,50 @@ class Sample(object):
     ####################################################################################################################
     RESULTS
     """
+
+    @property
+    def _raw_results(self):
+        out = {m.id: m.results for m in self.measurements if not isinstance(m, RockPy3.Parameter)}
+        for mid in out:
+            m = self.get_measurement(id=mid)[0]
+            rowname = '{} ({})'.format(RockPy3.mtype_ftype_abbreviations[m.mtype][0], m.idx)
+            out[mid]._row_names = rowname
+        return out
+
+    @property
+    def results(self):
+        results = RockPy3.Data(column_names='mID')
+        for i, mid in enumerate(self._raw_results):
+            aux = self._raw_results[mid].append_columns(column_names='mID', data=mid)
+            results = results.append_rows(aux)
+        return results\
+
+    @property
+    def _raw_mean_results(self):
+        out = {m.id: m.results for m in self.mean_measurements if not isinstance(m, RockPy3.Parameter)}
+        for mid in out:
+            m = self.get_measurement(id=mid)[0]
+            rowname = '{} ({})'.format(RockPy3.mtype_ftype_abbreviations[m.mtype][0], m.idx)
+            out[mid]._row_names = rowname
+        return out
+
+    @property
+    def mean_results(self):
+        """
+        Gives a RockPyData object with all results from mean measurements
+
+        Note:
+            does not average the results
+
+        Returns
+        -------
+            RockPyData
+        """
+        results = RockPy3.Data(column_names='mID')
+        for i, mid in enumerate(self._raw_results):
+            aux = self._raw_mean_results[mid].append_columns(column_names='mID', data=mid)
+            results = results.append_rows(aux)
+        return results
 
     def get_result(self, result, mtype=None, mean=False, base=False, return_mean=True, **calculation_parameter):
         """
@@ -874,9 +920,9 @@ class Sample(object):
             mlist = self.measurements
 
         if id is not None:
-            id = check_existing(id, 'mid')
+            id = check_existing(id, 'mids')
             mlist = filter(lambda x: x.id in id, mlist)
-            return mlist
+            return list(mlist)
 
         if mtype:
             mtype = RockPy3._to_tuple(mtype)
@@ -903,7 +949,7 @@ class Sample(object):
 
         if series:
             series = RockPy3.core.utils.tuple2list_of_tuples(series)
-            mlist = filter(lambda x: x.has_series(series=series, method='all'), mlist)
+            mlist = (x for x in mlist if x.has_series(series=series, method='all'))
 
         if result:
             mlist = filter(lambda x: x.has_result(result=result), mlist)
