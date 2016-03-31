@@ -599,13 +599,14 @@ class minfo():
         samples = RockPy3._to_tuple(self.samples)
         for i in samples:
             for j in self.mtypes:
-                idict.update({'mtype':j, 'sample':i})
+                mtype = RockPy3.abbrev_to_classname(j)
+                idict.update({'mtype':mtype, 'sample':i})
                 yield idict
 
     @property
     def sample_infos(self):
         sdict = dict(mass=self.mass, diameter=self.diameter, height=self.height,
-                     massunit = self.massunit, heightunit=self.heightunit, diameterunit=self.diameterunit,
+                     mass_unit = self.massunit, height_unit=self.heightunit, diameter_unit=self.diameterunit,
                      samplegroup=self.sgroups)
 
         samples = RockPy3._to_tuple(self.samples)
