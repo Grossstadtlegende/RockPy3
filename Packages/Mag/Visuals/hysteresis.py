@@ -17,10 +17,10 @@ class Hysteresis(Visual):
 
     def __call__(self, *args, **kwargs):
         super(Hysteresis, self).__call__(*args, **kwargs)
-        xlims = max(abs(d) for l in self.ax.lines for d in l.get_data()[1])
-        ylims = max(abs(d) for l in self.ax.lines for d in l.get_data()[0])
+        xlims = max(abs(d) for l in self.ax.lines for d in l.get_data()[0])
+        ylims = max(abs(d) for l in self.ax.lines for d in l.get_data()[1])
         self.ax.set_xlim((-xlims, xlims))
-        self.ax.set_xlim((-ylims, ylims))
+        # self.ax.set_ylim((-ylims, ylims))
 
     @plot(mtypes='hysteresis', overwrite_mobj_plt_props={'marker': ''})
     def feature_hysteresis_data(self, mobj, plt_props=None):

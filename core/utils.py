@@ -49,7 +49,7 @@ def create_logger(name):
     # fh.setFormatter(formatter)
     # fh.setLevel(logging.INFO)
     ch = logging.StreamHandler()
-    ch.setLevel(logging.WARNING)
+    ch.setLevel(logging.INFO)
     ch.setFormatter(formatter)
     # log.addHandler(fh)
     log.addHandler(ch)
@@ -435,8 +435,12 @@ class plot(object):
                         continue
                     # get the list of measurements
                     mlist = plt_info[plt_type]
+
                     # initialize plot properties
                     kwargs['plt_props'] = {}
+
+                    if not mlist:
+                        continue
 
                     # for visuals with several possible mtypes
                     for mtype in self.mtypes:
@@ -444,7 +448,6 @@ class plot(object):
                             mtype = (mtype,)
                         if len(mtype) > 1:
                             mobj = MlistToTupleList(mlist, mtype)
-                            # print(mobj)
                         elif len(mtype) == 1:
                             mobj = [m for m in mlist if m.mtype == mtype[0]]
                         else:
@@ -502,16 +505,16 @@ def MlistToTupleList(mlist, mtypes, ignore_series=False):
     mdict = {mtype: [m for m in mlist if m.mtype == mtype] for mtype in mtypes}
 
     out = []
-    for m_mtype1 in mdict[mtypes[0]]:
-        aux = [m_mtype1]
+    for mtype1 in mdict[mtypes[0]]: # get a measurement with mtype1
+        aux = [mtype1]
         for mtype in mtypes[1:]:
             for m_mtype_n in mdict[mtype]:
-                if not m_mtype1.sample_obj == m_mtype_n.sample_obj:
-                    break
-                if compare_measurement_series(m_mtype1, m_mtype_n) or ignore_series:
+                if not mtype1.sobj == m_mtype_n.sobj:
+                    continue
+                if compare_measurement_series(mtype1, m_mtype_n) or ignore_series:
                     aux.append(m_mtype_n)
-                    if not ignore_series:
-                        break
+                if not ignore_series:
+                    continue
         out.append(tuple(aux))
     return out
 
@@ -786,43 +789,43 @@ def mlist_from_input(plt_input):
     return mlist, meanlist
 
 
-def MlistToTupleList(mlist, mtypes):
-    """
-    Transforma a list of measurements into a tuplelist, according to the mtypes specified.
-
-    Parameter
-    ---------
-        mlist: list
-            list of RockPy Measurements
-        mtypes: tuple
-            tuple for the mlist to be organized by.
-
-    Example
-    -------
-        mlist = [Hys(S1), Hys(S2), Coe(S1), Coe(S2)] assuming that S1 means all series are the same
-        mtypes = (hys, coe)
-
-        1. the list is sorted into a dictionary with mtype:list(m)
-        2. for each member of dict[hys] a corresponding coe measurement is searched which has
-            a) the same parent sample
-            b) exactly the same series
-    """
-    # create the dictionary
-    mdict = {mtype: [m for m in mlist if m.mtype == mtype] for mtype in mtypes}
-    out = []
-
-    for m_mtype1 in mdict[mtypes[0]]:
-        # print m_mtype1
-        aux = [m_mtype1]
-        for mtype in mtypes[1:]:
-            for m_mtype_n in mdict[mtype]:
-                if not m_mtype1.sobj == m_mtype_n.sobj:
-                    continue
-                if compare_measurement_series(m_mtype1, m_mtype_n):
-                    aux.append(m_mtype_n)
-                    continue
-        out.append(tuple(aux))
-    return out
+# def MlistToTupleList(mlist, mtypes):
+#     """
+#     Transforma a list of measurements into a tuplelist, according to the mtypes specified.
+#
+#     Parameter
+#     ---------
+#         mlist: list
+#             list of RockPy Measurements
+#         mtypes: tuple
+#             tuple for the mlist to be organized by.
+#
+#     Example
+#     -------
+#         mlist = [Hys(S1), Hys(S2), Coe(S1), Coe(S2)] assuming that S1 means all series are the same
+#         mtypes = (hys, coe)
+#
+#         1. the list is sorted into a dictionary with mtype:list(m)
+#         2. for each member of dict[hys] a corresponding coe measurement is searched which has
+#             a) the same parent sample
+#             b) exactly the same series
+#     """
+#     # create the dictionary
+#     mdict = {mtype: [m for m in mlist if m.mtype == mtype] for mtype in mtypes}
+#     out = []
+#
+#     for m_mtype1 in mdict[mtypes[0]]:
+#         # print m_mtype1
+#         aux = [m_mtype1]
+#         for mtype in mtypes[1:]:
+#             for m_mtype_n in mdict[mtype]:
+#                 if not m_mtype1.sobj == m_mtype_n.sobj:
+#                     continue
+#                 if compare_measurement_series(m_mtype1, m_mtype_n):
+#                     aux.append(m_mtype_n)
+#                     continue
+#         out.append(tuple(aux))
+#     return out
 
 
 def compare_measurement_series(m1, m2):
@@ -836,8 +839,8 @@ def compare_measurement_series(m1, m2):
     ----
         ignores multiples of the same series
     """
-    s1 = m1.series
-    s2 = m2.series
+    s1 = m1.stype_sval_tuples
+    s2 = m2.stype_sval_tuples
 
     if all(s in s2 for s in s1) and all(s in s1 for s in s2):
         return True

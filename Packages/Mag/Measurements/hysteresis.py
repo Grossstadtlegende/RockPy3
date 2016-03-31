@@ -273,7 +273,7 @@ class Hysteresis(measurement.Measurement):
                        norm_method=norm_method, norm_factor=norm_factor, result=result,
                        normalize_variable=normalize_variable, dont_normalize=dont_normalize,
                        norm_initial_state=norm_initial_state)
-
+        return self
     ####################################################################################################################
     """ formatting functions """
 
@@ -673,7 +673,7 @@ class Hysteresis(measurement.Measurement):
         # print(self.data['down_field'][range(ommit_last_n, len(self.data['down_field']['field'].v)-ommit_last_n)])
         df = self.data['down_field'].filter_idx(range(ommit_last_n, len(self.data['down_field']['field'].v)-ommit_last_n))
 
-        uf = self.data['up_field'].filter_idx(range(ommit_last_n, len(self.data['down_field']['field'].v)-ommit_last_n))
+        uf = self.data['up_field'].filter_idx(range(ommit_last_n, len(self.data['up_field']['field'].v)-ommit_last_n))
 
         # filter for field limits
         df_plus = df.filter(df['field'].v >= saturation_percent * self.max_field)

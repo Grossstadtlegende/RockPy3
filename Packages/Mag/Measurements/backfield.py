@@ -101,7 +101,7 @@ class Backfield(measurement.Measurement):
 
         mdata = {}
         mdata['data'] = RockPyData(column_names=header, data=data[idx])
-        mdata['data'].define_alias('mag', 'remanence')
+        mdata['data'].rename_column('remanence', 'mag')
 
         return mdata
 

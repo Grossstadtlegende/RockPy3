@@ -5,7 +5,6 @@ import RockPy3.Packages.Mag
 from RockPy3.core.utils import plot
 from RockPy3.core.visual import Visual
 import RockPy3.Packages.Mag.Features.acquisition
-import inspect
 
 class Acquisition(Visual):
 
