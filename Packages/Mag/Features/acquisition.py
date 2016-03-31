@@ -5,9 +5,6 @@ def acquisition_data(ax, mobj, dtype='mag', **plt_props):
     Plots the dtype data of an acquisition measurement
 
     """
-    print(mobj.data['data']['variable'].v,
-          mobj.data['data'][dtype].v
-          )
     ax.plot(mobj.data['data']['variable'].v,
             mobj.data['data'][dtype].v,
             **plt_props)
