@@ -32,15 +32,18 @@ class Series(object):
     def __str__(self):
         return '%s: %.2f[%s]' % (self.stype, self.value, self.unit)
 
-    def __eq__(self, other):
+    def __hash__(self):
+        return hash(self.stype) ^ hash(self.value)
 
-        if isinstance(other, Series):
+    def __eq__(self, other):
+        if not isinstance(other, Series):
             return False
         if self.stype == other.stype:
             if np.isnan(self.value) and np.isnan(other.value):
                 return True
+            # elif self.value == other.value and self.unit == other.unit:
             elif self.value == other.value and self.unit == other.unit:
-                    return True
+                return True
             else:
                 return False
         else:
