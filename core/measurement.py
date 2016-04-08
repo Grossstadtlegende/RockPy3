@@ -1024,7 +1024,7 @@ class Measurement(object):
 
         """
         first = deepcopy(self)
-
+        other = deepcopy(other)
         for dtype in first.data:
             if first.data[dtype] is None or other.data[dtype] is None:
                 continue
@@ -1042,6 +1042,7 @@ class Measurement(object):
 
     def __sub__(self, other):
         first = deepcopy(self)
+        other = deepcopy(other)
 
         for dtype in first.data:
             if first.data[dtype] is None or other.data[dtype] is None:
@@ -1194,6 +1195,7 @@ class Measurement(object):
         # create _correction if not exists
         self.set_get_attr('_correction', value=list())
         self._correction = []
+
 
     ####################################################################################################################
     ''' DATA RELATED '''
@@ -1351,11 +1353,29 @@ class Measurement(object):
         new_variables = np.arange(max(min_vars), min(max_vars), np.mean(np.fabs(steps)))
         return sorted(set(new_variables))
 
-    """
-    ####################################################################################################################
+    def combine_measurements(self, others, remove_others = False):
+        others = RockPy3._to_tuple(others)
+        self.log.info('COMBINING << {} >> with {}'.format(self, others))
 
-    SERIES related
-    """
+        for m in others:
+            m = deepcopy(m)
+
+            # check they are the same type of measurement
+            if not m.mtype == self.mtype:
+                continue
+
+            for dtype in m.data:
+                if not dtype in self.data:
+                    self.data[dtype] = m.data[dtype]
+                self.data[dtype] = self.data[dtype].append_rows(m.data[dtype])
+
+            #remove other measurements
+            if remove_others:
+                self.log.info('REMOVING << {} >> from sample << {} >>'.format(self, self.sobj))
+                self.sobj.remove_measurement(mobj=m)
+        return self
+    ####################################################################################################################
+    ''' SERIES related '''
 
     @property
     def series(self):
@@ -1632,10 +1652,8 @@ class Measurement(object):
         else:
             return False
 
-    """
-    Normalize functions
-    +++++++++++++++++++
-    """
+    ####################################################################################################################
+    ''' Normalize functions '''
 
     def normalize(self,
                   reference='data', ref_dtype='mag', norm_dtypes='all', vval=None,
@@ -1841,10 +1859,8 @@ class Measurement(object):
 
 
 
-    """
-    CORRECTIONS
-    +++++++++++
-    """
+    ####################################################################################################################
+    '''  CORRECTIONS '''
 
     def correct_dtype(self, dtype='th', var='variable', val='last', initial_state=True):
         """
@@ -1905,6 +1921,7 @@ class Measurement(object):
                                         create_only=True)
         self.calibration = cal
 
+    ####################################################################################################################
     '''' PLOTTING '''''
 
     def get_series_labels(self, stypes=True, add_stype=True, add_sval=True, add_unit=True):
@@ -2301,9 +2318,19 @@ def get_result_recipe_name(func_name):
 
 
 if __name__ == '__main__':
-    # RockPy3.logger.setLevel('ERROR')
+    from RockPy3.utils.general import QuickFig
+    S = RockPy3.RockPyStudy()
+    farm = '/Users/mike/GitHub/highT_af/High_T_ARM_ARMACQUISITION_50uT.jr6.txt'
+    ftrm = '/Users/mike/GitHub/highT_af/High_T_ARM_TRMACQUISITION_50uT.jr6.txt'
+    VaVbARM = '/Users/mike/GitHub/highT_af/High_T_ARM_ARMACQUISITION_50uT_VA_VB.jr6'
+    VaVbTRM = '/Users/mike/GitHub/highT_af/High_T_ARM_TRMACQUISITION_50uT_VA_VB.jr6'
 
-    # S= RockPy3.RockPyStudy(folder='/Users/mike/Dropbox/experimental_data/006_HT-ARM-AF/HYS')
-    # S.save_xml()
+    s = S.add_sample('Va')
+    s = S.add_sample('IXD')
+    S['IXD'].add_measurement(fpath=ftrm, mtype='trmacq', ftype='jr6')
+    m1 = S['Va'].add_measurement(fpath=ftrm, mtype='trmacq', ftype='jr6')
+    m1.data['data']['variable'] = m1.data['data']['variable'].v * 0.8
+    m2 = S['Va'].add_measurement(fpath=VaVbTRM, mtype='trmacq', ftype='jr6')
+    m1.combine_measurements(m2, remove_others=True)
 
-    S = RockPy3.load_xml('20160324_RockPy_20160324:1510_[2]SG_[6]S.rpy.xml')
+    # QuickFig(S, 'acquisition')
