@@ -689,7 +689,10 @@ class Sample(object):
     def results(self):
         results = RockPy3.Data(column_names='mID')
         for i, mid in enumerate(self._raw_results):
-            aux = self._raw_results[mid].append_columns(column_names='mID', data=mid)
+            if not 'mID' in self._raw_results[mid].column_names:
+                aux = self._raw_results[mid].append_columns(column_names='mID', data=mid)
+            else:
+                aux = self._raw_results[mid]
             results = results.append_rows(aux)
         return results\
 
