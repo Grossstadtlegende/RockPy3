@@ -20,6 +20,38 @@ def sd_md_mixline_1(ax, **plt_opt):
     zorder = plt_opt.pop('zorder', 0)
     fontsize = plt_opt.pop('fontsize', 10)
 
+    numbers = plt_opt.pop('numbers', [0, 20, 40, 60, 80, 90, 95, 98, 100])
+    text_out = []  # for multiple texts that get plotted
+
+    data = np.array(
+            [[1.259, 0.500], [1.296, 0.448], [1.337, 0.404], [1.404, 0.353], [1.5, 0.305], [1.569, 0.259],
+             [1.704, 0.211], [1.913, 0.163], [2.275, 0.114], [2.556, 0.090], [3.012, 0.067], [3.767, 0.043],
+             [4.601, 0.029], [5.366, 0.019]])
+
+    text = {'texts': ['0%', '20%', '40%', '60%', '80%', '90%', '95%', '98%', '100%'],
+            'positions': data[[0, 2, 4, 6, 8, 10, 11, 12, 13]]}
+
+    line_out = ax.plot(data[:, 0], data[:, 1], color=color, marker=marker, ls=ls, zorder=0, **plt_opt)
+
+    for i, t in enumerate(text['texts']):
+        if int(t.strip('%')) in numbers:
+            text_out.append(ax.text(text['positions'][i][0]-0.1, text['positions'][i][1], t,
+                                verticalalignment='top', horizontalalignment='right',
+                                color=color, fontsize=fontsize, zorder=0))
+
+    ax.text(0.1, 0.15, 'SD-MD',
+            verticalalignment='bottom', horizontalalignment='left',
+            color=color, fontsize=fontsize, zorder=0)
+    return line_out, text_out
+
+def sd_md_mixline_tm60(ax, **plt_opt):
+    color = plt_opt.pop('color', 'k')
+    marker = plt_opt.pop('marker', '.')
+    ls = plt_opt.pop('ls', '--')
+    zorder = plt_opt.pop('zorder', 0)
+    fontsize = plt_opt.pop('fontsize', 10)
+
+    numbers = plt_opt.pop('numbers', [0, 20, 40, 60, 80, 90, 95, 98, 100])
     text_out = []  # for multiple texts that get plotted
 
     data = np.array(
@@ -33,9 +65,10 @@ def sd_md_mixline_1(ax, **plt_opt):
     line_out = ax.plot(data[:, 0], data[:, 1], color=color, marker=marker, ls=ls, zorder=0, **plt_opt)
 
     for i, t in enumerate(text['texts']):
-        text_out.append(ax.text(text['positions'][i][0], text['positions'][i][1], t,
+        if int(t.strip('%')) in numbers:
+            text_out.append(ax.text(text['positions'][i][0], text['positions'][i][1], t,
                                 verticalalignment='top', horizontalalignment='right',
-                                color=color, fontsize=fontsize, zorder=0))
+                                color=color, fontsize=fontsize, zorder=zorder))
 
     return line_out, text_out
 
@@ -46,6 +79,9 @@ def sd_md_mixline_2(ax, **plt_opt):
     ls = plt_opt.pop('ls', '--')
     zorder = plt_opt.pop('zorder', 0)
     fontsize = plt_opt.pop('fontsize', 10)
+
+
+    numbers = plt_opt.pop('numbers', [0, 20, 40, 60, 80, 90, 95, 98, 100])
 
     text_out = []  # for multiple texts that get plotted
 
@@ -60,7 +96,8 @@ def sd_md_mixline_2(ax, **plt_opt):
     line_out = ax.plot(data[:, 0], data[:, 1], color=color, marker=marker, ls=ls, zorder=0, **plt_opt)
 
     for i, t in enumerate(text['texts']):
-        text_out.append(ax.text(text['positions'][i][0] + 0.1, text['positions'][i][1] + 0.005, t,
+        if int(t.strip('%')) in numbers:
+            text_out.append(ax.text(text['positions'][i][0] + 0.1, text['positions'][i][1] + 0.005, t,
                                 verticalalignment='bottom', horizontalalignment='left',
                                 color=color, fontsize=fontsize, zorder=0))
 
@@ -106,21 +143,30 @@ def sd_sp_10nm(ax, **plt_opt):
     text = {'texts': ['20%', '40%', '60%', '80%'],
             'positions': data[[1, 5, 9, 13]]}
 
-    line_out = ax.plot(data[:, 0], data[:, 1], color=color, marker=marker, ls=ls, zorder=0, **plt_opt)
+
+    numbers = plt_opt.pop('numbers', [0, 20, 40, 60, 80, 90, 95, 98, 100])
+
 
     xmin, xmax = ax.get_xlim()
     ymin, ymax = ax.get_ylim()
+
+    line_out = ax.plot(data[:, 0], data[:, 1], color=color, marker=marker, ls=ls, zorder=0, **plt_opt)
     for i, t in enumerate(text['texts']):
-        x, y = text['positions'][i][0] + 0.1, text['positions'][i][1] + 0.005
-        if xmin < x * 1.1 < xmax and ymin < y * 0.9 < ymax:
+        x, y = text['positions'][i][0] - 0.01, text['positions'][i][1] + 0.005
+        if xmin < x * 1.1 < xmax and ymin < y * 0.9 < ymax and int(t.strip('%')) in numbers:
             ax.text(x, y, t,
                     verticalalignment='bottom', horizontalalignment='left',
                     color=color, fontsize=fontsize, zorder=0)
 
-    ax.text(xmax * 0.85, text['positions'][-1][1] - 0.005, '10 nm',
-            verticalalignment='bottom', horizontalalignment='left',
-            color=color, fontsize=fontsize, zorder=0)
+    ax.text(5.2, 0.33, 'SD-SP\n10 nm',
+            verticalalignment='top', horizontalalignment='left',
+            color=color, fontsize=fontsize, zorder=0,
+            # bbox={'facecolor': 'white', 'alpha': 0.7, 'edgecolor': 'none', 'boxstyle': 'round'},
+            )
 
+
+    ax.set_xlim((xmin, xmax))
+    ax.set_ylim((ymin, ymax))
     return line_out, text_out
 
 
@@ -209,7 +255,7 @@ def day_grid(ax, **options):
     ax.hlines(0.5, 0, 15)
     ax.hlines(0.02, 0, 15)
     ax.vlines(5, 0, 1)
-    ax.vlines(1.5, 0, 1)
+    ax.vlines(2, 0, 1)
     ax.text(0.6, 0.55, 'SD', fontdict={'size': 18, 'color': '#909090'})
     ax.text(2.6, 0.3, 'PSD', fontdict={'size': 18, 'color': '#909090'})
     ax.text(5.9, 0.05, 'MD', fontdict={'size': 18, 'color': '#909090'})
