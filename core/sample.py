@@ -105,7 +105,9 @@ class Sample(object):
         self._samplegroups = []
 
         if samplegroup:
-            self.add_to_samplegroup(gname=samplegroup)
+            samplegroup = RockPy3._to_tuple(samplegroup)
+            for sg in samplegroup:
+                self.add_to_samplegroup(gname=sg)
 
         # coordinate system
         self._coord = coord

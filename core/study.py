@@ -510,19 +510,25 @@ class Study(object):
             mtype = [RockPy3.abbrev_to_classname(mt) for mt in mtype]
 
         for mi in minfos:
+
+            # dont import samples that are not in the measurement info
             if sname:
                 sname = RockPy3._to_tuple(sname)
                 if not any(s in mi.samples for s in sname):
                     continue
+
+            # dont import samples that are not included in a certain samplegroup in the measurement info
             if sgroup:
                 sgroup = RockPy3._to_tuple(sgroup)
                 if not any(sg in mi.sgroups for sg in sgroup):
                     continue
 
+            # check if the filename has not been imported, yet
             if mi.fpath in self.imported_files:
                 continue
             else:
                 self.imported_files.append(mi.fpath)
+
             for sinfo in mi.sample_infos:
                 s = self.add_sample(warnings=False, **sinfo)
 
@@ -998,9 +1004,6 @@ class Study(object):
 if __name__ == '__main__':
     # RockPy3.logger.setLevel('DEBUG')
     S = RockPy3.RockPyStudy()
-    S.import_folder(folder='/Users/Mike/Dropbox/experimental_data/FeNiX/FeNi20J', mtype='hys')
-    S.combine_samples('FeNi20J', S)
-    S[0].add_mean_measurements(reference='mass', ignore_stypes='gc')
-    S[0].mean_measurements[0].plot()
-    # m = S.get_measurement(mtype='hys')[0]
-    # print([m.equal_series(other, ignore_stypes=('gc')) for other in S.get_measurement(mtype='hys')])
+    S.import_folder(folder='/Users/Mike/Dropbox/experimental_data/FeNiX/FeNi20J', mtype='hys', sname='FeNi20-Jd120-G03')
+    m = S.get_measurement()[1]
+    print(m.get_RockPy_compatible_filename())

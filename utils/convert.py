@@ -1,5 +1,7 @@
 __author__ = 'mike'
 import logging
+import numpy as np
+import RockPy3
 log = logging.getLogger('RockPy3.utils.convert')
 
 def convert2(in_unit, out_unit, unit_type):
@@ -219,3 +221,37 @@ def lookup_unit_type(unit=None):
             return out[unit]
         except KeyError:
             raise KeyError('unit << %s >> not recognized' % unit)
+
+def get_significant_digits(values):
+    values = RockPy3._to_tuple(values)
+    values = map(str, values)
+    digits = [len(s.split('.')[-1]) for s in values]
+    return digits if len(digits)>1 else digits[0]
+
+def get_unit_prefix(value, SI_unit):
+    """
+    Takes a value and checks, which is the best prefix
+    """
+    prefix = {-15:('femto', 'f'), -12 :('pico', 'p'), -9 : ('nano', 'n'), -6: ('micro', 'mu'), -3:('milli', 'm'), 0:('', ''),
+              3:('kilo', 'k'), 6:('mega', 'M')}
+
+    exp = np.floor(np.log10(value))  # exponent of mass
+    digits = get_significant_digits(value)
+
+    if SI_unit == 'kg':
+        exp += 3
+        SI_unit = 'g'
+
+    for pexp, pref in sorted(prefix.items()):  # todo write function
+        if exp-2 <= pexp:
+            value /= np.power(10., pexp - 3)
+            unit = pref[1] + SI_unit
+            break
+        else:
+            unit = SI_unit
+
+    return np.round(value,digits), unit
+
+if __name__ == '__main__':
+    print(get_significant_digits(0.11))
+    print(get_unit_prefix(0.00000000000001, 'kg'))

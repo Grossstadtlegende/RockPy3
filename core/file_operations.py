@@ -416,7 +416,11 @@ class minfo():
         """
         takes a tuple and converts it to text, if more than one element, brackets are put around it
         """
-
+        if type(tup)==list:
+            if len(tup) == 1:
+                tup = tup[0]
+            else:
+                tup=tuple(tup)
         if len(tup) == 1:
             return str(tup[0])
         else:
@@ -617,7 +621,7 @@ class minfo():
             yield sdict
 
 if __name__ == '__main__':
-    f = 'LTPY_P15a_HYS_VSM#[]_[]_[]#TEMP_039_K##STD001#.038'
+    f = 'FeNi20J_FeNi20-Jd002-G01_HYS_VSM#46,4[mg]_[]_[]#gc_1,0_No;mtime(h)_0,03_h;mtime(m)_2,0_min;speed_1100,0_rpm##'
 
     t = minfo(fpath=f)
     x = t.fname

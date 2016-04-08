@@ -11,6 +11,7 @@ import os.path
 import decorator
 import RockPy3.core.io
 import RockPy3.core.utils
+import RockPy3.core.file_operations
 
 try:
     from pylatex import Document, Section, Subsection, Tabular, Description, Math, TikZ, Axis, Plot, Figure, Package
@@ -72,13 +73,14 @@ class Measurement(object):
     _scp = None  # standard_calculation parameter
     _scalculate = None
 
-    _cmtype_params = None # measurement parameter collection
+    _cmtype_params = None  # measurement parameter collection
 
     @property
     def log(self):
         return RockPy3.core.utils.set_get_attr(self, '_log',
                                                value=logging.getLogger(
                                                    'RockPy3.[%s].[%i]%s' % (self.sobj.name, self._idx, self.mtype)))
+
     @classmethod
     def result_recipe(cls):
         # calculate the standards for results, calculation and the appropriate methods
@@ -132,7 +134,7 @@ class Measurement(object):
                     scp[res]['recipe'] = True
 
                 if not res in [cls.remove_recipe_from_name(m) for m in cls.calculate_methods()]:
-                # if not any(res in method for method in cls.calculate_methods()):
+                    # if not any(res in method for method in cls.calculate_methods()):
                     scp[res]['indirect'] = True
 
                 if 'secondary' in result_sig:
@@ -507,8 +509,8 @@ class Measurement(object):
         else:
             cls.clslog.error('UNKNOWN ftype: << %s >>' % ftype)
             cls.clslog.error(
-                    'most likely cause is the \"format_%s\" method is missing in the measurement << %s >>' % (
-                        ftype, cls.__name__))
+                'most likely cause is the \"format_%s\" method is missing in the measurement << %s >>' % (
+                    ftype, cls.__name__))
             return
 
         return cls(sobj=sobj, fpath=fpath, ftype=ftype, mdata=mdata, series=series, idx=idx, **options)
@@ -640,7 +642,7 @@ class Measurement(object):
         # can only be created if the measurement is actually implemented
         if all([mtype, ftype, fpath]) or fpath or mobj:
             self.initial_state = self.sobj.add_measurement(
-                    mtype=mtype, ftype=ftype, fpath=fpath, series=series, mobj=mobj)
+                mtype=mtype, ftype=ftype, fpath=fpath, series=series, mobj=mobj)
             self.initial_state.is_initial_state = True
             return self.initial_state
         else:
@@ -724,9 +726,9 @@ class Measurement(object):
         self.holder = None
         self._correction = []
 
-
         # initialize the calculation_parameter dictionary  and results data
-        self.results = RockPy3.Data(column_names=self.result_methods().keys(), data=[np.nan]*len(self.result_methods()))
+        self.results = RockPy3.Data(column_names=self.result_methods().keys(),
+                                    data=[np.nan] * len(self.result_methods()))
         self.calculation_parameter = {res: {} for res in self.result_methods()}
 
         self.__initialize()
@@ -742,9 +744,8 @@ class Measurement(object):
         if series:
             self.add_series(series=series)
 
-
-        self._idx = len(self.sobj.measurements) # internal index
-        self.idx = idx if idx else self._idx # external index e.g. 3rd hys measurement of sample 1
+        self._idx = len(self.sobj.measurements)  # internal index
+        self.idx = idx if idx else self._idx  # external index e.g. 3rd hys measurement of sample 1
 
         self.__class__.n_created += 1
 
@@ -799,42 +800,36 @@ class Measurement(object):
         """
         return self.idx < other.idx
 
+    @property
+    def mass(self):
+        mass = self.get_mtype_prior_to(mtype='mass')
+        return mass.data['data']['mass'].v[0] if mass else None
+
     def get_RockPy_compatible_filename(self, add_series=True):
 
-        prefix = [('femto', 'f'), ('pico', 'p'), ('nano', 'n'), ('micro', 'mu'), ('milli', 'm'), ('', ''),
-                  ('kilo', 'k')]
+
 
         if add_series:
             series = sorted([s.get_tuple() for s in self.series if not s.get_tuple() == ('none', np.nan, '')])
         else:
             series = None
-        mass = self.get_mtype_prior_to(mtype='mass')
 
         # diameter = self.get_mtype_prior_to(mtype='diameter') #todo implement
         # height = self.get_mtype_prior_to(mtype='height')
 
         # convert the mass to the smallest possible exponent
-        if mass:
-            mass = mass.data['data']['mass'].v[0]
-            mass_exp = np.floor(np.log10(mass))  # exponent of mass
-            for i, pref in enumerate(range(-15, 3, 3)):  # todo write function
-                if mass_exp < pref:
-                    mass /= np.power(10., pref - 3)
-                    mass_unit = prefix[i][1] + 'g'
-                    break
-                else:
-                    mass_unit = 'kg'
-        else:
-            mass, mass_unit = None, None
+        mass, mass_unit = None, None
+        if self.mass:
+            mass, mass_unit = RockPy3.utils.convert.get_unit_prefix(self.mass, 'kg')
 
-        fname = RockPy3.get_fname_from_info(
-                samplegroup=self.sobj.samplegroups[0], sample_name=self.sobj.name,
-                mtype=self.mtype, ftype=self.ftype,
-                mass=mass, mass_unit=mass_unit,
-                series=series,
-                idx=self.idx)
-
-        return fname
+        minfo_obj = RockPy3.core.file_operations.minfo(fpath=self.fpath,
+                                                       sgroups=self.sobj.samplegroups,
+                                                       samples=self.sobj.name,
+                                                       mtypes=self.mtype, ftype=self.ftype,
+                                                       mass=mass, massunit=mass_unit,
+                                                       series=series,
+                                                       suffix=self.idx)
+        return minfo_obj.fname
 
     def _rename_to_RockPy_compatible_filename(self, add_series=True, create_backup=True):
         if self.fpath:
@@ -1133,7 +1128,6 @@ class Measurement(object):
         """
         return True if self.initial_state else False
 
-
     @property
     def stypes(self):
         """
@@ -1195,7 +1189,6 @@ class Measurement(object):
         # create _correction if not exists
         self.set_get_attr('_correction', value=list())
         self._correction = []
-
 
     ####################################################################################################################
     ''' DATA RELATED '''
@@ -1340,8 +1333,8 @@ class Measurement(object):
         variable. It then generates a list of new variables from the max(min) -> min(max) with the mean step size
         """
         cls.clslog.debug(
-                'Creating new variable list for %s measurement out of %i measurements' % (
-                    cls.__name__, len(rpdata_list)))
+            'Creating new variable list for %s measurement out of %i measurements' % (
+                cls.__name__, len(rpdata_list)))
         min_vars = []
         max_vars = []
         stepsizes = []
@@ -1353,7 +1346,7 @@ class Measurement(object):
         new_variables = np.arange(max(min_vars), min(max_vars), np.mean(np.fabs(steps)))
         return sorted(set(new_variables))
 
-    def combine_measurements(self, others, remove_others = False):
+    def combine_measurements(self, others, remove_others=False):
         others = RockPy3._to_tuple(others)
         self.log.info('COMBINING << {} >> with {}'.format(self, others))
 
@@ -1369,11 +1362,12 @@ class Measurement(object):
                     self.data[dtype] = m.data[dtype]
                 self.data[dtype] = self.data[dtype].append_rows(m.data[dtype])
 
-            #remove other measurements
+            # remove other measurements
             if remove_others:
                 self.log.info('REMOVING << {} >> from sample << {} >>'.format(self, self.sobj))
                 self.sobj.remove_measurement(mobj=m)
         return self
+
     ####################################################################################################################
     ''' SERIES related '''
 
@@ -1461,7 +1455,7 @@ class Measurement(object):
         else:
             return True if not self.svals else False
 
-    def has_series(self, series=None, method = 'all'):
+    def has_series(self, series=None, method='all'):
 
         if series is not None:
             series = RockPy3.core.utils.tuple2list_of_tuples(series)
@@ -1619,7 +1613,7 @@ class Measurement(object):
         if sobj.stype != 'none':
             if not 'stype ' + sobj.stype in self.results.column_names:
                 self.results = self.results.append_columns(
-                        column_names='stype ' + sobj.stype, data=sobj.value)  # , unit=sobj.unit) #todo add units
+                    column_names='stype ' + sobj.stype, data=sobj.value)  # , unit=sobj.unit) #todo add units
 
     def _remove_series_from_data(self, sobj):
         # remove series from data
@@ -1729,7 +1723,7 @@ class Measurement(object):
                         dtype_data[ntype] = dtype_data[ntype].v / norm_factor
                     except KeyError:
                         self.log.warning(
-                                'CAN\'T normalize << %s, %s >> to %s' % (self.sobj.name, self.mtype, ntype))
+                            'CAN\'T normalize << %s, %s >> to %s' % (self.sobj.name, self.mtype, ntype))
 
                 if 'mag' in dtype_data.column_names:
                     try:
@@ -1856,8 +1850,6 @@ class Measurement(object):
                                                     data=t.value,
                                                     # unit = t.unit      # todo add units
                                                     )
-
-
 
     ####################################################################################################################
     '''  CORRECTIONS '''
@@ -2015,7 +2007,8 @@ class Measurement(object):
         svals = sorted(self.sobj.svals)
 
         # create colormap from svals
-        color_map = RockPy3.core.utils.create_heat_color_map(value_list=svals, reverse=reverse) #todo implement matplotlib.cmap
+        color_map = RockPy3.core.utils.create_heat_color_map(value_list=svals,
+                                                             reverse=reverse)  # todo implement matplotlib.cmap
 
         # get the index and set the color
         sval = self.get_series(stype=stype)[0].value
@@ -2044,10 +2037,11 @@ class Measurement(object):
             if self.is_mean:
                 feature = [f for f in vprops['features'] if 'data' in f]
                 for f in feature:
-                    fprops = {k:v for k,v in vprops.items() if not k == 'features'}
+                    fprops = {k: v for k, v in vprops.items() if not k == 'features'}
                     fprops['alpha'] = 0.5
                     v.add_feature(feature=f, data=self.base_measurements, **fprops)
         return fig
+
     ####################################################################################################################
     ''' REPORT '''
 
@@ -2191,7 +2185,7 @@ def result(func, *args, **kwargs):
             return cpars, unused_pars
 
     # get the name of the result: e.g. hf_sus
-    res = func.__name__.replace('result_','')
+    res = func.__name__.replace('result_', '')
     self = args[0]
 
     # get the signature of the function: meaning all parameters that have been passed and the variable names
@@ -2214,7 +2208,7 @@ def result(func, *args, **kwargs):
             for mmethod in self.res_signature()[res]['signature']['dependent']:
                 if check_parameters(mmethod):
                     # print('      getting root cmethod', mmethod)
-                    method = getattr(self, 'result_'+ mmethod)
+                    method = getattr(self, 'result_' + mmethod)
                     # print('      calling', method)
                     method(self, result_name=mmethod, **cpars)
         method = self.get_cmethod(res)
@@ -2228,19 +2222,19 @@ def result(func, *args, **kwargs):
                 # calculate other dependencies for subject
                 if check_parameters(subj):
                     # print('      getting subject cmethod %s', subj)
-                    method = getattr(self, 'result_'+ subj)
+                    method = getattr(self, 'result_' + subj)
                     # print('      calling %s', method)
                     method(self, result_name=subj, **cpars)
     else:
         # print('%s is indirect'%res)
         # if self.has_recipe(res):
-            # print('%   s has recipes'%res)
+        # print('%   s has recipes'%res)
         if self.res_signature()[res]['dependent']:
             # print('%   s has master methods %s'% (res, self.res_signature()[res]['signature']['dependent']))
             for mmethod in self.res_signature()[res]['signature']['dependent']:
                 if check_parameters(mmethod):
                     # print('      getting master cmethod', mmethod)
-                    method = getattr(self, 'result_'+ mmethod)
+                    method = getattr(self, 'result_' + mmethod)
                     # print('      calling', method)
                     method(self, result_name=mmethod, **cpars)
         if self.res_signature()[res]['subjects']:
@@ -2248,7 +2242,7 @@ def result(func, *args, **kwargs):
             for subj in self.res_signature()[res]['subjects']:
                 if check_parameters(subj):
                     # print('      getting subject cmethod', subj)
-                    method = getattr(self, 'result_'+ subj)
+                    method = getattr(self, 'result_' + subj)
                     # print('      calling', method)
                     method(self, result_name=subj, **cpars)
 
@@ -2256,7 +2250,6 @@ def result(func, *args, **kwargs):
         self.calculation_parameter[res]['check'] = False
 
     return self.results[res].v[0], self.results[res].e[0]
-
 
 
 @decorator.decorator
@@ -2271,7 +2264,7 @@ def calculate(func, *args, **kwargs):
     # get self from args
     self = args[0]
     # transform the args into parameters
-    params = {p: args[i+1] for i,p in enumerate(self.calc_signature()[func.__name__.replace('calculate_', '')])}
+    params = {p: args[i + 1] for i, p in enumerate(self.calc_signature()[func.__name__.replace('calculate_', '')])}
 
     result_name = kwargs.pop('result_name')
     # print('calculating %s using %s '%(result_name, func.__name__))
@@ -2319,6 +2312,7 @@ def get_result_recipe_name(func_name):
 
 if __name__ == '__main__':
     from RockPy3.utils.general import QuickFig
+
     S = RockPy3.RockPyStudy()
     farm = '/Users/mike/GitHub/highT_af/High_T_ARM_ARMACQUISITION_50uT.jr6.txt'
     ftrm = '/Users/mike/GitHub/highT_af/High_T_ARM_TRMACQUISITION_50uT.jr6.txt'
