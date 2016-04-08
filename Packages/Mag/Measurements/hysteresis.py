@@ -1258,6 +1258,39 @@ class Hysteresis(measurement.Measurement):
             self.check_plot(uncorrected_data=uncorrected_data, corrected_data=self.data, points=[(H0, M0)], ax=ax[1])
             self._show_figure(f)
 
+    @correction
+    def correct_center_Dobeneck(self, check=False):
+
+        if check:
+            uncorrected_data = deepcopy(self.data)
+
+        df = self.data['down_field']
+        uf = self.data['up_field']
+
+        uf_rotate = self.rotate_branch(uf)
+        df_rotate = self.rotate_branch(df)
+
+        fields = sorted(
+            list(set(df['field'].v) | set(uf['field'].v) | set(df_rotate['field'].v) | set(uf_rotate['field'].v)))
+
+        # interpolate all branches and rotations
+        df = df.interpolate(fields)
+        uf = uf.interpolate(fields)
+        # df_rotate = df_rotate.interpolate(fields)
+        uf_rotate = uf_rotate.interpolate(fields)
+
+        down_field_corrected = deepcopy(df)
+        up_field_corrected = deepcopy(uf)
+        down_field_corrected['mag'] = (df['mag'].v + uf_rotate['mag'].v) / 2
+
+        up_field_corrected['field'] = - down_field_corrected['field'].v
+        up_field_corrected['mag'] = - down_field_corrected['mag'].v
+
+        self.data.update(dict(up_field=up_field_corrected, down_field=down_field_corrected))
+
+        if check:
+            self.check_plot(uncorrected_data=uncorrected_data)
+
     def get_h0_m0(self):
         """
         Calculates H offset and M offset of a measured hysteresis loop.
