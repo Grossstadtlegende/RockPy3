@@ -35,7 +35,8 @@ class ftype(object):
         with open(self.file_name, 'r', encoding="ascii", errors="surrogateescape") as f:
             out = f.readlines()
         out = map(str.rstrip, out)
-        return list(out)
+        out = [i for i in out if not i.startswith('#')]
+        return out
 
     @property
     def file_header(self):
