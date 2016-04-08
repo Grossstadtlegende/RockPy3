@@ -452,14 +452,15 @@ class minfo():
 
     def series_block(self, block):
         # old style series block: e.g. mtime(h)_0,0_h;mtime(m)_0,0_min;speed_1100,0_rpm
-        if ';' in block:
+        if not any(s in block for s in ('(',')')) or ';' in block:
             block = block.replace(',', '.')
             block = block.replace('_', ',')
             block = block.replace(';', '_')
+
         series = block.split('_')
         if not series:
             self.series = None
-        self.series =[self.extract_series(s) for s in series]
+        self.series =[self.extract_series(s) for s in series if s]
 
     def add_block(self, block):
         self.additional = block
@@ -591,6 +592,7 @@ class minfo():
                 break
 
         fname = '#'.join(map(str, out))+'.'+self.suffix
+        fname = fname.replace('None', '')
         return fname
 
     @property
@@ -615,7 +617,10 @@ class minfo():
             yield sdict
 
 if __name__ == '__main__':
-    f = '/Users/Mike/Dropbox/experimental_data/FeNiX/FeNi20J/FeNi20J_FeNi20-Jz000-G02_HYS_VSM#53,3[mg]_[]_[]#gc_2,0_No;mtime(h)_0,0_h;mtime(m)_0,0_min;speed_1100,0_rpm##.004'
+    f = 'LTPY_P15a_HYS_VSM#[]_[]_[]#TEMP_039_K##STD001#.038'
+
     t = minfo(fpath=f)
-    print(t.fpath)
-    print(f)
+    x = t.fname
+    t2 = minfo(x)
+
+    print(t.fname, t2.fname, t.fname==t2.fname)
