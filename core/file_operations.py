@@ -428,6 +428,12 @@ class minfo():
 
     def measurement_block(self, block):
         sgroups, samples, mtypes, ftype = block.split('_')
+
+        # names with , need to be replaced
+        if not '(' in samples:
+            samples = samples.replace(',', '.')
+            RockPy3.logger.warning('sample name %s contains \',\' will be replaced with \'.\'' %samples)
+
         self.sgroups, self.samples, self.mtypes, self.ftype = self.extract_tuple(sgroups), self.extract_tuple(samples), self.extract_tuple(mtypes), ftype
 
     def sample_block(self, block):
@@ -621,7 +627,7 @@ class minfo():
             yield sdict
 
 if __name__ == '__main__':
-    f = 'FeNi20J_FeNi20-Jd002-G01_HYS_VSM#46,4[mg]_[]_[]#gc_1,0_No;mtime(h)_0,03_h;mtime(m)_2,0_min;speed_1100,0_rpm##'
+    f = '/Users/Mike/Dropbox/experimental_data/0915-LT_pyrrhtotite/LTPY_527,1a_HYS_VSM#[]_[]_[]#TEMP_20_K##STD000#.000'
 
     t = minfo(fpath=f)
     x = t.fname

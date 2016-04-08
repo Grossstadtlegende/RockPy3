@@ -798,7 +798,7 @@ class Measurement(object):
         :param other:
         :return:
         """
-        return self.idx < other.idx
+        return int(self.idx) < int(other.idx)
 
     @property
     def mass(self):
