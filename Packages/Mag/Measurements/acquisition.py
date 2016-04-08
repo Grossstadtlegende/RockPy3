@@ -15,13 +15,14 @@ from lmfit import minimize, Parameters, report_fit
 import matplotlib.dates
 import datetime
 
-
 from RockPy3.core.measurement import calculate, result, correction
 from RockPy3.core.data import RockPyData
 from pprint import pprint
 
 
 class Acquisition(RockPy3.core.measurement.Measurement):
+    _visuals = (('acquisition', {}),)
+
     @staticmethod
     def format_sushibar(ftype_data, sobj_name=None):
         if not sobj_name in ftype_data.raw_data:
@@ -56,8 +57,8 @@ class Acquisition(RockPy3.core.measurement.Measurement):
         data = RockPy3.Data(data=ftype_data.data, column_names=ftype_data.header)
         data.define_alias('m', ('x', 'y', 'z'))
         data = data.append_columns(column_names='mag', data=data.magnitude(key='m'))
-        data = data.sort()
-        out = {'data':data}
+        data = data.sort(key='variable')
+        out = {'data': data}
         return out
 
     @correction
@@ -97,6 +98,15 @@ class Acquisition(RockPy3.core.measurement.Measurement):
         out.define_alias('variable', 'window_upper')
         return out
 
+class Arm_Acquisition(Acquisition):
+    _visuals = (('acquisition', {}),)
+
+class Trm_Acquisition(Acquisition):
+    _visuals = (('acquisition', {}),)
+
+class Htarm_Acquisition(Acquisition):
+    _visuals = (('acquisition', {}),)
+
 class Parm_Acquisition(Acquisition):
     def __init__(self, sobj,
                  fpath=None, ftype=None,
@@ -108,14 +118,14 @@ class Parm_Acquisition(Acquisition):
                  color=None, marker=None, linestyle=None,
                  ):
         super(Parm_Acquisition, self).__init__(sobj=sobj,
-                                              fpath=fpath, ftype=ftype,
-                                              mdata=mdata,
-                                              series=series,
-                                              idx=idx,
-                                              initial_state=initial_state,
-                                              ismean=ismean, base_measurements=base_measurements,
-                                              color=color, marker=marker, linestyle=linestyle,
-                                              )
+                                               fpath=fpath, ftype=ftype,
+                                               mdata=mdata,
+                                               series=series,
+                                               idx=idx,
+                                               initial_state=initial_state,
+                                               ismean=ismean, base_measurements=base_measurements,
+                                               color=color, marker=marker, linestyle=linestyle,
+                                               )
         # self.correct_af3()
 
     def format_sushibar(ftype_data, sobj_name=None):
@@ -133,6 +143,7 @@ class Parm_Acquisition(Acquisition):
                 out[dtype] = out[dtype].append_columns(column_names='window_mean', data=mean)
                 out[dtype].define_alias('variable', 'window_mean')
         return out
+
 
 class Irm_Acquisition(Acquisition):
     _visuals = (('irm_acquisition', {'color': 'k'}),
