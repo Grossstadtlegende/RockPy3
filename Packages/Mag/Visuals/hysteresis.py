@@ -71,8 +71,4 @@ class Hysteresis(Visual):
         RockPy3.Packages.Mag.Features.backfield.backfield_data(self.ax, mobj, **plt_props)
 
 
-class Fabian2003(Hysteresis, RockPy3.Packages.Mag.Visuals.backfield.Backfield):
-    def init_visual(self):
-        self.standard_features = ['hysteresis_data', 'backfield_data', 'zero_lines']
-        self.xlabel = 'Field'
-        self.ylabel = 'Moment'
+
