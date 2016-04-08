@@ -467,5 +467,12 @@ def io_standard_cparams(reset = True):
                             line = ', '.join([mtype, result, cls.result_recipe()[result].lower(), param, str(value), '\n'])
                             f.write(line)
 
+def QuickFig(data, visuals):
+    f = RockPy3.Figure(data=data)
+    visuals = RockPy3._to_tuple(visuals)
+    for v in visuals:
+        f.add_visual(visual=v)
+    f.show()
+
 if __name__ == '__main__':
     io_standard_cparams()
