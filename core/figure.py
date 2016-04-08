@@ -204,7 +204,8 @@ class Figure(object):
              file_name=None, format='pdf',
              legend=True, sort_labels = True,
              return_figure=False,
-             **options):
+             append_to_filename = '',
+             ):
         """
         calls all visuals
 
@@ -259,6 +260,7 @@ class Figure(object):
                 if ylims == 'equal' or equal_lims:
                     visual.ax.set_ylim(ylims)
 
+        # prepare legends for individual visuals
         for name, type, visual in self._visuals:
             if not legend:
                 break
@@ -295,7 +297,7 @@ class Figure(object):
             if save_path.lower() == 'desktop':
                 if not file_name:
                     file_name = os.path.basename(inspect.stack()[-1][1])
-                    file_name += options.get('append', '')
+                    file_name += append_to_filename
                 save_path = os.path.join(os.path.expanduser('~'), 'Desktop', file_name)
             else:
                 save_path = os.path.join(save_path, file_name)
