@@ -25,6 +25,8 @@ for i in subpackages:
         __import__(i[0])
 
 from RockPy3.core.visual import Visual
+from RockPy3.utils.general import QuickFig
+
 from RockPy3.core.visual import set_colorscheme
 
 # core imports

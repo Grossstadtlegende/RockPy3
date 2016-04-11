@@ -126,13 +126,12 @@ class Backfield(measurement.Measurement):
     @calculate
     def calculate_mrs(self, **non_method_parameters):
         """
-        Magnetic Moment at last measurement point
+        Magnetic Moment at first measurement point
         :param parameter:
         :return:
         """
-        start = self.data['data']['mag'].v[0]
-        end = self.data['data']['mag'].v[-1]
-        self.results['mrs'] = [[[np.nanmean([abs(start), abs(end)]), np.nanstd([abs(start), abs(end)])]]]
+        start = self.data['data']['mag'].v[0] #todo option to mean with last point, or fit
+        self.results['mrs'] = [[[abs(start)]]]
 
     @result
     def result_mrs(self, **non_method_parameters):
