@@ -105,9 +105,7 @@ class Sample(object):
         self._samplegroups = []
 
         if samplegroup:
-            samplegroup = RockPy3._to_tuple(samplegroup)
-            for sg in samplegroup:
-                self.add_to_samplegroup(gname=sg)
+            self.add_to_samplegroup(gname=samplegroup)
 
         # coordinate system
         self._coord = coord
@@ -772,15 +770,24 @@ class Sample(object):
             res = [(np.mean(res, axis=0)[0], np.std(res, axis=0)[0])]
         return res
 
-    def set_recipe(self, result, recipe):
+    def set_recipe(self, result, recipe, **kwargs):
         """
         Sets a recipe for all measurements that have the result
+
+        Parameters
+        ----------
+        result  str
+            the result to be set
+        recipe str
+            the method to be set to. e.g. nonlinear
+        kwargs:
+            additional parameters forewarded to get_measurement, see ge_measurement for possible parameters
         """
-        mlist = self.get_measurement_new(result=result, all_types=True)
+        mlist = self.get_measurement(result=result, **kwargs)
         self.log.debug('setting recipe = {} for result = {} for {} measuremnts'.format(recipe, result, len(mlist)))
 
         for m in mlist:
-            m.set_recipe(res=result, recipe=recipe)
+            m.set_recipe(result=result, recipe=recipe)
 
     """
     ####################################################################################################################
