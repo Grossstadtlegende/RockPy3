@@ -311,6 +311,7 @@ class Figure(object):
             with RockPy3.ignored(AttributeError):
                 self._fig.canvas.manager.window.raise_()
             plt.show()
+            plt.close('all')
 
 
 def generate_plots(n=3, xsize=5., ysize=5., columns=None, tight_layout=True):
