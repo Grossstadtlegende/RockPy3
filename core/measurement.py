@@ -1942,8 +1942,9 @@ class Measurement(object):
             stypes = list(self.stypes)
 
         stypes = RockPy3._to_tuple(stypes)
-
         for stype in stypes:
+            if stype == 'none':
+                continue
             stype = self.get_series(stype=stype)[0]
             if stype:
                 aux = []
@@ -2313,20 +2314,8 @@ def get_result_recipe_name(func_name):
 
 
 if __name__ == '__main__':
-    from RockPy3.utils.general import QuickFig
-
     S = RockPy3.RockPyStudy()
-    farm = '/Users/mike/GitHub/highT_af/High_T_ARM_ARMACQUISITION_50uT.jr6.txt'
-    ftrm = '/Users/mike/GitHub/highT_af/High_T_ARM_TRMACQUISITION_50uT.jr6.txt'
-    VaVbARM = '/Users/mike/GitHub/highT_af/High_T_ARM_ARMACQUISITION_50uT_VA_VB.jr6'
-    VaVbTRM = '/Users/mike/GitHub/highT_af/High_T_ARM_TRMACQUISITION_50uT_VA_VB.jr6'
-
-    s = S.add_sample('Va')
-    s = S.add_sample('IXD')
-    S['IXD'].add_measurement(fpath=ftrm, mtype='trmacq', ftype='jr6')
-    m1 = S['Va'].add_measurement(fpath=ftrm, mtype='trmacq', ftype='jr6')
-    m1.data['data']['variable'] = m1.data['data']['variable'].v * 0.8
-    m2 = S['Va'].add_measurement(fpath=VaVbTRM, mtype='trmacq', ftype='jr6')
-    m1.combine_measurements(m2, remove_others=True)
-
-    # QuickFig(S, 'acquisition')
+    s = S.add_sample(name='pyrr17591', mass=6.7, mass_unit='mg', samplegroup='LTPY')
+    m = s.add_measurement(fpath='/Users/Mike/Dropbox/experimental_data/pyrrhotite/LTPY_pyrr17591_HYS_mpms#6.7mg#(ax,3.0,C)_(temp,10.0,K).001')
+    print(m.series)
+    s.label_add_series()
