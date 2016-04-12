@@ -622,7 +622,7 @@ class Study(object):
             table.append([''.join(['=' for i in range(15)]) for j in line0])
 
             # add a line for each measurement
-            for m in s.measurements + s.mean_measurements:
+            for m in sorted(s.measurements) + sorted(s.mean_measurements):
                 # if not isinstance(m, RockPy3.Packages.Generic.Measurements.parameters.Parameter) or parameters:
                 if m.has_initial_state:
                     initial = '{} [{}]'.format(m.initial_state.mtype, str(m.initial_state.idx))
@@ -742,7 +742,7 @@ class Study(object):
         for s in self.samplelist:
             s.label_add_sname()
 
-    def label_add_series(self, stypes=None, add_stype=True, add_sval=True, add_unit=True,
+    def label_add_series(self, add_stype=True, add_sval=True, add_unit=True,
                          gname=None,
                          sname=None,
                          mtype=None,
@@ -756,7 +756,7 @@ class Study(object):
                                       stype=stype, sval=sval, sval_range=sval_range,
                                       mean=mean, groupmean=groupmean,
                                       invert=invert, id=id):
-            m.label_add_stype(stypes=stypes, add_stype=add_stype, add_sval=add_sval, add_unit=add_unit)
+            m.label_add_stype(stype=stype, add_stype=add_stype, add_sval=add_sval, add_unit=add_unit)
 
     def plot(self, gname=None,
              sname=None,
@@ -813,6 +813,20 @@ class Study(object):
 
         for m in mlist:
             m.reset_plt_prop()
+
+    def remove_labels(self,
+                      gname=None,
+                      sname=None,
+                      mtype=None,
+                      series=None,
+                      stype=None, sval=None, sval_range=None,
+                      mean=False, groupmean=False,
+                      invert=False,
+                      id=None,
+                      ):
+        mlist = self.get_measurement(gname, sname, mtype, series, stype, sval, sval_range, mean, groupmean, invert, id)
+        for m in mlist:
+            m.set_plt_prop('label', '')
 
     def set_color(self, color,
                   gname=None,
@@ -1003,7 +1017,6 @@ class Study(object):
 
 if __name__ == '__main__':
     # RockPy3.logger.setLevel('DEBUG')
-    S = RockPy3.RockPyStudy()
-    S.import_folder(folder='/Users/Mike/Dropbox/experimental_data/FeNiX/FeNi20J', mtype='hys', sname='FeNi20-Jd120-G03')
-    m = S.get_measurement()[1]
-    print(m.get_RockPy_compatible_filename())
+    S = RockPy3.RockPyStudy(folder='/Users/mike/Dropbox/experimental_data/pyrrhotite/hys||c')
+    S.label_add_series(stype='temp', add_stype=False, add_unit=True)
+    RockPy3.QuickFig(S, 'hysteresis', sort_labels=False)

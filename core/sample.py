@@ -157,7 +157,7 @@ class Sample(object):
 
     @property
     def svals(self):
-        return set(s[1] for s in self.series)
+        return set(s[1] for s in self.series if s[1].isdigit())
 
     @property
     def sunits(self):
@@ -979,16 +979,16 @@ class Sample(object):
         for m in self.measurements:
             m.label_add_sname()
 
-    def label_add_series(self, stypes=None, add_stype=True, add_unit=True):
-        self.label_add_stype(stypes=stypes, add_stype=add_stype, add_unit=add_unit)
+    def label_add_series(self, stype=None, add_stype=True, add_unit=True, add_sval=True):
+        self.label_add_stype(stype=stype, add_stype=add_stype, add_unit=add_unit, add_sval=add_sval)
 
-    def label_add_stype(self, stypes=None, add_stype=True, add_unit=True):
+    def label_add_stype(self, stype=None, add_stype=True, add_unit=False, add_sval=False):
         for m in self.measurements:
-            m.label_add_stype(stypes=stypes, add_stype=add_stype, add_unit=add_unit)
+            m.label_add_stype(stype=stype, add_stype=add_stype, add_unit=add_unit, add_sval=add_sval)
 
-    def label_add_sval(self, stypes=None, add_stype=False, add_unit=True):
+    def label_add_sval(self, stype=None, add_stype=False, add_unit=True):
         for m in self.measurements:
-            m.label_add_stype(stypes=stypes, add_stype=add_stype, add_unit=add_unit)
+            m.label_add_stype(stype=stype, add_stype=add_stype, add_unit=add_unit)
 
     def remove_label(self):
         for m in self.measurements:

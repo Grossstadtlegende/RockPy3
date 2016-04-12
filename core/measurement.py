@@ -1497,10 +1497,8 @@ class Measurement(object):
             m.get_series(series=('temperature', 0)) -> [<RockPy3.series> pressure, 0.00, [GPa], <RockPy3.series> temperature, 0.00, [C]]
         """
         if not self._series:
-            return False
-
+            return None
         slist = self.series
-
         if stype is not None:
             stype = RockPy3.core.utils.to_list(stype)
             slist = filter(lambda x: x.stype in stype, slist)
@@ -1917,13 +1915,13 @@ class Measurement(object):
     ####################################################################################################################
     '''' PLOTTING '''''
 
-    def get_series_labels(self, stypes=None, add_stype=True, add_sval=True, add_unit=True):
+    def get_series_labels(self, stype=None, add_stype=True, add_sval=True, add_unit=True):
         """
         takes a list of stypes or stypes = True and returns a string with stype_sval_sunit; for each stype
 
         Parameters
         ----------
-            stypes: list / bool
+            stype: list / bool
                 default: True
                 if True all series will be returned
                 if a list of strings is provided the ones where a matching stype can be found are appended
@@ -1938,27 +1936,29 @@ class Measurement(object):
         """
         out = []
 
-        if stypes is None:
-            stypes = list(self.stypes)
 
-        stypes = RockPy3._to_tuple(stypes)
-        for stype in stypes:
-            if stype == 'none':
+        if stype is None:
+            stype = list(self.stypes)
+
+        stype = RockPy3._to_tuple(stype)
+        for st in stype:
+            if not st or st == 'none':
                 continue
-            stype = self.get_series(stype=stype)[0]
-            if stype:
+            sobj = self.get_series(stype=st)
+            if sobj:
+                sobj = sobj[0]
                 aux = []
                 if add_stype:
-                    aux.append(stype.stype)
+                    aux.append(sobj.stype)
                 if add_sval:
-                    aux.append(str(np.round(stype.value, 2)))
+                    aux.append(str(np.round(sobj.value, 2)))
                 if add_unit:
-                    aux.append(stype.unit)
+                    aux.append(sobj.unit)
                 stype_label = ' '.join(aux)
                 if not stype_label in out:
                     out.append(stype_label)
             else:
-                self.log.warning('CANT find series << %s >>' % stype)
+                self.log.warning('CANT find series << %s >>' % st)
                 self.log.warning('\tonly one of these are possible:\t%s' % self.stypes)
         return '; '.join(out)
 
@@ -1972,11 +1972,11 @@ class Measurement(object):
             mean = ''
         self.plt_props['label'] = ' '.join([self.plt_props['label'], mean, self.sobj.name])
 
-    def label_add_stype(self, stypes=None, add_stype=True, add_sval=True, add_unit=True):
+    def label_add_stype(self, stype=None, add_stype=True, add_sval=True, add_unit=True):
         """
         adds the corresponding sample_name to the measurement label
         """
-        text = self.get_series_labels(stypes=stypes, add_stype=add_stype, add_sval=add_sval, add_unit=add_unit)
+        text = self.get_series_labels(stype=stype, add_stype=add_stype, add_sval=add_sval, add_unit=add_unit)
         self.plt_props['label'] = ' '.join([self.plt_props['label'], text])
 
     def label_add_text(self, text):
@@ -2317,5 +2317,5 @@ if __name__ == '__main__':
     S = RockPy3.RockPyStudy()
     s = S.add_sample(name='pyrr17591', mass=6.7, mass_unit='mg', samplegroup='LTPY')
     m = s.add_measurement(fpath='/Users/Mike/Dropbox/experimental_data/pyrrhotite/LTPY_pyrr17591_HYS_mpms#6.7mg#(ax,3.0,C)_(temp,10.0,K).001')
-    print(m.series)
-    s.label_add_series()
+    s.label_add_series(stype='temp')
+    RockPy3.QuickFig(data = S, visuals='hysteresis')

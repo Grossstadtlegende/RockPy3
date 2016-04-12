@@ -55,6 +55,8 @@ diameter: diameter
 height: height
 volume: volume
 
+generic: generic
+
 simulation: sim, simulation
 
 none: none
