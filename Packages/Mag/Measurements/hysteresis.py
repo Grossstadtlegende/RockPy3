@@ -513,7 +513,7 @@ class Hysteresis(measurement.Measurement):
     """ MRS """
 
     @calculate
-    def calculate_mrs(self, no_points=4, check=False, **non_method_parameters):
+    def calculate_mrs_LINEAR(self, no_points=4, check=False, **non_method_parameters):
         # initialize result
         result = []
 
@@ -543,8 +543,48 @@ class Hysteresis(measurement.Measurement):
 
         self.results['mrs'] = [[(np.nanmean(result), np.nanstd(result))]]
 
+    @calculate
+    def calculate_mrs_NONLINEAR(self, no_points=4, check=False, **non_method_parameters):
+        """
+        Uses non linear interpolation of the points
+        """
+        # initialize result
+        result = []
+        # get limits for a calculation using the no_points points closest to 0 fro each direction
+        df_limit = sorted(abs(self.data['down_field']['field'].v))[no_points - 1]
+        uf_limit = sorted(abs(self.data['up_field']['field'].v))[no_points - 1]
+
+        # the field_limit has to be set higher than the lowest field
+        # if not the field_limit will be chosen to be 2 points for uf and df separately
+        if no_points < 2:
+            self.log.warning('NO_POINTS INCOMPATIBLE minimum 2 required' % (no_points))
+            self.log.warning('\t\t setting NO_POINTS - << 2 >> ')
+            self.calculation_parameter['bc']['no_points'] = 2
+
+        # filter data for fields higher than field_limit
+        down_f = self.data['down_field'].filter(abs(self.data['down_field']['field'].v) <= df_limit)
+        up_f = self.data['up_field'].filter(abs(self.data['up_field']['field'].v) <= uf_limit)
+
+        x = np.linspace(-min([df_limit, uf_limit]), min([df_limit, uf_limit]), 100)
+
+        for i, dir in enumerate([down_f, up_f]):
+            spl = UnivariateSpline(dir['field'].v, dir['mag'].v)
+            mrs = abs(spl(0))
+            result.append(mrs)
+
+            if check:
+                plt.plot(dir['field'].v, dir['mag'].v, '.', color=RockPy3.colorscheme[i])
+                plt.plot(x, spl(x), color=RockPy3.colorscheme[i])
+
+        if check:
+            plt.plot([0, 0],[-np.nanmean(result), np.nanmean(result)],  'xk', mew=2)
+            plt.grid()
+            plt.show()
+
+        self.results['mrs'] = [[(np.nanmean(result), np.nanstd(result))]]
+
     @result
-    def result_mrs(self, recalc=False, **non_method_parameters):
+    def result_mrs(self, recipe='linear', recalc=False, **non_method_parameters):
         """
         The default definition of magnetic remanence is the magnetization remaining in zero field after a large magnetic field is applied (enough to achieve saturation).[Banerjee, S. K.; Mellema, J. P. (1974)] The effect of a magnetic hysteresis loop is measured using instruments such as a vibrating sample magnetometer; and the zero-field intercept is a measure of the remanence. In physics this measure is converted to an average magnetization (the total magnetic moment divided by the volume of the sample) and denoted in equations as Mr. If it must be distinguished from other kinds of remanence it is called the saturation remanence or saturation isothermal remanence (SIRM) and denoted by :math:`M_{rs}`.
         """
@@ -1763,6 +1803,10 @@ if __name__ == '__main__':
     hys_vsm = s.add_measurement(fpath='/Users/mike/Google Drive/__code/RockPy3/testing/test_data/hys_vsm.001',
                             mtype='hysteresis',
                             ftype='vsm')
+    hys_vsm.set_recipe(recipe='nonlinear', result='mrs')
+    hys_vsm.result_mrs(check=True, no_points=10)
+
+
     # hys_vftb = s.add_measurement(fpath='/Users/Mike/Dropbox/experimental_data/001_PintP/LF4C/VFTB/P0-postTT/140310_1a.hys',
     #                         mtype='hysteresis',
     #                         ftype='vftb')

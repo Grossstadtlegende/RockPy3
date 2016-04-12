@@ -828,7 +828,8 @@ class Measurement(object):
                                                        mtypes=self.mtype, ftype=self.ftype,
                                                        mass=mass, massunit=mass_unit,
                                                        series=series,
-                                                       suffix=self.idx)
+                                                       suffix=self.idx,
+                                                       read_fpath=False)
         return minfo_obj.fname
 
     def _rename_to_RockPy_compatible_filename(self, add_series=True, create_backup=True):
@@ -1916,7 +1917,7 @@ class Measurement(object):
     ####################################################################################################################
     '''' PLOTTING '''''
 
-    def get_series_labels(self, stypes=True, add_stype=True, add_sval=True, add_unit=True):
+    def get_series_labels(self, stypes=None, add_stype=True, add_sval=True, add_unit=True):
         """
         takes a list of stypes or stypes = True and returns a string with stype_sval_sunit; for each stype
 
@@ -1936,10 +1937,11 @@ class Measurement(object):
                 if False: unit not in label
         """
         out = []
-        if stypes is True or stypes is None:
+
+        if stypes is None:
             stypes = list(self.stypes)
 
-        stypes = RockPy3.core.utils.to_list(stypes)
+        stypes = RockPy3._to_tuple(stypes)
 
         for stype in stypes:
             stype = self.get_series(stype=stype)[0]

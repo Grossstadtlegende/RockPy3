@@ -5,6 +5,7 @@ import os
 import os.path
 from os.path import expanduser, join
 from collections import defaultdict
+from copy import deepcopy
 import numpy as np
 from pint import UnitRegistry
 import RockPy3
@@ -25,6 +26,10 @@ def mtype_ftype_abbreviations():
     inv_abbrev = {i: k for k in abbrev for i in abbrev[k]}
     inv_abbrev.update({k: k for k in abbrev})
     return inv_abbrev, abbrev
+
+def abbreviate_name(name):
+    if name:
+        return RockPy3.mtype_ftype_abbreviations[name.lower()][0]
 
 
 def fname_abbrevs():
@@ -430,11 +435,12 @@ class minfo():
         sgroups, samples, mtypes, ftype = block.split('_')
 
         # names with , need to be replaced
-        if not '(' in samples:
+        if not '(' in samples and ',' in samples:
             samples = samples.replace(',', '.')
             RockPy3.logger.warning('sample name %s contains \',\' will be replaced with \'.\'' %samples)
 
         self.sgroups, self.samples, self.mtypes, self.ftype = self.extract_tuple(sgroups), self.extract_tuple(samples), self.extract_tuple(mtypes), ftype
+        self.mtypes = tuple(RockPy3.abbrev_to_classname(mtype) for mtype in RockPy3._to_tuple(self.mtypes))
 
     def sample_block(self, block):
         out = [[None, None], [None, None], [None, None]]
@@ -479,7 +485,8 @@ class minfo():
         self.comment = block
 
     def get_measurement_block(self):
-        block = self.storage[0]
+        block = deepcopy(self.storage[0])
+        block[2] = [abbreviate_name(mtype).upper() for mtype in RockPy3._to_tuple(block[2]) if mtype]
         if not all(block[1:]):
             raise ImportError('sname, mtype, ftype needed for minfo to be generated')
         return '_'.join((self.tuple2str(b) for b in block))
@@ -535,10 +542,40 @@ class minfo():
                  mtypes=None, ftype=None,
                  mass=None, height=None, diameter=None,
                  massunit=None, lengthunit=None, heightunit=None, diameterunit=None,
-                 series=None, comment=None, folder=None, suffix=None, **kwargs):
+                 series=None, comment=None, folder=None, suffix=None,
+                 read_fpath=True, **kwargs):
 
+        """
+
+        Parameters
+        ----------
+        fpath
+        sgroups
+        samples
+        mtypes
+        ftype
+        mass
+        height
+        diameter
+        massunit
+        lengthunit
+        heightunit
+        diameterunit
+        series
+        comment
+        folder
+        suffix
+        read_fpath: bool
+            if true the path will be read for info
+        kwargs
+        """
         blocks = (self.measurement_block, self.sample_block, self.series_block, self.add_block, self.comment_block)
         additional = tuple()
+
+        if mtypes:
+            mtypes = tuple(RockPy3.abbrev_to_classname(mtype) for mtype in RockPy3._to_tuple(mtypes))
+        if ftype:
+            ftype = RockPy3.abbrev_to_classname(ftype)
 
         self.__dict__.update({i:None for i in ('sgroups', 'samples', 'mtypes', 'ftype',
                                                'mass', 'height', 'diameter',
@@ -547,7 +584,7 @@ class minfo():
                               })
         self.fpath = fpath
 
-        if fpath:
+        if read_fpath and fpath: #todo add check for if path is readable
             self.folder= os.path.dirname(fpath)
             f, self.suffix = os.path.splitext(os.path.basename(fpath))
             self.suffix=self.suffix.strip('.')
@@ -600,7 +637,6 @@ class minfo():
                 out.pop()
             else:
                 break
-
         fname = '#'.join(map(str, out))+'.'+self.suffix
         fname = fname.replace('None', '')
         return fname
@@ -627,10 +663,7 @@ class minfo():
             yield sdict
 
 if __name__ == '__main__':
-    f = '/Users/Mike/Dropbox/experimental_data/0915-LT_pyrrhtotite/LTPY_527,1a_HYS_VSM#[]_[]_[]#TEMP_20_K##STD000#.000'
-
-    t = minfo(fpath=f)
-    x = t.fname
-    t2 = minfo(x)
-
-    print(t.fname, t2.fname, t.fname==t2.fname)
+    S = RockPy3.RockPyStudy()
+    s = S.add_sample(name='pyrr17591', mass=6.7, mass_unit='mg', samplegroup='LTPY')
+    for m in s:
+        print(m.data['data'])

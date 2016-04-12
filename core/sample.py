@@ -4,6 +4,7 @@ from copy import deepcopy
 import RockPy3
 import RockPy3.core.study
 import RockPy3.core.utils
+import RockPy3.core.file_operations
 import numpy as np
 from functools import partial
 import xml.etree.ElementTree as etree
@@ -231,63 +232,34 @@ class Sample(object):
             RockPy3.measurement object
         '''
 
-        if NEWstyle:
-            pass #todo new Style import with minfo class
-        # lookup abbreviations of mtypes and ftypes
+        # create the idx
+        if idx is None:
+            idx = len(self.measurements)
+
+        # generate minfo object
+        minfo = RockPy3.core.file_operations.minfo(fpath=fpath,
+                                                   sgroups=self.samplegroups,
+                                                   samples=self.name,
+                                                   mtypes=mtype, ftype=ftype,
+                                                   series=series,
+                                                   suffix=idx,
+                                                   comment=comment, #unused for now
+                                                   additional=additional, #unused for now
+                                                   read_fpath=True)
         import_info = {}
         import_info.update(options)
         import_info.update(dict(series=series))
-
-        if mtype and ftype:
-            mtype = mtype.lower()
-            if mtype in RockPy3.mtype_ftype_abbreviations_inversed:
-                mtype = RockPy3.mtype_ftype_abbreviations_inversed[mtype]
-                import_info.setdefault('mtype', mtype)
-
-            ftype = ftype.lower()
-            if ftype in RockPy3.mtype_ftype_abbreviations_inversed:
-                ftype = RockPy3.mtype_ftype_abbreviations_inversed[ftype]
-                import_info.setdefault('ftype', ftype)
-
-        if idx is None:
-            idx = len(self.measurements)
 
         """
         ################################################################################################################
         # DATA import from FILE
         """
-        if all([mtype, fpath, ftype]) or fpath:
-            # check if we can read the filename - fails if not
-            try:
-                import_info = self.generate_import_info(mtype, fpath, ftype, idx, series)
-            except:
-                import_info = dict(mtype=mtype, ftype=ftype, fpath=fpath, series=series)
-
-            # update any options e.g. series
-            import_info.update(options)
-
-            # remove the parameter_info from the info_dict
-            parameter_info = {key: import_info.pop(key, None) for key in list(import_info.keys())
-                              if key in ['mass', 'diameter', 'height',
-                                         'x_len', 'y_len', 'z_len',
-                                         'length_unit', 'mass_unit', 'volume']}
-            # create the parameter measurement.
-            if parameter_info and create_parameter:
-                for mtype in ('mass', 'diameter', 'height'):
-                    if mtype in parameter_info:
-                        mobj = RockPy3.implemented_measurements[mtype](sobj=self,
+        if not mdata and not mobj:
+            for import_info in minfo.measurement_infos:
+                mtype = import_info.pop('mtype')
+                mobj = RockPy3.implemented_measurements[mtype].from_file(sobj=self,
                                                                         automatic_results = automatic_results,
-                                                                        **parameter_info)
-                        self._add_mobj(mobj)
-
-            mtype = import_info.pop('mtype', mtype)
-
-            if not self.mtype_not_implemented_check(mtype=mtype):
-                return
-
-            mobj = RockPy3.implemented_measurements[mtype].from_file(sobj=self,
-                                                                     automatic_results = automatic_results,
-                                                                     **import_info)
+                                                                        **import_info)
 
         """
         ################################################################################################################
@@ -325,12 +297,7 @@ class Sample(object):
                 return
 
             self.log.info('ADDING\t << %s, %s >>' % (mobj.ftype, mobj.mtype))
-            # if series:
-            #     series = RockPy3.core.utils.tuple2list_of_tuples(series)
-            #     for s in series:
-            #         mobj.add_series(series=s)
-            #     self.log.info(
-            #             '\t\t WITH series << %s >>' % ('; '.join(', '.join(str(j) for j in i) for i in series)))
+
             self._add_mobj(mobj)
             return mobj
         else:
