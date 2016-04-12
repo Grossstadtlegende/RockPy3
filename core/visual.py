@@ -182,14 +182,14 @@ class Visual(object):
         Adds a feature to the visual. Each feature may have multiple instances, and can but does not have to have a
         separate data from the visual data.
         """
-        plt_props, calculation_parameter = self.separate_plt_props(**plt_props)
-        # calculation_parameter, plt_props = RockPy3.core.utils.separate_calculation_parameter_from_kwargs(**plt_props)
+        plt_props, parameter = self.separate_plt_props(**plt_props)
+        # calculation_parameter, plt_props = RockPy3.core.utils.separate_calculation_parameter_from_kwargs(**plt_props)#todo separate calculation params
 
-        new_feature_name = self.add_feature_to_dict(feature=feature)
+        new_feature_name = self.add_feature_to_dict(feature=feature, **parameter)
         self.set_plt_prop(feature_name=new_feature_name, **plt_props)
         self.features[new_feature_name]['data'] = RockPy3.core.utils.sort_input(data)
         for k, v in (('base_alpha', base_alpha), ('ignore_samples', ignore_samples),
-                     ('calculation_parameter', calculation_parameter),
+                     ('calculation_parameter', parameter),
                      ('plot_groupmean', plot_groupmean), ('plot_samplemean', plot_samplemean),
                      ('plot_groupbase', plot_groupbase), ('plot_samplebase', plot_samplebase),
                      ('plot_other', plot_other),
@@ -218,7 +218,7 @@ class Visual(object):
         self.log.debug('THESE KWARGS remaining {}'.format(sorted(kwargs.keys())))
         return plt_props, kwargs
 
-    def add_feature_to_dict(self, feature=None):
+    def add_feature_to_dict(self, feature=None, **feature_props):
         """
         Adds a feature to the list of feature that will be plotted (self.features)
         """
@@ -236,7 +236,7 @@ class Visual(object):
         new_feature_name = '{}_{:03}'.format(feature, len(self.features))
         # create entry in plotproperty dictionary and high hierachy dictionary
         self.features.setdefault(new_feature_name, {})
-        self.features[new_feature_name].setdefault('feature_props', {})
+        self.features[new_feature_name].setdefault('feature_props', feature_props)
         self.features[new_feature_name].setdefault('data', [])
         self.features[new_feature_name].setdefault('method', None)
         self.features[new_feature_name]['method'] = getattr(self, 'feature_' + feature)
@@ -327,7 +327,7 @@ class Visual(object):
     def __call__(self, *args, **kwargs):
         self.add_standard()
         for feature in self.features:
-            self.features[feature]['method'](name=feature)
+            self.features[feature]['method'](name=feature, **self.features[feature]['feature_props'])
         if self.show_legend():
             self.ax.legend(**self.legend_options)
 

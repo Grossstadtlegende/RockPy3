@@ -792,13 +792,6 @@ class Measurement(object):
         """
         self.calculation_parameter = {result: {} for result in self.result_methods()}
 
-    def __lt__(self, other):
-        """
-        for sorting measurements. They are sorted by their index
-        :param other:
-        :return:
-        """
-        return int(self.idx) < int(other.idx)
 
     @property
     def mass(self):
@@ -990,6 +983,25 @@ class Measurement(object):
         returns a list of ids for all base measurements
         """
         return [m.id for m in self.base_measurements]
+
+
+    def __lt__(self, other):
+        """
+        for sorting measurements. They are sorted by their index
+        :param other:
+        :return:
+        """
+        # if idx not integer
+        try:
+            return int(self.idx) < int(other.idx)
+        except ValueError:
+            pass
+        # fall back, internal idx
+        try:
+            return int(self._idx) < int(other._idx)
+        except ValueError:
+            pass
+
 
     def __repr__(self):
         if self.is_mean:

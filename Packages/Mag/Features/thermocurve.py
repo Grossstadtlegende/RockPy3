@@ -1,6 +1,8 @@
 __author__ = 'Mike'
 
 import RockPy3
+import numpy as np
+
 def thermocurve_data(ax, mobj, dtype='mag', **plt_props):
     """
     Plots the down_field branch of a hysteresis
@@ -24,6 +26,21 @@ def thermocurve_data_colored(ax, mobj, dtype='mag', **plt_props):
                 mobj.data[dtype]['mag'].v,
                 **plt_props)
 
+
+def thermocurve_derivative(ax, mobj, twinx=True, **plt_props):
+    """
+    Plots the down_field branch of a hysteresis
+    """
+    if twinx:
+        ax = ax.twinx()
+        ax.set_xlabel(plt_props.get('xlabel'))
+        ax.set_ylabel(plt_props.get('ylabel'))
+
+    for dtype in mobj.data:
+        x = mobj.data[dtype]['temp'].v
+        dx = np.gradient(x)
+        dy = np.gradient(mobj.data[dtype]['mag'].v, dx)
+        ax.plot(x, dy, **plt_props)
 
 if __name__ == '__main__':
     import RockPy3

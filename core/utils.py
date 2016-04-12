@@ -238,9 +238,11 @@ class plot(object):
         :param name: the name of the feature in case there are multiple
         :return:
         """
+        # three layers in plot hierarchically
         types = ('figure', 'visual', 'feature')
         plt_input = {'in_type': None}
 
+        # cycle throught the inputs
         for idx, indict in enumerate([visual.data, visual.features[name]['data']]):
             # [visual._RockPy_figure.fig_input, visual.data, visual.features[name]['data']]):
             if any(indict[i] for i in ('groupmean', 'samplemean', 'samplebase', 'groupbase', 'other')):
@@ -250,6 +252,7 @@ class plot(object):
         # overwite any additional infos
         for info in ('base_alpha', 'ignore_samples', 'calculation_parameter', 'result_from_means',
                      'plot_groupmean', 'plot_samplemean', 'plot_groupbase', 'plot_samplebase', 'plot_other'):
+            # cycling through the info data for the input types
             for idx, info_data in enumerate(
                     [getattr(visual._RockPy_figure, info), getattr(visual, info), visual.features[name][info]]):
 
@@ -283,13 +286,12 @@ class plot(object):
         kwargs['plt_props'].update(visual.features[name]['feature_props'])
         return kwargs
 
-    def __call__(self, feature, name=None):
+    def __call__(self, feature, name=None, feature_props=None):
         """
         If there are decorator arguments, __call__() is only called
         once, as part of the decoration process! You can only give
         it a single argument, which is the function object.
         """
-
         def wrapped_feature(*args, **kwargs):
             # format the argspec
             parameter = get_full_argspec(func=feature, args=args, kwargs=kwargs)
@@ -462,7 +464,7 @@ class plot(object):
 
                             # overwrite the plot properties of the measurement object if specified in the decorator
                             # e.g. for setting marker = '' in the hysteresis_data feature
-                            self.update_plt_props(kwargs, visual=visual, name=name)
+                            kwargs = self.update_plt_props(kwargs, visual=visual, name=name)
 
                             # change the alpha to base_alpha if group or sample base should be plotted and the means
                             if (plt_type == 'samplebase' and plt_info['plot_samplemean'] and plt_info['samplemean']) or \
