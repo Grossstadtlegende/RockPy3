@@ -157,7 +157,7 @@ class Sample(object):
 
     @property
     def svals(self):
-        return set(s[1] for s in self.series if isinstance(s[1], (int, float)))
+        return set(s[1] for s in self.series if isinstance(s[1], (int, float)) if not np.isnan(s[1]))
 
     @property
     def sunits(self):
