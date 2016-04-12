@@ -488,6 +488,7 @@ class minfo():
     def get_measurement_block(self):
         block = deepcopy(self.storage[0])
         block[2] = [abbreviate_name(mtype).upper() for mtype in RockPy3._to_tuple(block[2]) if mtype]
+        block[3] = abbreviate_name(block[3]).upper()
         if not all(block[1:]):
             raise ImportError('sname, mtype, ftype needed for minfo to be generated')
         return '_'.join((self.tuple2str(b) for b in block))
@@ -630,8 +631,13 @@ class minfo():
         """
         name after new RockPy3 convention
         """
+
+        if not self.fpath:
+            RockPy3.logger.error('%s is not a file' %self.get_measurement_block())
+            return
         out = [self.get_measurement_block(), self.get_sample_block(),
                self.get_series_block(), self.get_add_block(), self.comment]
+
 
         for i, block in enumerate(out[::-1]):
             if not block:
