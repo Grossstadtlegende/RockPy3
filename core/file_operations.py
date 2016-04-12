@@ -441,6 +441,7 @@ class minfo():
 
         self.sgroups, self.samples, self.mtypes, self.ftype = self.extract_tuple(sgroups), self.extract_tuple(samples), self.extract_tuple(mtypes), ftype
         self.mtypes = tuple(RockPy3.abbrev_to_classname(mtype) for mtype in RockPy3._to_tuple(self.mtypes))
+        self.ftype = RockPy3.abbrev_to_classname(ftype)
 
     def sample_block(self, block):
         out = [[None, None], [None, None], [None, None]]
@@ -664,6 +665,5 @@ class minfo():
 
 if __name__ == '__main__':
     S = RockPy3.RockPyStudy()
-    s = S.add_sample(name='pyrr17591', mass=6.7, mass_unit='mg', samplegroup='LTPY')
-    for m in s:
-        print(m.data['data'])
+    a_folder = '/Users/Mike/Dropbox/experimental_data/pyrrhotite/rmp_||a'
+    S.import_folder(a_folder, sgroup='a')

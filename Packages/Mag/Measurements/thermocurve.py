@@ -102,9 +102,6 @@ class Thermocurve(measurement.Measurement):
                 mdata.update({name: rpd})
 
         return mdata
-    # def get_tc(self):
-    #     for idx, dtype in enumerate(('warming', 'cooling')):
-    #         self.data[dtype].find_peaks()
 
     def combine_measurements(self, others, remove_others = False, normalize_to_last=False):
         """
@@ -162,21 +159,24 @@ class Thermocurve(measurement.Measurement):
 
 if __name__ == '__main__':
 
-    S = RockPy3.Study
-
-    """ vftb sample """
-    # s = S.add_sample(name='MSM17591')
-    # s.add_measurement(mtype='thermocurve', fpath=vftb_rmp, ftype='vftb')
-
-    """ mpms sample """
-    # s = S.add_sample(name='pyrr17591_a')
-    # s.add_measurement(mtype='thermocurve', fpath=file, ftype='mpms')
-
-    """ vsm sample """
-    s = S.add_sample('167a', sgroup='LTPY')
-    s.add_measurement(fpath='/Users/mike/Dropbox/experimental_data/RMP/LTPY/LTPY_167a_RMP_VSM#[]_[]_[]##STD001.000')
-
-
-    fig = RockPy3.Figure()
-    v = fig.add_visual(visual='thermocurve', data=s)
-    fig.show()
+    # S = RockPy3.Study
+    #
+    # """ vftb sample """
+    # # s = S.add_sample(name='MSM17591')
+    # # s.add_measurement(mtype='thermocurve', fpath=vftb_rmp, ftype='vftb')
+    #
+    # """ mpms sample """
+    # # s = S.add_sample(name='pyrr17591_a')
+    # # s.add_measurement(mtype='thermocurve', fpath=file, ftype='mpms')
+    #
+    # """ vsm sample """
+    # s = S.add_sample('167a', sgroup='LTPY')
+    # s.add_measurement(fpath='/Users/mike/Dropbox/experimental_data/RMP/LTPY/LTPY_167a_RMP_VSM#[]_[]_[]##STD001.000')
+    #
+    #
+    # fig = RockPy3.Figure()
+    # v = fig.add_visual(visual='thermocurve', data=s)
+    # fig.show()
+    S = RockPy3.RockPyStudy()
+    s = S.add_sample('test')
+    s.add_measurement(fpath='LTPY_P17591_RMP_MPMS#[]_[]_[]#field_0,0_T;axis_1,0_a##.000')

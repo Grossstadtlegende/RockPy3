@@ -491,7 +491,6 @@ class Study(object):
         -------
 
         """
-
         files = [os.path.join(folder, i) for i in os.listdir(folder)
                  if not i.startswith('#')
                  if not i.startswith(".")

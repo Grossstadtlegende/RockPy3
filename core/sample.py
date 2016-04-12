@@ -246,9 +246,6 @@ class Sample(object):
                                                    comment=comment, #unused for now
                                                    additional=additional, #unused for now
                                                    read_fpath=True)
-        import_info = {}
-        import_info.update(options)
-        import_info.update(dict(series=series))
 
         """
         ################################################################################################################
