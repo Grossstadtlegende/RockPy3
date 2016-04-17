@@ -44,21 +44,10 @@ def thermocurve_derivative(ax, mobj, twinx=True, **plt_props):
 
 if __name__ == '__main__':
     import RockPy3
-
+    import pandas
+    pandas.DataFrame
     S = RockPy3.Study
     S.import_folder('/Users/Mike/Dropbox/experimental_data/pyrrhotite/rmp_||a')
     S.import_folder('/Users/Mike/Dropbox/experimental_data/pyrrhotite/rmp_||b')
     S.import_folder('/Users/Mike/Dropbox/experimental_data/pyrrhotite/rmp_||c')
-    S.color_from_series(stype='field')
-    S.label_add_series(stypes='field', add_stype=False)
-    fig = RockPy3.Figure(linewidth=1.5)
-    v = fig.add_visual('thermocurve', features='thermocurve_data_colored', data=S.get_measurement(stype='axis', sval=1))
-    v.title = 'a-axis'
-    v = fig.add_visual('thermocurve', features='thermocurve_data_colored', data=S.get_measurement(stype='axis', sval=2))
-    v.title = 'b-axis'
-    v = fig.add_visual('thermocurve', features='thermocurve_data_colored', data=S.get_measurement(stype='axis', sval=3))
-    v.title = 'c-axis'
-    f = fig.show(xlims=[10, 100], equal_lims=True, return_figure=False, save_path='Desktop', file_name='LTPY_rmp_3axis')
-
-    # f.set_figwidth(15)
-    # f.savefig('/Users/Mike/Dropbox/experimental_data/pyrrhotite/LTPY_FC_plots.pdf')
+    print(S[0]['axis' == 2])

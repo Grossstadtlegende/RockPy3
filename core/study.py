@@ -730,7 +730,10 @@ class Study(object):
         results = RockPy3.Data(column_names='mID')
         for s in sorted(self._raw_results):
             for mid in self._raw_results[s]:
-                aux = self._raw_results[s][mid].append_columns(column_names='mID', data=mid)
+                if not 'mID' in results.column_names:
+                    aux = self._raw_results[s][mid].append_columns(column_names='mID', data=mid)
+                else:
+                    aux = self._raw_results[s][mid]
                 results = results.append_rows(aux)
         return results
 

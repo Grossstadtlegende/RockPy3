@@ -744,7 +744,6 @@ class Measurement(object):
         if series:
             self.add_series(series=series)
 
-        self._idx = len(self.sobj.measurements)  # internal index
         self.idx = idx if idx else self._idx  # external index e.g. 3rd hys measurement of sample 1
 
         self.__class__.n_created += 1
@@ -792,6 +791,13 @@ class Measurement(object):
         """
         self.calculation_parameter = {result: {} for result in self.result_methods()}
 
+    @property
+    def _idx(self):
+        for i, v in enumerate(self.sobj.measurements):
+            if v == self:
+                return i
+        else:
+            return len(self.sobj.measurements)
 
     @property
     def mass(self):
@@ -1146,14 +1152,14 @@ class Measurement(object):
         """
         list of all stypes
         """
-        return sorted(set(s.stype for s in self.series))
+        return [s.stype for s in self.series]
 
     @property
     def svals(self):
         """
-        list of all svalues
+        set of all svalues
         """
-        return sorted(set(s.sval for s in self.series))
+        return [s.sval for s in self.series]
 
     @property
     def data(self):

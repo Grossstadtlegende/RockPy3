@@ -6,6 +6,7 @@ import RockPy3.core.study
 import RockPy3.core.utils
 import RockPy3.core.file_operations
 import numpy as np
+from collections import OrderedDict
 from functools import partial
 import xml.etree.ElementTree as etree
 
@@ -31,8 +32,30 @@ class Sample(object):
     def __iter__(self):
         return iter(self.measurements)
 
-    def __getitem__(self, i):
-        return self.measurements[i]
+    def __getitem__(self, key):
+
+        if isinstance(key, int):
+            try:
+                return self.measurements[key]
+            except IndexError:
+                pass
+            if key in self.svals:
+                return self.get_measurement(sval=key)
+
+
+        elif isinstance(key, str):
+            if key in RockPy3.mtype_ftype_abbreviations_inversed:
+                return self.get_measurement(mtype=key)
+            if key in self.stypes:
+                return self.get_measurement(stype=key)
+
+
+        # advanced indexing
+        elif isinstance(key, np.ndarray):
+            if len(key.shape) > 1 and key.shape[1] > 1:
+                key = key.any(axis=1)
+            return self.measurements[key]
+
 
     @property
     def samplegroups(self):
@@ -169,7 +192,36 @@ class Sample(object):
 
     @property
     def mids(self):
-        return set(m.id for m in self.measurements)
+        return [m.id for m in self.measurements]
+
+    @property
+    def mtype(self):
+        """
+        returns a numpy array with all mtypes. Idx(mtype) == idx(measurement(mtype))
+        """
+        return np.array([m.mtype for m in self.measurements])
+
+    @property
+    def stype(self):
+        """
+        returns a numpy array with all mtypes. Idx(mtype) == idx(measurement(mtype))
+        """
+        mx = max(len(m.series) for m in self.measurements)
+        out = [[m.stypes[i] if i < len(m.stypes) else 'nan' for i in range(mx)] for m in self.measurements]
+        return np.array(out)
+
+    @property
+    def sval(self):
+        """
+        returns a numpy array with all mtypes. Idx(mtype) == idx(measurement(mtype))
+        """
+        mx = max(len(m.series) for m in self.measurements)
+        out = [[m.svals[i] if i < len(m.svals) else np.nan for i in range(mx)] for m in self.measurements]
+        if mx == 1:
+            return np.array(out).flatten()
+        else:
+            return np.array(out)
+
 
     def __repr__(self):
         return '<< RockPy3.Sample.{} >>'.format(self.name)
@@ -334,14 +386,14 @@ class Sample(object):
                                          mean=mean, invert=invert, id=id)
         for m in mlist:
             if not mean:
-                self.measurements.remove(m)
+                self.measurements = np.delete(self.measurements, m._idx)
             else:
-                self.mean_measurements.remove(m)
+                self.mean_measurements = np.delete(self.mean_measurements, m._idx)
                 # self._remove_m_from_mdict(mobj=m, mdict_type='mdict' if not mean else 'mean_mdict')
 
     def _add_mobj(self, mobj):
         if mobj not in self.measurements:
-            self.measurements.append(mobj)
+            self.measurements = np.append(self.measurements, mobj)
             mobj.sobj = self
 
     def add_simulation(self, mtype, idx=None, **sim_param):
@@ -640,7 +692,7 @@ class Sample(object):
 
     @property
     def _raw_results(self):
-        out = {m.id: m.results for m in self.measurements if not isinstance(m, RockPy3.Parameter)}
+        out = OrderedDict([(m.id, m.results) for m in self.measurements if not isinstance(m, RockPy3.Parameter)])
         for mid in out:
             m = self.get_measurement(id=mid)[0]
             rowname = '{} ({})'.format(RockPy3.mtype_ftype_abbreviations[m.mtype][0], m.idx)
@@ -872,42 +924,22 @@ class Sample(object):
 
         """
 
-        def check_existing(l2check, attribute):
-            """
-            Checks if a sample has the given parameter and reduces the list to be checked (l2check)
-            Parameters
-            ----------
-            l2check
-            attribute
-
-            Returns
-            -------
-
-            """
-            l2check = RockPy3._to_tuple(l2check)
-
-            not_available = set(l2check) - getattr(self, attribute)
-            l2check = set(l2check) & getattr(self, attribute)
-            return l2check
-
         if mean:
             mlist = self.mean_measurements
         else:
             mlist = self.measurements
 
         if id is not None:
-            id = check_existing(id, 'mids')
+            id = RockPy3._to_tuple(id)
             mlist = filter(lambda x: x.id in id, mlist)
             return list(mlist)
 
         if mtype:
             mtype = RockPy3._to_tuple(mtype)
-            mtype = (RockPy3.abbrev_to_classname(mt) for mt in mtype)
-            mtype = check_existing(mtype, 'mtypes')
+            mtype = tuple(RockPy3.abbrev_to_classname(mt) for mt in mtype)
             mlist = filter(lambda x: x.mtype in mtype, mlist)
 
         if stype:
-            stype = check_existing(stype, 'stypes')
             mlist = filter(lambda x: x.has_stype(stype=stype, method='any'), mlist)
 
         if sval_range is not None:
@@ -920,7 +952,6 @@ class Sample(object):
                 sval += RockPy3._to_tuple(sval_range)
 
         if sval is not None:
-            sval = check_existing(sval, 'svals')
             mlist = filter(lambda x: x.has_sval(sval=sval, method='any'), mlist)
 
         if series:
@@ -958,7 +989,7 @@ class Sample(object):
             m.reset_plt_prop()
 
     def set_plt_prop(self, prop, value):
-        for m in self.measurements + self.mean_measurements:
+        for m in np.append(self.measurements, self.mean_measurements):
             m.set_plt_prop(prop, value)
 
     def series_to_color(self, stype):
@@ -1110,7 +1141,7 @@ class MeanSample(Sample):
 
         self.base_measurements = []
         self.measurements = []
-        self.results = None
+
         self.results_from_mean_data = results_from_mean_data
 
         ''' is sample is a mean sample from sample_goup ect... '''
@@ -1134,8 +1165,11 @@ class MeanSample(Sample):
 
 if __name__ == '__main__':
     RockPy3.logger.setLevel('DEBUG')
-    S = RockPy3.Study
-    s = S.add_sample('test')
+    S = RockPy3.RockPyStudy(folder='/Users/mike/Dropbox/experimental_data/pyrrhotite/hys||c')
+    s = S[0]
+    print(s.measurements)
+    print(s.get_measurement(mtype='hysteresis'))
+    print([m._idx for m in s['hysteresis']])
 
-    s.add_measurement(fpath='/Users/mike/Dropbox/experimental_data/LF4C/Hys_Coe/P0-postTT/LF4_1b_hys_vftb#[][][]###postTT.140310',
-                      NEWstyle=True)
+
+

@@ -718,7 +718,7 @@ def sort_input(data):
     """
     out = dict(groupmean=set(), samplemean=set(), groupbase=set(), samplebase=set(), other=set())
 
-    if not data:
+    if data is None:
         return out
 
     # get all measurements in plt_input
