@@ -1669,7 +1669,7 @@ class Measurement(object):
     def normalize(self,
                   reference='data', ref_dtype='mag', norm_dtypes='all', vval=None,
                   norm_method='max', norm_factor=None, result=None,
-                  normalize_variable=False, dont_normalize=None,
+                  normalize_variable=False, dont_normalize=('temperature', 'field'),
                   norm_initial_state=True, **options):
         """
         normalizes all available data to reference value, using norm_method
@@ -1702,6 +1702,11 @@ class Measurement(object):
                 if true, initial state values are normalized in the same manner as normal data
                 default: True
         """
+
+        if self.is_normalized and self.is_normalized['reference'] == reference:
+            self.log.info('{} is already normalized with: {}'.format(self, self.is_normalized))
+            return
+
         # dont normalize parameter measurements
         if isinstance(self, RockPy3.Parameter):
             return
@@ -2334,6 +2339,9 @@ def get_result_recipe_name(func_name):
 if __name__ == '__main__':
     S = RockPy3.RockPyStudy()
     s = S.add_sample(name='pyrr17591', mass=6.7, mass_unit='mg', samplegroup='LTPY')
-    m = s.add_measurement(fpath='/Users/Mike/Dropbox/experimental_data/pyrrhotite/LTPY_pyrr17591_HYS_mpms#6.7mg#(ax,3.0,C)_(temp,10.0,K).001')
-    s.label_add_series(stype='temp')
-    RockPy3.QuickFig(data = S, visuals='hysteresis')
+    m = s.add_measurement(fpath='/Users/mike/Dropbox/experimental_data/0915-LT_pyrrhtotite/LTPY_512.2a_HYS_VSM#262.6mg#(temp,300.0,K)##STD000.001')
+
+    m.normalize('mass')
+    m.normalize('mass')
+    # s.label_add_series(stype='temp')
+    # RockPy3.QuickFig(data = S, visuals='hysteresis')
