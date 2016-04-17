@@ -113,7 +113,7 @@ def load_xml(file_name, folder=None):
     return study
 
 
-def get_fname_from_info(samplegroup='', sample_name='',
+def get_fname_from_info(samplegroup='', sample_name='', #todo redundant
                         mtype='', ftype='',
                         mass='', mass_unit='',
                         height='', length_unit='',
@@ -207,7 +207,7 @@ def get_fname_from_info(samplegroup='', sample_name='',
     return out
 
 
-def get_info_from_fname(path=None):
+def get_info_from_fname(path=None): # todo redundant
     """
     extracts the file information out of the filename
 
@@ -433,7 +433,6 @@ class minfo():
 
     def measurement_block(self, block):
         sgroups, samples, mtypes, ftype = block.split('_')
-
         # names with , need to be replaced
         if not '(' in samples and ',' in samples:
             samples = samples.replace(',', '.')
@@ -579,7 +578,7 @@ class minfo():
         if ftype:
             ftype = RockPy3.abbrev_to_classname(ftype)
 
-        self.__dict__.update({i:None for i in ('sgroups', 'samples', 'mtypes', 'ftype',
+        self.__dict__.update({i: None for i in ('sgroups', 'samples', 'mtypes', 'ftype',
                                                'mass', 'height', 'diameter',
                                                'massunit', 'lengthunit', 'heightunit', 'diameterunit',
                                                'series', 'additional', 'comment', 'folder', 'suffix')
@@ -601,13 +600,19 @@ class minfo():
                         block(splits[i])
                     except (ValueError, ):
                         pass
-
+        # print(self.sgroups, fpath, self.mtypes)
+        # print(locals())
         for i in ('sgroups', 'samples', 'mtypes', 'ftype',
                   'mass', 'height', 'diameter',
                   'massunit', 'lengthunit', 'heightunit', 'diameterunit',
                   'series', 'additional', 'comment', 'folder'):
-            if locals()[i] is not None:
+            if locals()[i] is None:
+                continue
+            if all(locals()[i]):
+                # print(i, locals()[i])
                 setattr(self, i, locals()[i])
+
+        # print(self.sgroups, fpath, self.mtypes)
 
         if kwargs:
             self.additional += tuple(kwargs.items())
@@ -618,7 +623,7 @@ class minfo():
         if type(self.suffix)==int:
             self.suffix = '%03i'%self.suffix
 
-        if not self.sgroups: self.sgroups = 'None'
+        if not self.sgroups: self.sgroups = None
 
         self.storage = [[self.sgroups, self.samples, self.mtypes, self.ftype],
                [[self.mass, self.massunit], [self.height, self.heightunit], [self.diameter, self.diameterunit],],
@@ -671,5 +676,7 @@ class minfo():
 
 if __name__ == '__main__':
     S = RockPy3.RockPyStudy()
-    a_folder = '/Users/Mike/Dropbox/experimental_data/pyrrhotite/rmp_||a'
-    S.import_folder(a_folder, sgroup='a')
+    s = S.add_sample('test')
+    m = s.add_measurement(fpath='/Users/mike/Dropbox/experimental_data/0915-LT_pyrrhtotite/LTPY_167a_HYS_VSM#264.7mg#(temp,20.0,K).000')
+    print(m.get_RockPy_compatible_filename())
+

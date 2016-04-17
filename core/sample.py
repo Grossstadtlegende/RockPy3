@@ -289,8 +289,13 @@ class Sample(object):
             idx = len(self.measurements)
 
         # generate minfo object
+        if self.samplegroups:
+            sgroups = self.samplegroups
+        else:
+            sgroups = None
+
         minfo = RockPy3.core.file_operations.minfo(fpath=fpath,
-                                                   sgroups=self.samplegroups,
+                                                   sgroups=sgroups,
                                                    samples=self.name,
                                                    mtypes=mtype, ftype=ftype,
                                                    series=series,
@@ -298,7 +303,7 @@ class Sample(object):
                                                    comment=comment, #unused for now
                                                    additional=additional, #unused for now
                                                    read_fpath=True)
-
+        print(minfo.sgroups, fpath)
         """
         ################################################################################################################
         # DATA import from FILE
@@ -348,6 +353,7 @@ class Sample(object):
             self.log.info('ADDING\t << %s, %s >>' % (mobj.ftype, mobj.mtype))
 
             self._add_mobj(mobj)
+            print(minfo.sgroups)
             return mobj
         else:
             self.log.error('COULD not create measurement << %s >>' % mtype)

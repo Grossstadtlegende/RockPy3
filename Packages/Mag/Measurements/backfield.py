@@ -171,12 +171,12 @@ class Backfield(measurement.Measurement):
         if check:
             x = data['field'].v
             y_new = slope * x + intercept
-            plt.plot(data['field'].v, data['mag'].v, '.', color=Backfield.colors[0])
-            plt.plot(x, y_new, color=Backfield.colors[0])
+            plt.plot(data['field'].v, data['mag'].v, '.', color=RockPy3.colorscheme[0])
+            plt.plot(x, y_new, color=RockPy3.colorscheme[0])
 
         # check plot
         if check:
-            plt.plot([-np.nanmean(result), np.nanmean(result)], [0, 0], 'xk')
+            plt.plot([-np.nanmean(result)], [0], 'xk')
             plt.grid()
             plt.show()
 
@@ -220,8 +220,8 @@ class Backfield(measurement.Measurement):
         result = abs(x[idx])
 
         if check:
-            plt.plot(data['field'].v, data['mag'].v, '.', color=RockPy.Measurement.colors[0])
-            plt.plot(x, y_new, color=RockPy.Measurement.colors[0])
+            plt.plot(data['field'].v, data['mag'].v, '.', color=RockPy3.colorscheme[0])
+            plt.plot(x, y_new, color=RockPy3.colorscheme[0])
             plt.plot(-result, 0, 'xk')
             plt.grid()
             plt.show()
