@@ -421,6 +421,9 @@ class minfo():
         """
         takes a tuple and converts it to text, if more than one element, brackets are put around it
         """
+        if tup is None:
+            return ''
+
         if type(tup)==list:
             if len(tup) == 1:
                 tup = tup[0]
@@ -573,6 +576,9 @@ class minfo():
         blocks = (self.measurement_block, self.sample_block, self.series_block, self.add_block, self.comment_block)
         additional = tuple()
 
+
+        sgroups = tuple([sg if sg != 'None' else None for sg in sgroups])
+
         if mtypes:
             mtypes = tuple(RockPy3.abbrev_to_classname(mtype) for mtype in RockPy3._to_tuple(mtypes))
         if ftype:
@@ -588,7 +594,7 @@ class minfo():
         if read_fpath and fpath: #todo add check for if path is readable
             self.folder= os.path.dirname(fpath)
             f, self.suffix = os.path.splitext(os.path.basename(fpath))
-            self.suffix=self.suffix.strip('.')
+            self.suffix = self.suffix.strip('.')
             splits = f.split('#')
 
             #check if RockPy compatible e.g. first part must be len(4)
@@ -600,19 +606,17 @@ class minfo():
                         block(splits[i])
                     except (ValueError, ):
                         pass
-        # print(self.sgroups, fpath, self.mtypes)
-        # print(locals())
         for i in ('sgroups', 'samples', 'mtypes', 'ftype',
                   'mass', 'height', 'diameter',
                   'massunit', 'lengthunit', 'heightunit', 'diameterunit',
                   'series', 'additional', 'comment', 'folder'):
-            if locals()[i] is None:
-                continue
-            if all(locals()[i]):
-                # print(i, locals()[i])
+
+            if locals()[i]:
+                if isinstance(locals()[i], (tuple, list, set)):
+                    if not all(locals()[i]):
+                        continue
                 setattr(self, i, locals()[i])
 
-        # print(self.sgroups, fpath, self.mtypes)
 
         if kwargs:
             self.additional += tuple(kwargs.items())
@@ -622,6 +626,9 @@ class minfo():
 
         if type(self.suffix)==int:
             self.suffix = '%03i'%self.suffix
+
+        if self.suffix is None:
+            self.suffix = '000'
 
         if not self.sgroups: self.sgroups = None
 
@@ -637,9 +644,9 @@ class minfo():
         name after new RockPy3 convention
         """
 
-        if not self.fpath:
-            RockPy3.logger.error('%s is not a file' %self.get_measurement_block())
-            return
+        # if not self.fpath:
+        #     RockPy3.logger.error('%s is not a file' %self.get_measurement_block())
+        #     return
         out = [self.get_measurement_block(), self.get_sample_block(),
                self.get_series_block(), self.get_add_block(), self.comment]
 
@@ -675,8 +682,6 @@ class minfo():
             yield sdict
 
 if __name__ == '__main__':
-    S = RockPy3.RockPyStudy()
-    s = S.add_sample('test')
-    m = s.add_measurement(fpath='/Users/mike/Dropbox/experimental_data/0915-LT_pyrrhtotite/LTPY_167a_HYS_VSM#264.7mg#(temp,20.0,K).000')
-    print(m.get_RockPy_compatible_filename())
+    m = RockPy3.Sample('test').add_measurement(fpath='/Users/mike/Dropbox/experimental_data/FeNiX/FeNi20K/separation test/FeNi_FeNi20-Ka1440_HYS_VSM###Tesa1.001')
 
+    print(m.sobj.samplegroups)

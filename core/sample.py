@@ -243,7 +243,6 @@ class Sample(object):
             create_parameter=False,
             automatic_results=True,
             comment=None, additional=None,
-            NEWstyle=False,
             **options):
         '''
         All measurements have to be added here
@@ -301,7 +300,6 @@ class Sample(object):
                                                    series=series,
                                                    suffix=idx,
                                                    comment=comment, #unused for now
-                                                   additional=additional, #unused for now
                                                    read_fpath=True)
         """
         ################################################################################################################
@@ -352,7 +350,9 @@ class Sample(object):
             self.log.info('ADDING\t << %s, %s >>' % (mobj.ftype, mobj.mtype))
 
             self._add_mobj(mobj)
-            print(minfo.sgroups)
+
+            for sgroup in minfo.sgroups:
+                self.add_to_samplegroup(sgroup)
             return mobj
         else:
             self.log.error('COULD not create measurement << %s >>' % mtype)

@@ -44,7 +44,7 @@ from RockPy3.core.utils import to_list, _to_tuple
 
 from RockPy3.core.data import condense
 
-from RockPy3.core.file_operations import save, load, abbrev_to_classname
+from RockPy3.core.file_operations import save, load, abbrev_to_classname, minfo
 from RockPy3.core.file_operations import get_fname_from_info, get_info_from_fname, import_folder
 from RockPy3.core.file_operations import load_xml, save_xml
 from RockPy3.core.utils import setLatex

@@ -1804,49 +1804,5 @@ class Hysteresis(measurement.Measurement):
 
 
 if __name__ == '__main__':
-    Study = RockPy3.RockPyStudy()
-    s = Study.add_sample(name='S1')
-    hys_vsm = s.add_measurement(fpath='/Users/mike/Dropbox/experimental_data/FeNiX/FeNi20K/separation test/FeNi_FeNi20-Ka1440_HYS_VSM###OA-Usonic.001',
-                            mtype='hysteresis',
-                            ftype='vsm')
-    #hys_vsm.set_recipe(recipe='nonlinear', result='mrs')
-    #hys_vsm.result_mrs(check=True, no_points=10)
-
-
-    # hys_vftb = s.add_measurement(fpath='/Users/Mike/Dropbox/experimental_data/001_PintP/LF4C/VFTB/P0-postTT/140310_1a.hys',
-    #                         mtype='hysteresis',
-    #                         ftype='vftb')
-    # print(hys_vftb.data)
-    # # coe = s.add_measurement(fpath='/Users/mike/Google Drive/__code/RockPy3/testing/test_data/coe.001',
-    # #                         mtype='backfield',
-    # #                         ftype='vsm')
-
-
-    ### TEST for reversible / irreversible data
-    # Study = RockPy3.RockPyStudy()
-    # s2 = Study.add_sample(name='Pyrrhotite')
-    # hys_mpms = s2.add_measurement(
-    #     fpath='/Users/mike/Dropbox/experimental_data/FeNiX/FeNi20N/FeNi_FeNi20-Na2160-G01_HYS_VSM#66,9[mg]_[]_[]##STD038.001',
-    #     mtype='hysteresis',
-    #     ftype='vsm')
-    # hys_vsm.correct_center(check=True)
-    # print(hys_mpms.correction)
-    # fig = RockPy3.Figure() #create a figure
-    #
-    # vmpms = fig.add_visual(visual='hysteresis', color='k', data=hys_mpms, title='irrev', features=['irreversible_data']) # add a visual
-    # vmpms = fig.add_visual(visual='hysteresis', color='k', data=hys_mpms, title='irrev', features=['reversible_data']) # add a visual
-    # fig.show()
-
-    # testing the correct center function
-    # Study = RockPy3.RockPyStudy()
-    # s = Study.add_sample('test')
-    # m = s.add_simulation('hysteresis', ms=10, hf_sus=0, noise=0, m_offest=0.1, b_offset=0.001, field_noise=10e-6)
-    # fig = RockPy3.Figure(data=m)
-    # v = fig.add_visual('hysteresis')
-    # fig.show()
-    # m = s.add_simulation('hysteresis', hf_sus=100)
-    # m.correct_center(check=True)
-    # print(m.results)
-    # m.data_gridding(check=True)
-    #
-    # m.correct_center(check=True)
+    S = RockPy3.RockPyStudy()
+    S = RockPy3.RockPyStudy(folder='/Users/mike/Dropbox/experimental_data/FeNiX/FeNi20K/separation test')
