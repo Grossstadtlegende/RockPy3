@@ -733,6 +733,10 @@ class Measurement(object):
 
         self.__initialize()
 
+        # normalization
+        self.is_normalized = False  # normalized flag for visuals, so its not normalized twice
+        self.norm = None  # the actual parameters
+
         ''' series '''
         self._series = []
 
@@ -1092,7 +1096,6 @@ class Measurement(object):
                          'calibration', 'holder', 'correction',
                      )
                      }
-
         return pickle_me
 
     def __setstate__(self, d):
@@ -1114,10 +1117,6 @@ class Measurement(object):
         self.selected_recipe = deepcopy(self.result_recipe())
         self.cmethods = {result: getattr(self, 'calculate_' + self.get_cmethod_name(result)) for result in
                          self.result_recipe()}
-        # normalization
-        self.is_normalized = False  # normalized flag for visuals, so its not normalized twice
-        self.norm = None  # the actual parameters
-
 
     @property
     def stype_sval_tuples(self):
@@ -2340,9 +2339,6 @@ def get_result_recipe_name(func_name):
 if __name__ == '__main__':
     S = RockPy3.RockPyStudy()
     s = S.add_sample(name='pyrr17591', mass=6.7, mass_unit='mg', samplegroup='LTPY')
-    m = s.add_measurement(fpath='/Users/mike/Dropbox/experimental_data/0915-LT_pyrrhtotite/LTPY_512.2a_HYS_VSM#262.6mg#(temp,300.0,K)##STD000.001')
-
-    m.normalize('mass')
-    m.normalize('mass')
-    # s.label_add_series(stype='temp')
-    # RockPy3.QuickFig(data = S, visuals='hysteresis')
+    m = s.add_measurement(fpath='/Users/Mike/Dropbox/experimental_data/pyrrhotite/LTPY_pyrr17591_HYS_mpms#6.7mg#(ax,3.0,C)_(temp,10.0,K).001')
+    s.label_add_series(stype='temp')
+    RockPy3.QuickFig(data = S, visuals='hysteresis')
