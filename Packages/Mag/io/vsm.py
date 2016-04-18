@@ -56,7 +56,7 @@ class Vsm(io.ftype):
 
         # get the index of the first segment line. Does not exist for FORC measurements
         if self.mtype == 'Direct moment vs. field; First-order reversal curves':
-            self.segment_start_idx = self.get_data_idx(raw_data)-2
+            self.segment_start_idx = self.get_data_idx(raw_data) - 2
         else:
             self.segment_start_idx = self.get_segment_start_idx(raw_data)
 
@@ -136,24 +136,63 @@ class Vsm(io.ftype):
 
         return data
 
+    def separate_segments(self):
+        """
+        Separates the data from a multiple segments file
+        """
+        out = []
+        data = np.vstack(self.data) # stack all data points int one array (ignore segments)
+
+        directions = np.gradient(data[:, 0]) # gradient of steps
+        mean_step = np.mean(np.abs(directions)) # mean stepsize
+
+        min_segment_length = len(data) / 3 / 5  # assuming a maximum of three branches
+        dir_change = []
+
+        aux = []
+        for i, d in enumerate(directions):
+
+            if i < min_segment_length / 2:
+                n = 0 + i
+            else:
+                n = min_segment_length / 2
+
+            if i > len(directions) - i:
+                m = len(directions) - i
+            else:
+                m = min_segment_length / 2
+
+            meandir = np.sign(np.median(directions[i - n:i + m:2]))
+            if np.sign(d) == meandir or abs(d) < mean_step or len(aux) < min_segment_length:
+                aux.append(i)
+            else:
+                dir_change.append(aux)
+                aux = []
+
+        dir_change.append(aux)
+
+        for d in dir_change:
+            out.append(data[d])
+
+        return out
 
     @staticmethod
     def get_header(data):
         # columnwidth is assumed to be 14
-        column_no = len(max(data))//14
+        column_no = len(max(data)) // 14
         # calculate the splits for the maximal legnth in the header
-        splits = tuple((i*14, (i+1)*14) for i in range(column_no+1))
+        splits = tuple((i * 14, (i + 1) * 14) for i in range(column_no + 1))
 
         data = [[d[i[0]: i[1]].strip() for i in splits] for d in data if d]
 
-        units = [i.replace('(','').replace(')','') for i in data[-1]]
+        units = [i.replace('(', '').replace(')', '') if not '*' in i else '' for i in data[-1]]
 
         # correct Am^2 sign
         for i, v in enumerate(units):
             if 'Am' in v:
                 units[i] = 'A m^2'
 
-        header = [' '.join([d[n] for d in data[:-1] if d[n]]).lower() for n,v in enumerate(data[0])]
+        header = [' '.join([d[n] for d in data[:-1] if d[n]]).lower() for n, v in enumerate(data[0])]
         header = [i for i in header if i]
         units = [i for i in units if i]
         return header, units
@@ -205,6 +244,7 @@ class Vsm(io.ftype):
 
 if __name__ == '__main__':
     from pprint import pprint
+
     forc_file = '/Users/mike/Downloads/FeNi20Mike/FeNi20H/FeNi_FeNi20-Ha36e02-G01_FORC_VSM#[]_[]_[]#-.002'
     hys_file = '/Users/mike/Dropbox/experimental_data/FeNiX/FeNi20KSand/Backups/FeNi_FeNi20-Ka006-G02_HYS_VSM#1,35[mg]_[]_[]##STD032.001'
 

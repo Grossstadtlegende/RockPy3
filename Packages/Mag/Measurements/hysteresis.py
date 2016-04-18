@@ -277,12 +277,17 @@ class Hysteresis(measurement.Measurement):
     ####################################################################################################################
     """ formatting functions """
 
+
     # have to return mdata matching the measurement type
     @staticmethod
     def format_vsm(ftype_data, sobj_name=None):
         header = ftype_data.header
         segments = ftype_data.segment_data
         data = ftype_data.data
+
+        # separate data for multiple sagments:
+        if 'Multiple segments' in ftype_data.mtype:
+            data = ftype_data.separate_segments()
 
         mdata = {}
 
@@ -294,7 +299,8 @@ class Hysteresis(measurement.Measurement):
             header[header.index('moment')] = 'uncorrected moment'
             header[header.index('adjusted moment')] = 'moment'
 
-        if len(segments['segment number']) == 3:
+        print(len(data))
+        if len(data) == 3:
             mdata.setdefault('virgin', RockPyData(column_names=header, data=data[0],
                                                   units=ftype_data.units).sort('field'))
             mdata.setdefault('down_field', RockPyData(column_names=header, data=data[1],
@@ -302,14 +308,14 @@ class Hysteresis(measurement.Measurement):
             mdata.setdefault('up_field', RockPyData(column_names=header, data=data[2],
                                                     units=ftype_data.units).sort('field'))
 
-        elif len(segments['segment number']) == 2:
+        elif len(data) == 2:
             mdata.setdefault('virgin', None)
             mdata.setdefault('down_field', RockPyData(column_names=header, data=data[0],
                                                       units=ftype_data.units).sort('field'))
             mdata.setdefault('up_field', RockPyData(column_names=header, data=data[1],
                                                     units=ftype_data.units).sort('field'))
 
-        elif len(segments['segment number']) == 1:
+        elif len(data) == 1:
             mdata.setdefault('virgin', RockPyData(column_names=header, data=data[0],
                                                   units=ftype_data.units
                                                   ).sort('field'))
@@ -1800,11 +1806,11 @@ class Hysteresis(measurement.Measurement):
 if __name__ == '__main__':
     Study = RockPy3.RockPyStudy()
     s = Study.add_sample(name='S1')
-    hys_vsm = s.add_measurement(fpath='/Users/mike/Google Drive/__code/RockPy3/testing/test_data/hys_vsm.001',
+    hys_vsm = s.add_measurement(fpath='/Users/mike/Dropbox/experimental_data/FeNiX/FeNi20K/separation test/FeNi_FeNi20-Ka1440_HYS_VSM###OA-Usonic.001',
                             mtype='hysteresis',
                             ftype='vsm')
-    hys_vsm.set_recipe(recipe='nonlinear', result='mrs')
-    hys_vsm.result_mrs(check=True, no_points=10)
+    #hys_vsm.set_recipe(recipe='nonlinear', result='mrs')
+    #hys_vsm.result_mrs(check=True, no_points=10)
 
 
     # hys_vftb = s.add_measurement(fpath='/Users/Mike/Dropbox/experimental_data/001_PintP/LF4C/VFTB/P0-postTT/140310_1a.hys',

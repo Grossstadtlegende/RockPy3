@@ -408,15 +408,15 @@ class Visual(object):
         self.ax.grid(**plt_props)
 
     @plot(single=True)
-    def feature_generic_data(self, plt_props=None):
+    def feature_generic_data(self, plt_props=None, **props):
         RockPy3.Packages.Generic.Features.generic.plot_x_y(ax=self.ax, **plt_props)
 
     @plot(single=True)
-    def feature_generic_errorbars(self, plt_props=None):
+    def feature_generic_errorbars(self, plt_props=None, **props):
         RockPy3.Packages.Generic.Features.generic.plot_errorbars(ax=self.ax, **plt_props)
 
     @plot(single=True)
-    def feature_generic_text(self, plt_props=None):
+    def feature_generic_text(self, plt_props=None, **props):
         RockPy3.Packages.Generic.Features.generic.text_x_y(ax=self.ax, **plt_props)
 
     @plot(single=True)

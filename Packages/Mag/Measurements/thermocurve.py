@@ -66,7 +66,7 @@ class Thermocurve(measurement.Measurement):
     def format_vsm(ftype_data, sobj_name=None):
 
         header = ftype_data.header
-        segments = ftype_data.get_segments_from_data()
+        segments = ftype_data.segment_data
         data = ftype_data.data
 
         mdata = OrderedDict()
@@ -179,4 +179,13 @@ if __name__ == '__main__':
     # fig.show()
     S = RockPy3.RockPyStudy()
     s = S.add_sample('test')
-    s.add_measurement(fpath='LTPY_P17591_RMP_MPMS#[]_[]_[]#field_0,0_T;axis_1,0_a##.000')
+    m = s.add_measurement(fpath='/Users/mike/Dropbox/experimental_data/RMP/LTPY/LTPY_167a_RMP_VSM#[]_[]_[]##STD001.000')
+    print(deepcopy(m).__dict__.keys())
+
+    # fig = RockPy3.Figure()
+    #
+    # # 167a
+    # v = fig.add_visual('thermocurve', data=s)
+    # v.enumerate()
+    # v.normalize('cooling00', vval=300)
+    # fig.show()

@@ -303,7 +303,6 @@ class Sample(object):
                                                    comment=comment, #unused for now
                                                    additional=additional, #unused for now
                                                    read_fpath=True)
-        print(minfo.sgroups, fpath)
         """
         ################################################################################################################
         # DATA import from FILE

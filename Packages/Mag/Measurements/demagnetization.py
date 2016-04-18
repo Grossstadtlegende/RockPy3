@@ -181,19 +181,19 @@ class AfDemagnetization(Demagnetization):
             out[dtype].define_alias('variable', 'step')
         return out
 
-    class ThermalDemagnetization(Demagnetization):
-        def format_cryomag(ftype_data, sobj_name=None):
-            out = super(ThermalDemagnetization, ThermalDemagnetization).format_cryomag(ftype_data, sobj_name=sobj_name)
-            for dtype in out:
-                out[dtype].define_alias('temp', 'step')
-                out[dtype].define_alias('variable', 'step')
-            return out
+class ThermalDemagnetization(Demagnetization):
+    def format_cryomag(ftype_data, sobj_name=None):
+        out = super(ThermalDemagnetization, ThermalDemagnetization).format_cryomag(ftype_data, sobj_name=sobj_name)
+        for dtype in out:
+            out[dtype].define_alias('temp', 'step')
+            out[dtype].define_alias('variable', 'step')
+        return out
 
-    if __name__ == '__main__':
-        # test JR6 afdemag import
-        S = RockPy3.Study
-        s = S.add_sample('IXD')
-        m=s.add_measurement(fpath='/Users/mike/Dropbox/experimental_data/006_HT-ARM-AF/AF/High_T_AF-demag_020.jr6',
-                          mtype='af', ftype='jr6', series=[('at', 0, 'C')])
-        print(m.get_series(stype='at'))
-        print(m.get_series(stype='at'))
+if __name__ == '__main__':
+    # test JR6 afdemag import
+    S = RockPy3.Study
+    s = S.add_sample('IXD')
+    m=s.add_measurement(fpath='/Users/mike/Dropbox/experimental_data/006_HT-ARM-AF/AF/High_T_AF-demag_020.jr6',
+                      mtype='af', ftype='jr6', series=[('at', 0, 'C')])
+    print(m.get_series(stype='at'))
+    print(m.get_series(stype='at'))

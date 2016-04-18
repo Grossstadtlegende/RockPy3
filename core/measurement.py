@@ -733,10 +733,6 @@ class Measurement(object):
 
         self.__initialize()
 
-        # normalization
-        self.is_normalized = False  # normalized flag for visuals, so its not normalized twice
-        self.norm = None  # the actual parameters
-
         ''' series '''
         self._series = []
 
@@ -1087,7 +1083,7 @@ class Measurement(object):
                          'calculation_parameter',
                          # data related
                          '_raw_data', '_data',
-                         'initial_state', 'is_initial_state',
+                         'initial_state', 'is_initial_state', 'is_normalized',
                          'is_mean', 'base_measurements',
                          'results',
                          # sample related
@@ -1096,6 +1092,7 @@ class Measurement(object):
                          'calibration', 'holder', 'correction',
                      )
                      }
+
         return pickle_me
 
     def __setstate__(self, d):
@@ -1117,6 +1114,10 @@ class Measurement(object):
         self.selected_recipe = deepcopy(self.result_recipe())
         self.cmethods = {result: getattr(self, 'calculate_' + self.get_cmethod_name(result)) for result in
                          self.result_recipe()}
+        # normalization
+        self.is_normalized = False  # normalized flag for visuals, so its not normalized twice
+        self.norm = None  # the actual parameters
+
 
     @property
     def stype_sval_tuples(self):
