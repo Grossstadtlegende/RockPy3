@@ -299,7 +299,6 @@ class Hysteresis(measurement.Measurement):
             header[header.index('moment')] = 'uncorrected moment'
             header[header.index('adjusted moment')] = 'moment'
 
-        print(len(data))
         if len(data) == 3:
             mdata.setdefault('virgin', RockPyData(column_names=header, data=data[0],
                                                   units=ftype_data.units).sort('field'))
@@ -437,8 +436,11 @@ class Hysteresis(measurement.Measurement):
 
         # calculate bc for both measurement directions
         for i, dir in enumerate([down_f, up_f]):
-            slope, intercept, r_value, p_value, std_err = stats.linregress(dir['field'].v, dir['mag'].v)
-            result.append(abs(intercept / slope))
+            try:
+                slope, intercept, r_value, p_value, std_err = stats.linregress(dir['field'].v, dir['mag'].v)
+                result.append(abs(intercept / slope))
+            except ValueError:
+                result.append(0)
             # check plot
             if check:
                 x = dir['field'].v

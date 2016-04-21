@@ -509,6 +509,7 @@ class Study(object):
             mtype = [RockPy3.abbrev_to_classname(mt) for mt in mtype]
 
         for mi in minfos:
+            RockPy3.logger.info('importing {}'.format(mi.fpath))
             # dont import samples that are not in the measurement info
             if sname:
                 sname = RockPy3._to_tuple(sname)

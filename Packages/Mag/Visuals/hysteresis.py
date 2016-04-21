@@ -67,7 +67,7 @@ class Hysteresis(Visual):
         RockPy3.Packages.Generic.Features.generic.text_x_y(ax=self.ax, **txt_props)
 
     @plot(mtypes='backfield')
-    def feature_backfield_data(self, mobj, plt_props=None):
+    def feature_backfield_data(self, mobj, **plt_props):
         RockPy3.Packages.Mag.Features.backfield.backfield_data(self.ax, mobj, **plt_props)
 
 

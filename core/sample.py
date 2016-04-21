@@ -351,8 +351,9 @@ class Sample(object):
 
             self._add_mobj(mobj)
 
-            for sgroup in minfo.sgroups:
-                self.add_to_samplegroup(sgroup)
+            if minfo.sgroups:
+                for sgroup in minfo.sgroups:
+                    self.add_to_samplegroup(sgroup)
             return mobj
         else:
             self.log.error('COULD not create measurement << %s >>' % mtype)
@@ -1170,11 +1171,20 @@ class MeanSample(Sample):
 
 if __name__ == '__main__':
     RockPy3.logger.setLevel('DEBUG')
-    S = RockPy3.RockPyStudy(folder='/Users/mike/Dropbox/experimental_data/pyrrhotite/hys||c')
-    s = S[0]
-    print(s.measurements)
-    print(s.get_measurement(mtype='hysteresis'))
-    print([m._idx for m in s['hysteresis']])
+    #S = RockPy3.RockPyStudy(folder='/Users/mike/Dropbox/experimental_data/pyrrhotite/hys||c')
+    S = RockPy3.RockPyStudy()
+    s = S.add_sample('sim')
+    m1 = s.add_simulation('hysteresis', mrs_ms=0.1, b_sat=0.5)
+
+    m2 = s.add_simulation('hysteresis', mrs_ms=1, b_sat=1)
+    m3 = m1+m2
+    f = RockPy3.Figure(data=S)
+
+    v = f.add_visual('hysteresis')
+    v = f.add_visual('hysteresis', features='reversible_data')
+    v = f.add_visual('hysteresis', features='irreversible_data')
+
+    f.show()
 
 
 

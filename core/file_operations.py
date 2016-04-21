@@ -412,6 +412,7 @@ class minfo():
         return tuple(s)
 
     def extract_series(self, s):
+        print(s)
         s = self.extract_tuple(s)
         s = tuple([s[0], float(s[1]), s[2]])
         return s
@@ -482,7 +483,10 @@ class minfo():
         self.series =[self.extract_series(s) for s in series if s]
 
     def add_block(self, block):
-        self.additional = block
+        if block:
+            self.additional = block
+        else:
+            self.additional = ''
 
     def comment_block(self,block):
         self.comment = block
@@ -573,10 +577,18 @@ class minfo():
             if true the path will be read for info
         kwargs
         """
+        if 'mtype' in kwargs and not mtypes:
+            mtypes = kwargs.pop('mtype')
+        if 'sgroup' in kwargs and not sgroups:
+            mtypes = kwargs.pop('sgroup')
+        if 'sample' in kwargs and not samples:
+            mtypes = kwargs.pop('sample')
+
+
         blocks = (self.measurement_block, self.sample_block, self.series_block, self.add_block, self.comment_block)
         additional = tuple()
 
-
+        sgroups = RockPy3._to_tuple(sgroups)
         sgroups = tuple([sg if sg != 'None' else None for sg in sgroups])
 
         if mtypes:
@@ -617,9 +629,13 @@ class minfo():
                         continue
                 setattr(self, i, locals()[i])
 
-
+        if self.additional is None:
+            self.additional = ''
         if kwargs:
-            self.additional += tuple(kwargs.items())
+            for k,v in kwargs.items():
+                if v:
+                    print(k,v, self.additional)
+                    self.additional += '{}:{}'.format(k,v)
 
         if suffix:
             self.suffix = suffix
@@ -627,7 +643,7 @@ class minfo():
         if type(self.suffix)==int:
             self.suffix = '%03i'%self.suffix
 
-        if self.suffix is None:
+        if not self.suffix:
             self.suffix = '000'
 
         if not self.sgroups: self.sgroups = None

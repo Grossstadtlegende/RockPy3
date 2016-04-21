@@ -284,6 +284,7 @@ class plot(object):
         kwargs['plt_props'].update(visual._RockPy_figure.plt_props)
         kwargs['plt_props'].update(visual.plt_props)
         kwargs['plt_props'].update(visual.features[name]['feature_props'])
+
         return kwargs
 
     def __call__(self, feature, name=None, feature_props=None):
@@ -466,6 +467,9 @@ class plot(object):
                             # e.g. for setting marker = '' in the hysteresis_data feature
                             kwargs = self.update_plt_props(kwargs, visual=visual, name=name)
 
+                            for k in list(kwargs.keys()):
+                                if k in kwargs['plt_props']:
+                                    kwargs.pop(k)
                             # change the alpha to base_alpha if group or sample base should be plotted and the means
                             if (plt_type == 'samplebase' and plt_info['plot_samplemean'] and plt_info['samplemean']) or \
                                     (plt_type == 'groupbase' and plt_info['plot_groupmean'] and plt_info['groupmean']):
