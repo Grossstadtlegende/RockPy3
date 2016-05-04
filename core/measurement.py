@@ -1037,20 +1037,29 @@ class Measurement(object):
         -------
 
         """
+        # deepcopy both data
         first = deepcopy(self)
         other = deepcopy(other)
+
         for dtype in first.data:
+            # if one of them does not have the dtype skip it
             if first.data[dtype] is None or other.data[dtype] is None:
                 continue
+             # get the variables for both first, other of that dtype
             vars1 = set(first.data[dtype]['variable'].v)
             vars2 = set(other.data[dtype]['variable'].v)
+
+            # get variables that are different
             diff = vars1 ^ vars2
+            # if the variables are different interpolate the values
             if diff:
                 vars = vars1 | vars2
                 first.data[dtype] = first.data[dtype].interpolate(new_variables=vars)
                 other.data[dtype] = other.data[dtype].interpolate(new_variables=vars)
             first.data[dtype] = first.data[dtype].eliminate_duplicate_variable_rows() + other.data[
                 dtype].eliminate_duplicate_variable_rows()
+            # remove all nan entries
+            first.data[dtype] = first.data[dtype].filter(~np.any(np.isnan(first.data[dtype].v), axis=1))
             first.data[dtype] = first.data[dtype].sort()
         return self.sobj.add_measurement(mtype=first.mtype, mdata=first.data)
 
@@ -1652,7 +1661,7 @@ class Measurement(object):
 
     def equal_series(self, other, ignore_stypes=()):
         ignore_stypes = RockPy3._to_tuple(ignore_stypes)
-        ignore_stypes = [st.lower() for st in ignore_stypes]
+        ignore_stypes = [st.lower() for st in ignore_stypes if type(st) == str]
         selfseries = [s for s in self.series if not s.stype in ignore_stypes]
         otherseries = [s for s in other.series if not s.stype in ignore_stypes]
 
@@ -1993,17 +2002,19 @@ class Measurement(object):
             mean = 'mean '
         else:
             mean = ''
-        self.plt_props['label'] = ' '.join([self.plt_props['label'], mean, self.sobj.name])
+        text = ' '.join([mean, self.sobj.name])
+        self.label_add_text(text)
 
     def label_add_stype(self, stype=None, add_stype=True, add_sval=True, add_unit=True):
         """
         adds the corresponding sample_name to the measurement label
         """
         text = self.get_series_labels(stype=stype, add_stype=add_stype, add_sval=add_sval, add_unit=add_unit)
-        self.plt_props['label'] = ' '.join([self.plt_props['label'], text])
+        self.label_add_text(text)
 
     def label_add_text(self, text):
-        self.plt_props['label'] = ' '.join([self.plt_props['label'], text])
+        if not text in self.plt_props['label']:
+            self.plt_props['label'] = ' '.join([self.plt_props['label'], text])
 
     def set_get_attr(self, attr, value=None):
         """

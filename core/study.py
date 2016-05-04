@@ -149,6 +149,11 @@ class Study(object):
             stype_sval_dict[stype] = sorted(stype_sval_dict[stype])
         return stype_sval_dict
 
+    @property
+    def svals(self):
+        out = {st: sorted(self.get_sval(st)) for st in self.stypes}
+        return out
+
     def get_sval(self, stype):
         """
         Method to get all values for a given stype
@@ -902,6 +907,10 @@ class Study(object):
         -------
             RockPy3.Sample
         """
+        if len(slist) == 1:
+            RockPy3.logger.error('only one sample given.')
+            return
+
         new_sample = self.add_sample(new_sname)
 
         if isinstance(slist, RockPy3.RockPyStudy):

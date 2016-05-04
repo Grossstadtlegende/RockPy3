@@ -17,6 +17,7 @@ default_folder = join(expanduser("~"), 'Desktop', 'RockPy')
 
 import os, re
 
+
 def mtype_ftype_abbreviations():
     RockPy3.logger.debug('READING FTYPE/MTYPE abbreviations')
     with open(join(RockPy3.installation_directory, 'abbreviations')) as f:
@@ -26,6 +27,7 @@ def mtype_ftype_abbreviations():
     inv_abbrev = {i: k for k in abbrev for i in abbrev[k]}
     inv_abbrev.update({k: k for k in abbrev})
     return inv_abbrev, abbrev
+
 
 def abbreviate_name(name):
     if name:
@@ -113,7 +115,7 @@ def load_xml(file_name, folder=None):
     return study
 
 
-def get_fname_from_info(samplegroup='', sample_name='', #todo redundant
+def get_fname_from_info(samplegroup='', sample_name='',  # todo redundant
                         mtype='', ftype='',
                         mass='', mass_unit='',
                         height='', length_unit='',
@@ -207,7 +209,7 @@ def get_fname_from_info(samplegroup='', sample_name='', #todo redundant
     return out
 
 
-def get_info_from_fname(path=None): # todo redundant
+def get_info_from_fname(path=None):  # todo redundant
     """
     extracts the file information out of the filename
 
@@ -404,15 +406,14 @@ def rename_file(old_file='',
     new_file = check_if_file_exists(new_file)
     os.rename(old_file, new_file)
 
-class minfo():
 
+class minfo():
     @staticmethod
     def extract_tuple(s):
         s = s.strip('(').strip(')').split(',')
         return tuple(s)
 
     def extract_series(self, s):
-        print(s)
         s = self.extract_tuple(s)
         s = tuple([s[0], float(s[1]), s[2]])
         return s
@@ -425,24 +426,27 @@ class minfo():
         if tup is None:
             return ''
 
-        if type(tup)==list:
-            if len(tup) == 1:
-                tup = tup[0]
-            else:
-                tup=tuple(tup)
+        tup = RockPy3._to_tuple(tup)
+
+        # if type(tup) == list:
+        #     if len(tup) == 1:
+        #         tup = tup[0]
+        #     else:
+        #         tup = tuple(tup)
         if len(tup) == 1:
             return str(tup[0])
         else:
-            return str(tup).replace('\'', ' ').replace(' ','')
+            return str(tup).replace('\'', ' ').replace(' ', '')
 
     def measurement_block(self, block):
         sgroups, samples, mtypes, ftype = block.split('_')
         # names with , need to be replaced
         if not '(' in samples and ',' in samples:
             samples = samples.replace(',', '.')
-            RockPy3.logger.warning('sample name %s contains \',\' will be replaced with \'.\'' %samples)
+            RockPy3.logger.warning('sample name %s contains \',\' will be replaced with \'.\'' % samples)
 
-        self.sgroups, self.samples, self.mtypes, self.ftype = self.extract_tuple(sgroups), self.extract_tuple(samples), self.extract_tuple(mtypes), ftype
+        self.sgroups, self.samples, self.mtypes, self.ftype = self.extract_tuple(sgroups), self.extract_tuple(
+            samples), self.extract_tuple(mtypes), ftype
         self.mtypes = tuple(RockPy3.abbrev_to_classname(mtype) for mtype in RockPy3._to_tuple(self.mtypes))
         self.ftype = RockPy3.abbrev_to_classname(ftype)
 
@@ -451,7 +455,7 @@ class minfo():
         units = []
 
         if '_' in block:
-            #old style infos
+            # old style infos
             block = block.replace('[', '').replace(']', '')
             block = block.replace(',', '.')
             parts = block.split('_')
@@ -472,7 +476,7 @@ class minfo():
 
     def series_block(self, block):
         # old style series block: e.g. mtime(h)_0,0_h;mtime(m)_0,0_min;speed_1100,0_rpm
-        if not any(s in block for s in ('(',')')) or ';' in block:
+        if not any(s in block for s in ('(', ')')) or ';' in block:
             block = block.replace(',', '.')
             block = block.replace('_', ',')
             block = block.replace(';', '_')
@@ -480,7 +484,7 @@ class minfo():
         series = block.split('_')
         if not series:
             self.series = None
-        self.series =[self.extract_series(s) for s in series if s]
+        self.series = [self.extract_series(s) for s in series if s]
 
     def add_block(self, block):
         if block:
@@ -488,7 +492,7 @@ class minfo():
         else:
             self.additional = ''
 
-    def comment_block(self,block):
+    def comment_block(self, block):
         self.comment = block
 
     def get_measurement_block(self):
@@ -584,7 +588,6 @@ class minfo():
         if 'sample' in kwargs and not samples:
             mtypes = kwargs.pop('sample')
 
-
         blocks = (self.measurement_block, self.sample_block, self.series_block, self.add_block, self.comment_block)
         additional = tuple()
 
@@ -597,26 +600,26 @@ class minfo():
             ftype = RockPy3.abbrev_to_classname(ftype)
 
         self.__dict__.update({i: None for i in ('sgroups', 'samples', 'mtypes', 'ftype',
-                                               'mass', 'height', 'diameter',
-                                               'massunit', 'lengthunit', 'heightunit', 'diameterunit',
-                                               'series', 'additional', 'comment', 'folder', 'suffix')
+                                                'mass', 'height', 'diameter',
+                                                'massunit', 'lengthunit', 'heightunit', 'diameterunit',
+                                                'series', 'additional', 'comment', 'folder', 'suffix')
                               })
         self.fpath = fpath
 
-        if read_fpath and fpath: #todo add check for if path is readable
-            self.folder= os.path.dirname(fpath)
+        if read_fpath and fpath:  # todo add check for if path is readable
+            self.folder = os.path.dirname(fpath)
             f, self.suffix = os.path.splitext(os.path.basename(fpath))
             self.suffix = self.suffix.strip('.')
             splits = f.split('#')
 
-            #check if RockPy compatible e.g. first part must be len(4)
+            # check if RockPy compatible e.g. first part must be len(4)
             if not len(splits[0]) == 4:
                 pass
             for i, block in enumerate(blocks[:len(splits)]):
                 if splits[i]:
                     try:
                         block(splits[i])
-                    except (ValueError, ):
+                    except (ValueError,):
                         pass
         for i in ('sgroups', 'samples', 'mtypes', 'ftype',
                   'mass', 'height', 'diameter',
@@ -632,16 +635,16 @@ class minfo():
         if self.additional is None:
             self.additional = ''
         if kwargs:
-            for k,v in kwargs.items():
+            for k, v in kwargs.items():
                 if v:
-                    print(k,v, self.additional)
-                    self.additional += '{}:{}'.format(k,v)
+                    print(k, v, self.additional)
+                    self.additional += '{}:{}'.format(k, v)
 
         if suffix:
             self.suffix = suffix
 
-        if type(self.suffix)==int:
-            self.suffix = '%03i'%self.suffix
+        if type(self.suffix) == int:
+            self.suffix = '%03i' % self.suffix
 
         if not self.suffix:
             self.suffix = '000'
@@ -649,10 +652,11 @@ class minfo():
         if not self.sgroups: self.sgroups = None
 
         self.storage = [[self.sgroups, self.samples, self.mtypes, self.ftype],
-               [[self.mass, self.massunit], [self.height, self.heightunit], [self.diameter, self.diameterunit],],
-               self.series,
-               (self.additional,),
-               self.comment]
+                        [[self.mass, self.massunit], [self.height, self.heightunit],
+                         [self.diameter, self.diameterunit], ],
+                        self.series,
+                        (self.additional,),
+                        self.comment]
 
     @property
     def fname(self):
@@ -666,13 +670,12 @@ class minfo():
         out = [self.get_measurement_block(), self.get_sample_block(),
                self.get_series_block(), self.get_add_block(), self.comment]
 
-
         for i, block in enumerate(out[::-1]):
             if not block:
                 out.pop()
             else:
                 break
-        fname = '#'.join(map(str, out))+'.'+self.suffix
+        fname = '#'.join(map(str, out)) + '.' + self.suffix
         fname = fname.replace('None', '')
         return fname
 
@@ -683,13 +686,13 @@ class minfo():
         for i in samples:
             for j in self.mtypes:
                 mtype = RockPy3.abbrev_to_classname(j)
-                idict.update({'mtype':mtype, 'sample':i})
+                idict.update({'mtype': mtype, 'sample': i})
                 yield idict
 
     @property
     def sample_infos(self):
         sdict = dict(mass=self.mass, diameter=self.diameter, height=self.height,
-                     mass_unit = self.massunit, height_unit=self.heightunit, diameter_unit=self.diameterunit,
+                     mass_unit=self.massunit, height_unit=self.heightunit, diameter_unit=self.diameterunit,
                      samplegroup=self.sgroups)
 
         samples = RockPy3._to_tuple(self.samples)
@@ -697,7 +700,9 @@ class minfo():
             sdict.update({'name': i})
             yield sdict
 
+
 if __name__ == '__main__':
-    m = RockPy3.Sample('test').add_measurement(fpath='/Users/mike/Dropbox/experimental_data/FeNiX/FeNi20K/separation test/FeNi_FeNi20-Ka1440_HYS_VSM###Tesa1.001')
+    m = RockPy3.Sample('test').add_measurement(
+        fpath='/Users/mike/Dropbox/experimental_data/FeNiX/FeNi20K/separation test/FeNi_FeNi20-Ka1440_HYS_VSM###Tesa1.001')
 
     print(m.sobj.samplegroups)

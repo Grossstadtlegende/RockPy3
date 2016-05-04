@@ -35,4 +35,4 @@ if __name__ == '__main__':
     v = f.add_visual('thermocurve')
     v.add_feature('thermocurve_derivative', twinx=True)
     v.title = s2.name
-    f.show(xlims=(20, 350))
+    f.show(xlim=(20, 350))

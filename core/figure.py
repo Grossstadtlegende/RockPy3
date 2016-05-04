@@ -10,6 +10,8 @@ import matplotlib.pyplot as plt
 from RockPy3.core.visual import Visual
 
 
+
+
 class Figure(object):
     def __init__(self, title=None, figsize=(5, 5), columns=None, tightlayout=True,
                  data=None,
@@ -197,7 +199,7 @@ class Figure(object):
         return xlim, ylim
 
     def show(self,
-             xlims=None, ylims=None,
+             xlim=None, ylim=None,
              equal_lims=False, center_lims=False,
              save_path=None,
              pad=0.4, w_pad=0.5, h_pad=1.0,
@@ -226,10 +228,10 @@ class Figure(object):
         self.plt_all()
 
         for name, type, visual in self._visuals:
-            if visual.xlims:
-                visual.ax.set_xlim(visual.xlims)
-            if visual.ylims:
-                visual.ax.set_ylim(visual.ylims)
+            if visual.xlim:
+                visual.ax.set_xlim(visual.xlim)
+            if visual.ylim:
+                visual.ax.set_ylim(visual.ylim)
 
             if visual.xscale:
                 visual.ax.set_xscale(visual.xscale)
@@ -243,22 +245,22 @@ class Figure(object):
             #     xlim = visual.ax.get_xlim()
             #     ylim = visual.ax.get_ylim()
 
-        if xlims == 'equal' or ylims == 'equal' or equal_lims:
+        if xlim == 'equal' or ylim == 'equal' or equal_lims:
             if equal_lims:
-                xlims, ylims = self.get_xylims()
+                xlim, ylim = self.get_xylims()
 
             if center_lims:
-                xl = max(np.abs(xlims))
-                yl = max(np.abs(ylims))
-                xlims = [-xl, xl]
-                ylims = [-yl, yl]
+                xl = max(np.abs(xlim))
+                yl = max(np.abs(ylim))
+                xlim = [-xl, xl]
+                ylim = [-yl, yl]
 
             # cycle through visuals to set
             for name, type, visual in self._visuals:
-                if xlims == 'equal' or equal_lims:
-                    visual.ax.set_xlim(xlims)
-                if ylims == 'equal' or equal_lims:
-                    visual.ax.set_ylim(ylims)
+                if xlim == 'equal' or equal_lims:
+                    visual.ax.set_xlim(xlim)
+                if ylim == 'equal' or equal_lims:
+                    visual.ax.set_ylim(ylim)
 
         # prepare legends for individual visuals
         for name, type, visual in self._visuals:
@@ -272,15 +274,15 @@ class Figure(object):
             visual.ax.legend(handles, labels, **visual.legend_options)
 
         # check if two entries and each is float or int
-        if xlims:
-            if len(xlims) == 2 and any(isinstance(i, (float, int)) for i in xlims):
+        if xlim:
+            if len(xlim) == 2 and any(isinstance(i, (float, int)) for i in xlim):
                 for name, type, visual in self._visuals:
-                    visual.ax.set_xlim(xlims)
+                    visual.ax.set_xlim(xlim)
         # check if two entries and each is float or int
-        if ylims:
-            if len(ylims) == 2 and any(isinstance(i, (float, int)) for i in ylims):
+        if ylim:
+            if len(ylim) == 2 and any(isinstance(i, (float, int)) for i in ylim):
                 for name, type, visual in self._visuals:
-                    visual.ax.set_ylim(ylims)
+                    visual.ax.set_ylim(ylim)
 
         self._fig.set_tight_layout(tight={'pad': pad, 'w_pad': w_pad, 'h_pad': h_pad})
 

@@ -129,7 +129,8 @@ class Sample(object):
         self._samplegroups = []
 
         if samplegroup:
-            self.add_to_samplegroup(gname=samplegroup)
+            for sg in samplegroup:
+                self.add_to_samplegroup(gname=sg)
 
         # coordinate system
         self._coord = coord
@@ -243,6 +244,7 @@ class Sample(object):
             create_parameter=False,
             automatic_results=True,
             comment=None, additional=None,
+            minfo=None,
             **options):
         '''
         All measurements have to be added here
@@ -293,14 +295,15 @@ class Sample(object):
         else:
             sgroups = None
 
-        minfo = RockPy3.core.file_operations.minfo(fpath=fpath,
-                                                   sgroups=sgroups,
-                                                   samples=self.name,
-                                                   mtypes=mtype, ftype=ftype,
-                                                   series=series,
-                                                   suffix=idx,
-                                                   comment=comment, #unused for now
-                                                   read_fpath=True)
+        if not minfo:
+            minfo = RockPy3.core.file_operations.minfo(fpath=fpath,
+                                                       sgroups=sgroups,
+                                                       samples=self.name,
+                                                       mtypes=mtype, ftype=ftype,
+                                                       series=series,
+                                                       suffix=idx,
+                                                       comment=comment, #unused for now
+                                                       read_fpath=True)
         """
         ################################################################################################################
         # DATA import from FILE
@@ -308,6 +311,9 @@ class Sample(object):
         if not mdata and not mobj:
             for import_info in minfo.measurement_infos:
                 mtype = import_info.pop('mtype')
+                if not mtype in RockPy3.implemented_measurements:
+                    self.log.error('{} not implemented'.format(mtype))
+                    continue
                 mobj = RockPy3.implemented_measurements[mtype].from_file(sobj=self,
                                                                         automatic_results = automatic_results,
                                                                         **import_info)
@@ -353,7 +359,7 @@ class Sample(object):
 
             if minfo.sgroups:
                 for sgroup in minfo.sgroups:
-                    self.add_to_samplegroup(sgroup)
+                    self.add_to_samplegroup(sgroup, warn=False)
             return mobj
         else:
             self.log.error('COULD not create measurement << %s >>' % mtype)
@@ -614,7 +620,7 @@ class Sample(object):
         mean = [mean for mean in self.mean_measurements if set(mean.base_ids) == id_list]
         return mean if mean else False
 
-    def add_to_samplegroup(self, gname):
+    def add_to_samplegroup(self, gname, warn=True):
         """
         adds the sample to a samplegroup
         Parameters
@@ -631,7 +637,8 @@ class Sample(object):
             self.log.debug('ADDING {} to samplegroup {}'.format(self.name, gname))
             self._samplegroups.append(gname)
         else:
-            self.log.warning('SAMPLE {} already in samplegroup {}'.format(self.name, gname))
+            if warn:
+                self.log.warning('SAMPLE {} already in samplegroup {}'.format(self.name, gname))
 
     def remove_from_samplegroup(self, gname):
         if gname in self._samplegroups:
@@ -1172,12 +1179,8 @@ class MeanSample(Sample):
 if __name__ == '__main__':
     RockPy3.logger.setLevel('DEBUG')
     #S = RockPy3.RockPyStudy(folder='/Users/mike/Dropbox/experimental_data/pyrrhotite/hys||c')
-    S = RockPy3.RockPyStudy()
-    s = S.add_sample('sim')
-    m1 = s.add_simulation('hysteresis', mrs_ms=0.1, b_sat=0.5)
+    S = RockPy3.RockPyStudy(folder='/Users/mike/Dropbox/experimental_data/FeNiX/FeNi20K/separation test')
 
-    m2 = s.add_simulation('hysteresis', mrs_ms=1, b_sat=1)
-    m3 = m1+m2
     f = RockPy3.Figure(data=S)
 
     v = f.add_visual('hysteresis')
