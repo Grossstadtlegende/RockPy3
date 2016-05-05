@@ -526,7 +526,7 @@ class Measurement(object):
     @classmethod
     def from_measurements_create_mean(cls, sobj, mlist,
                                       interpolate=False, recalc_mag=False,
-                                      substfunc='mean', ignore_series=False,
+                                      substfunc='mean', ignore_stypes=False,
                                       color=None, marker=None, linestyle=None):
         """
         Creates a new measurement from a list of measurements
@@ -535,7 +535,7 @@ class Measurement(object):
         :param interpolate:
         :param recalc_mag:
         :param substfunc:
-        :param ignore_series:
+        :param ignore_stypes:
         :return:
         """
         # convert to single measurement
@@ -546,7 +546,6 @@ class Measurement(object):
 
         # use first measurement as base
         dtypes = RockPy3.core.utils.get_common_dtypes_from_list(mlist=mlist)
-
         if len(mlist) == 1:
             mdata = deepcopy(mlist[0].data)
 
@@ -579,19 +578,16 @@ class Measurement(object):
             initial = cls.from_measurements_create_mean(sobj=sobj, mlist=init_list, interpolate=interpolate,
                                                         recalc_mag=recalc_mag, substfunc=substfunc)
         # add series if needed
-        series = None
 
-        if not ignore_series:
-            slist = (set(s.data for s in m.series) for m in mlist)
-            series = set()
-            for s in slist:
-                if not series:
-                    series = s
-                else:
-                    series = series & s
-            if series:
-                series = list(series)
-
+        slist = (set(s.data for s in m.series) for m in mlist )
+        series = set()
+        for s in slist:
+            if not series:
+                series = s
+            else:
+                series = series & s
+        if series:
+            series = list(series)
         return cls(sobj=sobj, ftype='from_measurements_create_mean', mdata=mdata,
                    initial_state=initial, series=series, ismean=True, base_measurements=mlist,
                    color=color, marker=marker, linestyle=linestyle)
@@ -679,7 +675,6 @@ class Measurement(object):
                 Sample.add_measurement method
             mtype: str
                 MANDATORY: measurement type to be imported. Implemented measurements can be seen when calling
-                >>> print Measurement.measurement_formatters()
             fpath: str
                 path to the file including filename
             ftype: str
@@ -2348,8 +2343,16 @@ def get_result_recipe_name(func_name):
 
 
 if __name__ == '__main__':
-    S = RockPy3.RockPyStudy()
-    s = S.add_sample(name='pyrr17591', mass=6.7, mass_unit='mg', samplegroup='LTPY')
-    m = s.add_measurement(fpath='/Users/Mike/Dropbox/experimental_data/pyrrhotite/LTPY_pyrr17591_HYS_mpms#6.7mg#(ax,3.0,C)_(temp,10.0,K).001')
-    s.label_add_series(stype='temp')
-    RockPy3.QuickFig(data = S, visuals='hysteresis')
+    # S = RockPy3.RockPyStudy()
+    # s = S.add_sample(name='pyrr17591', mass=6.7, mass_unit='mg', samplegroup='LTPY')
+    # m = s.add_measurement(fpath='/Users/Mike/Dropbox/experimental_data/pyrrhotite/LTPY_pyrr17591_HYS_mpms#6.7mg#(ax,3.0,C)_(temp,10.0,K).001')
+    # s.label_add_series(stype='temp')
+    # RockPy3.QuickFig(data = S, visuals='hysteresis')
+
+    s = RockPy3.Sample('test')
+    m1 = s.add_simulation('hysteresis', ms=10, series=('mtime',2,'min'))
+    print(m1.series)
+    m2 = s.add_simulation('hysteresis', ms=20, series=('mtime',2,'min'))
+    m= s.add_mean_measurements()
+    print(m[0].series)
+

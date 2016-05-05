@@ -601,7 +601,7 @@ class Sample(object):
         # create mean measurement from a list of measurements
         mean = RockPy3.implemented_measurements[mtype].from_measurements_create_mean(
                 sobj=self, mlist=mlist, interpolate=interpolate, recalc_mag=recalc_mag,
-                substfunc=substfunc, ignore_series=ignore_stypes, color=color, marker=marker, linestyle=linestyle)
+                substfunc=substfunc, ignore_stypes=ignore_stypes, color=color, marker=marker, linestyle=linestyle)
 
         mean.calc_all(force_recalc=True)
         # add to self.mean_measurements if specified

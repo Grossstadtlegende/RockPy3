@@ -146,7 +146,7 @@ class Parm_Acquisition(Acquisition):
 
 
 class Irm_Acquisition(Acquisition):
-    _visuals = (('irm_acquisition', {'color': 'k'}),
+    _visuals = (('irm_acquisition', {'features':('acquisition_data','grid'),'color': 'k'}),
                 )
 
     @staticmethod
