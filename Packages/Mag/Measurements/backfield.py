@@ -116,6 +116,8 @@ class Backfield(measurement.Measurement):
 
         mdata = {}
         mdata['data'] = RockPyData(column_names=header, data=data[0])
+        mdata['data']['mag'] = mdata['data']['mag'].v*ftype_data.mass
+
         mdata['data'].define_alias('variable', 'field')
 
         return mdata

@@ -43,7 +43,7 @@ forc: forc
 thermocurve: rmp, mom
 
 thellier: tt
-paleointensity: pint
+paleointensity: pint, tt
 
 anisotropy: ani, aniso
 anisotropy: irmani
