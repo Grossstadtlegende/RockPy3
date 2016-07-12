@@ -19,6 +19,10 @@ import matplotlib.pyplot as plt
 
 
 class Demagnetization(measurement.Measurement):
+    _visuals = (('demagnetization', {'features': ('demagnetization_data', 'zero_lines', 'demagnetization_components'), 'color': 'k'}),
+                # ('hysteresis', {'features': ('reversible_data', 'irreversible_data', 'zero_lines'),
+                #                'title':'rev. & irrev. hysteretic'})
+                )
     ####################################################################################################################
     # FORMATTING
     @staticmethod
@@ -95,6 +99,7 @@ class Demagnetization(measurement.Measurement):
         """
         d = self.data['data'][component].v
         # get maximal moment
+
         mx_ind = np.argmax(np.fabs(d))
         mx = d[mx_ind]
 
@@ -193,7 +198,6 @@ if __name__ == '__main__':
     # test JR6 afdemag import
     S = RockPy3.Study
     s = S.add_sample('IXD')
-    m=s.add_measurement(fpath='/Users/mike/Dropbox/experimental_data/006_HT-ARM-AF/AF/High_T_AF-demag_020.jr6',
-                      mtype='af', ftype='jr6', series=[('at', 0, 'C')])
-    print(m.get_series(stype='at'))
-    print(m.get_series(stype='at'))
+    m=s.add_measurement(fpath='/Users/mike/Dropbox/experimental_data/006_HT-ARM-AF/AF/High_T_AFdemag_020.jr6',
+                      mtype='af', ftype='jr6', series=[('at', 0, 'C')], automatic_results=False)
+
