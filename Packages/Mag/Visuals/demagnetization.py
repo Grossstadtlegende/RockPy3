@@ -24,6 +24,12 @@ class Demagnetization(Visual):
         RockPy3.Packages.Mag.Features.acquisition.cumsum_acquisition_data(self.ax, mobj, **plt_props)
 
 
+    @plot(mtypes=['demagnetization', 'afdemagnetization'])
+    def feature_demagnetization_components(self, mobj, plt_props=None):
+        RockPy3.Packages.Mag.Features.demagneitzation.demagnetization_data(self.ax, mobj, dtype='x', **plt_props)
+        RockPy3.Packages.Mag.Features.demagneitzation.demagnetization_data(self.ax, mobj, dtype='y', **plt_props)
+        RockPy3.Packages.Mag.Features.demagneitzation.demagnetization_data(self.ax, mobj, dtype='z', **plt_props)
+
 class Af_Demagnetization(Demagnetization):
     def init_visual(self):
         self.standard_features = ['zero_lines', 'grid', 'demagnetization_data']
