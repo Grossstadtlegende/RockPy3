@@ -146,7 +146,7 @@ class Hysteresis(measurement.Measurement):
 
         return cls(sobj, fpath=None, mdata=data, ftype='simulation',
                    color=color, marker=marker, linestyle=linestyle,
-                   idx=idx, series=series)
+                   idx=idx, series=series, **kwargs)
 
     @classmethod
     def get_grid(cls, bmax=1, grid_points=30, tuning=10):
@@ -725,25 +725,26 @@ class Hysteresis(measurement.Measurement):
 
         # filter for field limits
         df_plus = df.filter(df['field'].v >= saturation_percent * self.max_field)
-        df_minus = df.filter(df['field'].v >= saturation_percent * self.max_field)
+        df_minus = df.filter(df['field'].v <= -(saturation_percent * self.max_field))
 
         uf_plus = uf.filter(uf['field'].v >= saturation_percent * self.max_field)
-        uf_minus = uf.filter(uf['field'].v >= saturation_percent * self.max_field)
+        uf_minus = uf.filter(uf['field'].v <= -(saturation_percent * self.max_field))
 
         for i, dir in enumerate([df_plus, df_minus, uf_plus, uf_minus]):
             slope, intercept, r_value, p_value, std_err = stats.linregress(dir['field'].v, dir['mag'].v)
+
             hf_sus_result.append(abs(slope))
             ms_result.append(abs(intercept))
             # check plot
             if check:
                 x = np.linspace(0, self.max_field)
-                y_new = slope * x + intercept
+                y_new = abs(slope) * x + abs(intercept)
                 plt.plot(abs(df['field'].v), abs(df['mag'].v), '-', color=RockPy3.colorscheme[i], label='data')
                 plt.plot(x, y_new, '--', color=RockPy3.colorscheme[i], label='linear fit')
 
         # check plot
         if check:
-            plt.plot([0, 0], [-np.nanmean(hf_sus_result), np.nanmean(hf_sus_result)], 'xk')
+            plt.plot([0, 0], [-np.nanmean(ms_result), np.nanmean(ms_result)], 'xk')
             plt.grid()
             plt.legend(loc='best')
             plt.show()
@@ -1018,8 +1019,9 @@ class Hysteresis(measurement.Measurement):
         if not 'correct_center' in self.correction:
             self.log.info('Center correction has to be applied before quality can be calculated')
             self.correct_center()
-        slope, intercept, r_value, p_value, std_err = self._upfield_downfield_correlation()
         try:
+            slope, intercept, r_value, p_value, std_err = self._upfield_downfield_correlation()
+
             s_n = 1 / (1 - r_value ** 2)
             Q = np.log10(s_n)
             self.results['q'] = [[[Q, ]]]
@@ -1807,4 +1809,6 @@ class Hysteresis(measurement.Measurement):
 
 if __name__ == '__main__':
     S = RockPy3.RockPyStudy()
-    S = RockPy3.RockPyStudy(folder='/Users/mike/Dropbox/experimental_data/FeNiX/FeNi20K/separation test')
+    S.import_folder('/Users/mike/Dropbox/experimental_data/LF4C/Hys_Coe/P0-preTT')
+    for m in S.get_measurement(mtype='hys')[:2]:
+        m.result_ms(check=True)
