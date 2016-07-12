@@ -1,4 +1,5 @@
 import numpy as np
+import scipy.optimize
 
 def endmember_unmixing(data, end_members=2, maxiter=1000):
 
@@ -24,6 +25,8 @@ def endmember_unmixing(data, end_members=2, maxiter=1000):
     S: matrix of values
         l columns for each field step
         m rows one for each end member
+    A.S: matrix with n rows for each measurement displaying the sum of the components e.g. the fit
+    E: matrix with the errrors with n lines for each measurement
 
     Notes
     -----
@@ -32,7 +35,7 @@ def endmember_unmixing(data, end_members=2, maxiter=1000):
     """
     X = data
     l = data.shape[1]
-    m = 3  # end members
+    m = end_members  # end members
     n = data.shape[0]
     eps = 1e-15 # no div/0
 
@@ -45,5 +48,4 @@ def endmember_unmixing(data, end_members=2, maxiter=1000):
         S = S * np.dot(A.T, X) / (np.dot(A.T, np.dot(A, S)) + eps)
         A = A * np.dot(X, S.T) / (np.dot(A, np.dot(S, S.T)) + eps)
 
-    return A, S
-
+    return A, S, np.dot(A,S), X-np.dot(A,S)
