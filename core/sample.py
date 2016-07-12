@@ -303,7 +303,7 @@ class Sample(object):
                                                        series=series,
                                                        suffix=idx,
                                                        comment=comment, #unused for now
-                                                       read_fpath=True)
+                                                       read_fpath=False if mtype and ftype else True)
         """
         ################################################################################################################
         # DATA import from FILE
@@ -834,7 +834,7 @@ class Sample(object):
         pickle_me = {k: v for k, v in self.__dict__.items() if k in
                      ('name', 'index', 'color',
                       'measurements',
-                      '_filtered_data', '_sample_groups',
+                      '_filtered_data', '_samplegroups',
                       '_mdict', '_mean_mdict',
                       'is_mean', 'mean_measurements', '_mean_results',
                       'results',

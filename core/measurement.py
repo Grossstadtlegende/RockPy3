@@ -1084,7 +1084,7 @@ class Measurement(object):
         """
         pickle_me = {k: v for k, v in self.__dict__.items() if k in
                      (
-                         'id', '_idx',
+                         'id', '_idx', 'idx',
                          'ftype', 'fpath',
                          # plotting related
                          '_plt_props',
@@ -1810,7 +1810,8 @@ class Measurement(object):
             if reference == 'mass':
                 m = self.get_mtype_prior_to(mtype='mass')
                 if not m:
-                    raise KeyError('CANT find mass measurement')
+                    self.log.error('CANT find mass measurement')
+                    return 1
                 return m.data['data']['mass'].v[0]
 
             if isinstance(reference, float) or isinstance(reference, int):
@@ -2313,6 +2314,7 @@ def correction(func, *args, **kwargs):
     self = args[0]
     if func.__name__ in self.correction:
         self.log.warning('CORRECTION {} has already been applied'.format(func.__name__))
+        return
     else:
         self.log.info('APPLYING correction {}'.format(func.__name__))
     self.correction.append(func.__name__)

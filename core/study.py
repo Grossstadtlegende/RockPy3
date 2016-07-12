@@ -868,7 +868,7 @@ class Study(object):
 
         # set the color for each sval
         for i, sv in enumerate(svals):
-            self.set_color(stype=stype, sval=sv, color=color_map[i])
+            self.set_color(stype=stype, sval=sv, mean=True, color=color_map[i])
 
     @staticmethod
     def create_heat_color_map(value_list, reverse=False):
