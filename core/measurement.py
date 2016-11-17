@@ -2048,7 +2048,7 @@ class Measurement(object):
         sval_index = svals.index(sval)
         self.set_plt_prop('color', color_map[sval_index])
 
-    def plot(self, **plt_props):
+    def plot(self, save_path=None, return_figure = False, **plt_props):
         """
         Quick plot depending on the mtype._visual specified in the measurement class
         Parameters
@@ -2059,7 +2059,8 @@ class Measurement(object):
         if self._visuals:
             fig = RockPy3.Figure(title='{}'.format(self.sobj.name))
             self.add_visuals(fig, **plt_props)
-            fig.show()
+            f = fig.show(save_path=save_path, return_figure=return_figure)
+            return f
 
     def add_visuals(self, fig, **plt_props):
         for v in self._visuals:

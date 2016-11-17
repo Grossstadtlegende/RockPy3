@@ -328,15 +328,34 @@ class Visual(object):
         self.add_standard()
         for feature in self.features:
             self.features[feature]['method'](name=feature, **self.features[feature]['feature_props'])
+
+        print(self)
         if self.show_legend():
+            print(self.show_legend())
             self.ax.legend(**self.legend_options)
 
-    def show_legend(self):
-        if 'show' in self.legend_options and not self.legend_options['show']:
-            return False
+    def show_legend(self, *args):
+        """
+        Method that determines if the legend shoulb be drawn in the visual. Can be called to change if the legend is drwan.
+        e.g. visual.show_legend(False) will change the parameter so the legend will not be shown
+
+        Returns
+        -------
+            bool
+        """
+        # print(self, self.legend['show'] if 'show' in self.legend else 'None')
+        if args:
+            print('showing legend: %s'%(args[0]))
+            self.legend['show'] = args[0]
+
+        if 'show' in self.legend:# and not self.legend['show']:
+            return self.legend['show']
+
         mlist = [m for k, v in self.data.items() for m in v]
+
         if any(m.plt_props['label'] != '' for m in mlist):
             return True
+
         for f in self.features:
             mlist = [m for k, v in self.features[f]['data'].items() for m in v]
             if any(m.plt_props['label'] != '' for m in mlist):
@@ -357,7 +376,7 @@ class Visual(object):
         """
         possible_parameters = ['loc',  # a location code
                                'prop',  # the font property
-                               'fontsize	',  # the font size (used only if prop is not specified)
+                               'fontsize',  # the font size (used only if prop is not specified)
                                'markerscale',  # the relative size of legend markers vs. original
                                'numpoints',  # the number of points in the legend for line
                                'scatterpoints',  # the number of points in the legend for scatter plot
@@ -432,6 +451,30 @@ class Visual(object):
 
     @property
     def legend(self):
+        '''
+        visual.legend is a dictionary that stores all the properties, which can be used to define a legend in an axes.
+        You can define a certain legend parameter by changibg the value to that parameter-key.
+
+        Examples
+        --------
+
+            Changing the `fontsize` of the legend:
+
+             visual.legend['fontsize'] = 10
+
+            This will change the fontsize from its previous value to 10.
+
+        Returns
+        -------
+            dict: keys(prameters) - values
+
+            This is stored in the hidden variable _legend.
+
+        Notes
+        -----
+
+            The method visual.legend_options checks for any not usable or misspelled keys.
+        '''
         if not hasattr(self, '_legend'):
             setattr(self, '_legend', dict())
         return getattr(self, '_legend')

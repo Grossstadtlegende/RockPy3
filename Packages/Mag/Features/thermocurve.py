@@ -40,6 +40,13 @@ def thermocurve_derivative(ax, mobj, twinx=True, **plt_props):
         x = mobj.data[dtype]['temp'].v
         dx = np.gradient(x)
         dy = np.gradient(mobj.data[dtype]['mag'].v, dx)
+        if 'warming' in dtype:
+            plt_props.update({'color': '#DC3522'})
+        if 'cooling' in dtype:
+            plt_props.update({'color': '#00305A'})
+        if not 'ls' in plt_props:
+            plt_props.pop('linestyle')
+            plt_props.update({'ls': '--'})
         ax.plot(x, dy, **plt_props)
 
 if __name__ == '__main__':

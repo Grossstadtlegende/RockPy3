@@ -114,6 +114,9 @@ class Demagnetization(measurement.Measurement):
             min_idx = ind - no_points / 2
             max_idx = min_idx + no_points
 
+        # convert index into an integer
+        min_idx,max_idx = int(min_idx),int(max_idx)
+
         variables = self.data['data']['variable'].v[min_idx:max_idx]
         data_points = dnorm[min_idx:max_idx]
 

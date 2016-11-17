@@ -299,24 +299,24 @@ class Hysteresis(measurement.Measurement):
             header[header.index('moment')] = 'uncorrected moment'
             header[header.index('adjusted moment')] = 'moment'
 
-        if len(data) == 3:
+        if len(data) == 3: #todo Units
             mdata.setdefault('virgin', RockPyData(column_names=header, data=data[0],
-                                                  units=ftype_data.units).sort('field'))
+                                                  units=None).sort('field'))
             mdata.setdefault('down_field', RockPyData(column_names=header, data=data[1],
-                                                      units=ftype_data.units).sort('field'))
+                                                      units=None).sort('field'))
             mdata.setdefault('up_field', RockPyData(column_names=header, data=data[2],
-                                                    units=ftype_data.units).sort('field'))
+                                                    units=None).sort('field'))
 
         elif len(data) == 2:
             mdata.setdefault('virgin', None)
             mdata.setdefault('down_field', RockPyData(column_names=header, data=data[0],
-                                                      units=ftype_data.units).sort('field'))
+                                                      units=None).sort('field'))
             mdata.setdefault('up_field', RockPyData(column_names=header, data=data[1],
-                                                    units=ftype_data.units).sort('field'))
+                                                    units=None).sort('field'))
 
         elif len(data) == 1:
             mdata.setdefault('virgin', RockPyData(column_names=header, data=data[0],
-                                                  units=ftype_data.units
+                                                  units=None
                                                   ).sort('field'))
             mdata.setdefault('down_field', None)
             mdata.setdefault('up_field', None)

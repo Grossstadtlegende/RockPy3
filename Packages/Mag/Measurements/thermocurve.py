@@ -64,7 +64,9 @@ class Thermocurve(measurement.Measurement):
 
     @staticmethod
     def format_vsm(ftype_data, sobj_name=None):
-
+        '''
+        Reading routine for thermal demagnetization curves measured with a VSM.
+        '''
         header = ftype_data.header
         segments = ftype_data.segment_data
         data = ftype_data.data

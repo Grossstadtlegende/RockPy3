@@ -264,11 +264,17 @@ class Figure(object):
 
         # prepare legends for individual visuals
         for name, type, visual in self._visuals:
+            # check if the legend should be drawn accoring to the visual.legend dictionary
+            if not visual.show_legend():
+                continue
+
             if not legend:
                 break
             handles, labels = visual.ax.get_legend_handles_labels()
             if not all(i for i in (handles, labels)):
                 continue
+
+            # sorting of labels
             if sort_labels:
                 labels, handles = zip(*sorted(zip(labels, handles), key=lambda t: t[0]))
             visual.ax.legend(handles, labels, **visual.legend_options)

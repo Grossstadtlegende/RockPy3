@@ -33,6 +33,7 @@ def endmember_unmixing(data, end_members=2, maxiter=1000):
     You can plot each member assuming 3 end members with i measurements, with plot( fields, S[0]*A[i][0])
     and the sum of them with plot( fields, S[0]*A[i][0]+S[1]*A[i][1]+S[2]*A[i][2])
     """
+
     X = data
     l = data.shape[1]
     m = end_members  # end members
