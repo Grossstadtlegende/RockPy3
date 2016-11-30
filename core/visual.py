@@ -329,9 +329,7 @@ class Visual(object):
         for feature in self.features:
             self.features[feature]['method'](name=feature, **self.features[feature]['feature_props'])
 
-        print(self)
         if self.show_legend():
-            print(self.show_legend())
             self.ax.legend(**self.legend_options)
 
     def show_legend(self, *args):

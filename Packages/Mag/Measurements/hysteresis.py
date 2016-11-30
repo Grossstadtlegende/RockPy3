@@ -63,7 +63,7 @@ class Hysteresis(measurement.Measurement):
 
     @classmethod
     def from_simulation(cls, sobj, idx=0,
-                        ms=250., mrs_ms=0.3, bc=0.1, hf_sus=1., bmax=.8, b_sat=0.35, steps=100,
+                        ms=1., mrs_ms=0.5, bc=0.1, hf_sus=1., bmax=.8, b_sat=0.7, steps=100,
                         b_offset=0, m_offest=0,
                         noise=None, field_noise=0, series=None,
                         color=None, marker=None, linestyle=None, **kwargs):

@@ -32,9 +32,10 @@ def thermocurve_derivative(ax, mobj, twinx=True, **plt_props):
     Plots the down_field branch of a hysteresis
     """
     if twinx:
-        ax = ax.twinx()
-        ax.set_xlabel(plt_props.get('xlabel'))
-        ax.set_ylabel(plt_props.get('ylabel'))
+        ax2 = ax.twinx()
+        ax2.set_xlabel(plt_props.pop('xlabel', None))
+        ax2.set_ylabel(plt_props.pop('ylabel', 'dM/dT'))
+        ax2.ticklabel_format(style='sci', axis='y', scilimits=(0,0))
 
     for dtype in mobj.data:
         x = mobj.data[dtype]['temp'].v
@@ -47,7 +48,7 @@ def thermocurve_derivative(ax, mobj, twinx=True, **plt_props):
         if not 'ls' in plt_props:
             plt_props.pop('linestyle')
             plt_props.update({'ls': '--'})
-        ax.plot(x, dy, **plt_props)
+        ax2.plot(x, dy, **plt_props)
 
 if __name__ == '__main__':
     import RockPy3

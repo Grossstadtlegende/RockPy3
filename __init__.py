@@ -1,8 +1,9 @@
 import os
 import logging
 import matplotlib
+import configparser
 
-matplotlib.use('Qt4Agg')
+# matplotlib.use('Qt5Agg')
 
 import RockPy3
 installation_directory = os.path.dirname(RockPy3.__file__)
@@ -121,6 +122,7 @@ coord = 'geo'
 # check_coordinate_system(coord)
 
 import RockPy3.import_check
+import import_check
 import_check.check_imports()
 
 ''' add master study '''
@@ -149,3 +151,29 @@ def get_fontsize():
     return matplotlib.rcParams['font.size']
 
 set_fontsize(14)
+
+def CreateConfigFile():
+    config = configparser.ConfigParser()
+    for mtype, cls in sorted(RockPy3.implemented_measurements.items()):
+        for result in cls.result_methods():
+            config['#'.join([mtype, result])] = {}
+            print(cls.res_signature()[result]['signature'])
+            # config[mtype][] = 'test'#cls.res_signature()[result]
+    #         #         if result == 'b_anc':
+    #         #             print(cls.res_signature()[result])
+    #         #         if not cls.res_signature()[result]['indirect']:
+    #         #             standard_method = '_'.join([result, cls.result_recipe()[result]]).replace('_DEFAULT', '')
+    #         #             for param, value in cls.calc_signature()[standard_method].items():
+    #         #                 line = ', '.join([mtype, result, cls.result_recipe()[result].lower(), param, str(value), '\n'])
+    #         #                 f.write(line)
+    #
+    with open(os.path.join(RockPy3.installation_directory, 'configfile.ini'), 'w') as configfile:
+        config.write(configfile)
+
+
+if not os.path.isfile(os.path.join(RockPy3.installation_directory, 'configfile.ini')):
+    print('No config file found. Creating: %s' % os.path.join(RockPy3.installation_directory, 'configfile.ini'))
+    CreateConfigFile()
+
+if __name__ == '__main__':
+    CreateConfigFile()

@@ -326,9 +326,17 @@ class Measurement(object):
 
     @classmethod
     def implemented_ftypes(cls):
-        # setting implemented machines
-        # looking for all subclasses of RockPy3.io.base.Machine
-        # generating a dictionary of implemented machines : {implemented out_* method : machine_class}
+        """
+        setting implemented machines
+        looking for all subclasses of RockPy3.io.base.Machine
+        generating a dictionary of implemented machines : {implemented out_* method : machine_class}
+
+        Returns
+        -------
+
+        dict: classname:
+        """
+
         implemented_ftypes = {cl.__name__.lower(): cl for cl in RockPy3.core.io.ftype.__subclasses__()}
         return implemented_ftypes
 
