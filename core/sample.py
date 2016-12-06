@@ -72,7 +72,7 @@ class Sample(object):
                  x_len=None, y_len=None, z_len=None,  # for cubic samples
                  heightunit='mm', diameterunit='mm',
                  length_unit='mm', length_ftype='generic',
-                 sample_shape='cylinder',
+                 sample_shape=None,
                  coord=None,
                  samplegroup=None,
                  study=None,
@@ -166,10 +166,10 @@ class Sample(object):
             z_len = self.add_measurement(mtype='length', fpath=None, ftype=length_ftype,
                                          value=float(z_len), unit=length_unit, direction='z')
 
-        if height and diameter:
-            self.add_measurement(mtype='volume', sample_shape=sample_shape, height=height, diameter=diameter)
-        if x_len and y_len and z_len:
-            self.add_measurement(mtype='volume', sample_shape=sample_shape, x_len=x_len, y_len=y_len, z_len=z_len)
+        # if height and diameter and sample_shape:
+        #     self.add_measurement(mtype='volume', sample_shape=sample_shape, height=height, diameter=diameter)
+        # if x_len and y_len and z_len and sample_shape == 'cube':
+        #     self.add_measurement(mtype='volume', sample_shape=sample_shape, x_len=x_len, y_len=y_len, z_len=z_len)
 
     @property
     def series(self):
