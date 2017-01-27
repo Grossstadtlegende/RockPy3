@@ -361,5 +361,6 @@ def generate_plots(n=3, xsize=5., ysize=5., columns=None, tight_layout=True):
             ax.yaxis.major.formatter._useMathText = True
         axes.append([ax1, None, None])
 
-    fig.set_tight_layout(tight_layout)
+    if tight_layout:
+        fig.set_tight_layout(tight_layout)
     return fig, axes
