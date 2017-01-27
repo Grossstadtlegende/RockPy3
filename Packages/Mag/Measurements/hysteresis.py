@@ -269,14 +269,14 @@ class Hysteresis(measurement.Measurement):
                   normalize_variable=False, dont_normalize=None,
                   norm_initial_state=True, **options):
         super(Hysteresis, self).normalize(reference=reference, ref_dtype=ref_dtype,
-                       norm_dtypes=norm_dtypes, vval=vval,
-                       norm_method=norm_method, norm_factor=norm_factor, result=result,
-                       normalize_variable=normalize_variable, dont_normalize=dont_normalize,
-                       norm_initial_state=norm_initial_state)
+                                          norm_dtypes=norm_dtypes, vval=vval,
+                                          norm_method=norm_method, norm_factor=norm_factor, result=result,
+                                          normalize_variable=normalize_variable, dont_normalize=dont_normalize,
+                                          norm_initial_state=norm_initial_state)
         return self
+
     ####################################################################################################################
     """ formatting functions """
-
 
     # have to return mdata matching the measurement type
     @staticmethod
@@ -299,7 +299,7 @@ class Hysteresis(measurement.Measurement):
             header[header.index('moment')] = 'uncorrected moment'
             header[header.index('adjusted moment')] = 'moment'
 
-        if len(data) == 3: #todo Units
+        if len(data) == 3:  # todo Units
             mdata.setdefault('virgin', RockPyData(column_names=header, data=data[0],
                                                   units=None).sort('field'))
             mdata.setdefault('down_field', RockPyData(column_names=header, data=data[1],
@@ -585,7 +585,7 @@ class Hysteresis(measurement.Measurement):
                 plt.plot(x, spl(x), color=RockPy3.colorscheme[i])
 
         if check:
-            plt.plot([0, 0],[-np.nanmean(result), np.nanmean(result)],  'xk', mew=2)
+            plt.plot([0, 0], [-np.nanmean(result), np.nanmean(result)], 'xk', mew=2)
             plt.grid()
             plt.show()
 
@@ -609,7 +609,8 @@ class Hysteresis(measurement.Measurement):
         saturation_percent /= 100
 
         # filter ommitted points
-        df = self.data['down_field'].filter_idx(range(ommit_last_n, len(self.data['down_field']['field'].v) - ommit_last_n))
+        df = self.data['down_field'].filter_idx(
+            range(ommit_last_n, len(self.data['down_field']['field'].v) - ommit_last_n))
         uf = self.data['up_field'].filter_idx(
                 (range(ommit_last_n, len(self.data['down_field']['field'].v) - ommit_last_n)))
 
@@ -674,13 +675,13 @@ class Hysteresis(measurement.Measurement):
             df_pos, df_neg, uf_pos, uf_neg = self.get_df_uf_plus_minus(saturation_percent=0,
                                                                        ommit_last_n=ommit_last_n)
             new_y = self.approach2sat_func(df_pos['field'].v, np.mean(ms), np.mean(chi), np.mean(alpha))
-            plt.plot(df_pos['field'].v, df_pos['mag'].v, 'o', label='data')
+            plt.plot(df_pos['field'].v, df_pos['mag'].v, 'ko', label='data', mfc='w')
             plt.plot(df_pos['field'].v, new_y, label='app2sat_function')
             plt.plot(0, self.results['ms'].v, 'x', markeredgewidth=2, markersize=5, zorder=100)
             plt.plot(df_pos['field'].v, df_pos['field'].v * np.mean(chi) + np.mean(ms), label='slope')
             plt.plot([saturation_percent * self.max_field / 100, saturation_percent * self.max_field / 100],
                      [min(new_y), max(new_y)], 'k--', label='assumed saturation %i %%' % saturation_percent)
-            plt.legend(loc='best')
+            plt.legend(loc='best', frameon=False)
             plt.grid()
             plt.ylim([0, max(new_y) * 1.1])
             plt.show()
@@ -719,9 +720,10 @@ class Hysteresis(measurement.Measurement):
 
         # filter ommitted points
         # print(self.data['down_field'][range(ommit_last_n, len(self.data['down_field']['field'].v)-ommit_last_n)])
-        df = self.data['down_field'].filter_idx(range(ommit_last_n, len(self.data['down_field']['field'].v)-ommit_last_n))
+        df = self.data['down_field'].filter_idx(
+            range(ommit_last_n, len(self.data['down_field']['field'].v) - ommit_last_n))
 
-        uf = self.data['up_field'].filter_idx(range(ommit_last_n, len(self.data['up_field']['field'].v)-ommit_last_n))
+        uf = self.data['up_field'].filter_idx(range(ommit_last_n, len(self.data['up_field']['field'].v) - ommit_last_n))
 
         # filter for field limits
         df_plus = df.filter(df['field'].v >= saturation_percent * self.max_field)
@@ -1262,7 +1264,17 @@ class Hysteresis(measurement.Measurement):
     @correction
     def correct_center(self, check=False):
         """
-        The lower branch of the loop is inverted through (Hoff, 0); that is, each measured point with coordinates (H, M) is mapped into a new point at (−H −2Hoff, −M). M values are then interpolated for this inverted half‐loop at field values equal to those of the upperbranch of the uninverted loop for quantitativecomparison (as in Figure 2a). When the trial valueHoff equals the true horizontal shift H0, the invertedloop has the same horizontal offset as the measuredone, and the tie lines linking equivalent point pairsall have the same length. A plot of M+(H) versus M− (H, H ) is therefore linear when H is an inv off offaccurate measure of the horizontal loop shift, and is curved otherwise (Figure 2b). We find H0 by systematically varying Hoff to obtain the best linear relation of M+(H) and M− (H, H ), as quantifiedinv offby the correlation coefficient R2. The intercept of the best fit line corresponds to 2M0. Because the function R2(Hoff) is in most cases a well‐defined parabola (Figure 2b), an efficient algorithm for function minimization/maximization (e.g., Brent’s algorithm [Press et al., 1986]) converges rapidly and very accurately to the maximum.
+        The lower branch of the loop is inverted through (Hoff, 0); that is, each measured point with coordinates (H, M)
+        is mapped into a new point at (-H -2Hoff, -M). M values are then interpolated for this inverted half-loop at
+        field values equal to those of the upperbranch of the uninverted loop for quantitativecomparison
+        (as in Figure 2a). When the trial valueHoff equals the true horizontal shift H0, the invertedloop
+        has the same horizontal offset as the measured one, and the tie lines linking equivalent point pairsall have
+        the same length. A plot of M+(H) versus M- (H, H ) is therefore linear when H is an inv off offaccurate measure
+        of the horizontal loop shift, and is curved otherwise (Figure 2b). We find H0 by systematically varying Hoff to
+        obtain the best linear relation of M+(H) and M- (H, H ), as quantifiedinv off by the correlation coefficient R2.
+        The intercept of the best fit line corresponds to 2M0. Because the function R2(Hoff) is in most cases a
+        well-defined parabola (Figure 2b), an efficient algorithm for function minimization/maximization (e.g.,
+        Brent's algorithm [Press et al., 1986]) converges rapidly and very accurately to the maximum.
 
         Parameters
         ----------
@@ -1321,7 +1333,7 @@ class Hysteresis(measurement.Measurement):
         df_rotate = self.rotate_branch(df)
 
         fields = sorted(
-            list(set(df['field'].v) | set(uf['field'].v) | set(df_rotate['field'].v) | set(uf_rotate['field'].v)))
+                list(set(df['field'].v) | set(uf['field'].v) | set(df_rotate['field'].v) | set(uf_rotate['field'].v)))
 
         # interpolate all branches and rotations
         df = df.interpolate(fields)
