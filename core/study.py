@@ -12,6 +12,7 @@ import RockPy3.core.file_operations
 import numpy as np
 from functools import partial
 from copy import deepcopy
+import pandas as pd
 
 log = logging.getLogger(__name__)
 
@@ -742,6 +743,16 @@ class Study(object):
                 results = results.append_rows(aux)
         return results
 
+    @property
+    def results_pdd(self):
+        results = pd.DataFrame()
+
+        for s in self.samplelist:
+            sres = s.results_pdd
+            sres['sname'] = s.name
+            results = results.append(sres, ignore_index = True)
+
+        return results
     ####################################################################################################################
     ''' label operations '''
 

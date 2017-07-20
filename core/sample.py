@@ -9,6 +9,7 @@ import numpy as np
 from collections import OrderedDict
 from functools import partial
 import xml.etree.ElementTree as etree
+import pandas as pd
 
 log = logging.getLogger(__name__)
 
@@ -116,6 +117,7 @@ class Sample(object):
                 self.log.error('STUDY not a valid RockPy3.core.Study object. Using RockPy Masterstudy')
                 study = RockPy3.Study
 
+        self.sid = id(self)
         self.name = name  # unique name, only one per study
         self.comment = comment
 
@@ -721,7 +723,20 @@ class Sample(object):
             else:
                 aux = self._raw_results[mid]
             results = results.append_rows(aux)
-        return results\
+        return results
+
+    @property
+    def results_pdd(self):
+        results = pd.DataFrame()
+        i = 0
+        for mid, res in self._raw_results.items():
+            results.loc[i, 'sid'] = self.sid
+            results.loc[i, 'mid'] = mid
+            results.loc[i, 'mtype'] = self.get_measurement(id=mid)[0].mtype
+            for rs in res.column_names:
+                results.loc[i, rs] = res[rs].v[0]
+            i += 1
+        return results
 
     @property
     def _raw_mean_results(self):
@@ -1188,6 +1203,3 @@ if __name__ == '__main__':
     v = f.add_visual('hysteresis', features='irreversible_data')
 
     f.show()
-
-
-
